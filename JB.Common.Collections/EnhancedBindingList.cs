@@ -69,14 +69,19 @@ namespace JB.Common.Collections
 		}
 
 		/// <summary>
-		///     Moves the item at the specified index to a new position in the list.
+		/// Moves the item at the specified index to a new position in the list.
 		/// </summary>
 		/// <param name="itemIndex">The index of the item to move.</param>
 		/// <param name="newIndex">The new index.</param>
+		/// <param name="correctNewIndexOnIndexShift">if set to <c>true</c> the <paramref name="newIndex" /> will be adjusted,
+		/// if required, depending on whether an index shift took place during the move due to the original position of the item.
+		/// Basically if you move an item from a lower index position to a higher one, the index positions of all items with higher index positions than <paramref name="itemIndex" />
+		/// will be shifted upwards (logically by -1).
+		/// Depending on whether the caller intents to move the item strictly or logically to the <paramref name="newIndex"/> position, correction might be useful.</param>
 		/// <exception cref="ArgumentOutOfRangeException">item</exception>
-		public void Move(int itemIndex, int newIndex)
+		public void Move(int itemIndex, int newIndex, bool correctNewIndexOnIndexShift = false)
 		{
-			Move(this[itemIndex], newIndex);
+			Move(this[itemIndex], newIndex, correctNewIndexOnIndexShift);
 		}
 
 		/// <summary>
@@ -84,8 +89,13 @@ namespace JB.Common.Collections
 		/// </summary>
 		/// <param name="item">The item.</param>
 		/// <param name="newIndex">The new index.</param>
+		/// <param name="correctNewIndexOnIndexShift">if set to <c>true</c> the <paramref name="newIndex" /> will be adjusted,
+		/// if required, depending on whether an index shift took place during the move due to the original position of the item.
+		/// Basically if you move an item from a lower index position to a higher one, the index positions of all items with higher index positions than <paramref name="itemIndex" />
+		/// will be shifted upwards (logically by -1).
+		/// Depending on whether the caller intents to move the item strictly or logically to the <paramref name="newIndex"/> position, correction might be useful.</param>
 		/// <exception cref="ArgumentOutOfRangeException">item</exception>
-		public void Move(T item, int newIndex)
+		public void Move(T item, int newIndex, bool correctNewIndexOnIndexShift = false)
 		{
 			// temporarily disabling event notifications to prevent a second, duplicate ListChanged event by the underlying bindinglist itself
 			var originalRaiseListChangedEventsValue = RaiseListChangedEvents;
@@ -112,7 +122,7 @@ namespace JB.Common.Collections
 				// if the original position.. where it was taken out.. was below the newIndex, the indexshift has no impact on the newindex,
 				// hence it can be inserted at the new index without troubles.
 				int actuallyUsedNewIndex;
-				if (originalIndex > newIndex)
+				if (originalIndex > newIndex || correctNewIndexOnIndexShift == false)
 				{
 					actuallyUsedNewIndex = newIndex;
 					InsertItem(newIndex, item);

@@ -5,12 +5,9 @@ using System.Runtime.InteropServices;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle("JB.Common.Collections")]
-[assembly: AssemblyDescription("Containes custom Collection and list Types")]
+[assembly: AssemblyDescription("Contains custom Collection and list Types")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("Joerg Battermann")]
 [assembly: AssemblyProduct("JB.Common.Collections")]
-[assembly: AssemblyCopyright("Copyright © 2015 Joerg Battermann")]
-[assembly: AssemblyTrademark("")]
 [assembly: AssemblyCulture("")]
 
 // Setting ComVisible to false makes the types in this assembly not visible 

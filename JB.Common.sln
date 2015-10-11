@@ -7,8 +7,12 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JB.Common.Collections", "JB
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{8A122F14-4B60-4FF0-A400-DEED25A9E624}"
 	ProjectSection(SolutionItems) = preProject
+		CommonAssemblyInfo.cs = CommonAssemblyInfo.cs
 		JB.Common.Collections.nuspec = JB.Common.Collections.nuspec
+		JB.Common.Collections.Reactive.nuspec = JB.Common.Collections.Reactive.nuspec
 	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JB.Common.Collections.Reactive", "JB.Common.Collections.Reactive\JB.Common.Collections.Reactive.csproj", "{A30A30A6-9914-42DC-95A1-527B652B165D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -20,6 +24,10 @@ Global
 		{360B8B3F-5EF4-4CD1-96F2-F3CC67A2B2B3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{360B8B3F-5EF4-4CD1-96F2-F3CC67A2B2B3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{360B8B3F-5EF4-4CD1-96F2-F3CC67A2B2B3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A30A30A6-9914-42DC-95A1-527B652B165D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A30A30A6-9914-42DC-95A1-527B652B165D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A30A30A6-9914-42DC-95A1-527B652B165D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A30A30A6-9914-42DC-95A1-527B652B165D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
