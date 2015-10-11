@@ -18,8 +18,8 @@ namespace JB.Common.Collections
 	///     implementation, but also ensuring all events are raised on the same initially created or provided
 	///     <see cref="SynchronizationContext" />.
 	/// </summary>
-	/// <typeparam name="T"></typeparam>
-	public class SynchronizedBindingList<T> : BindingList<T>
+	/// <typeparam name="T">The type of elements in the list.</typeparam>
+	public class SynchronizedBindingList<T> : EnhancedBindingList<T>
 	{
 		private readonly SendOrPostCallback _onAddingNewInvoker;
 		private readonly SendOrPostCallback _onListChangedInvoker;

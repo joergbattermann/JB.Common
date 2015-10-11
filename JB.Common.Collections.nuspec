@@ -2,12 +2,12 @@
 <package xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
   <metadata xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
     <id>JB.Common.Collections</id>
-    <version>0.1.0</version>
+    <version>0.1.1</version>
     <authors>Joerg Battermann</authors>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>Provides custom collection and list types.</description>
     <summary>This package contains custom type(s) I needed myself or deemed useful for current or future projects.</summary>
-    <releaseNotes>Initial version with a synchronized BindingList implementation</releaseNotes>
+    <releaseNotes>Initial version with an enhanced (for corrected/added (re)move handling) and a synchronized BindingList implementation.</releaseNotes>
     <language>en-US</language>
     <copyright>Joerg Battermann</copyright>
     <licenseUrl>https://github.com/jbattermann/JB.Common/blob/master/LICENSE</licenseUrl>
