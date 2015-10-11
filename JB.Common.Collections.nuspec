@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<package xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <metadata xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+    <id>JB.Common.Collections</id>
+    <version>0.1.0</version>
+    <authors>Joerg Battermann</authors>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>Provides custom collection and list types.</description>
+    <summary>This package contains custom type(s) I needed myself or deemed useful for current or future projects.</summary>
+    <releaseNotes>Initial version with a synchronized BindingList implementation</releaseNotes>
+    <language>en-US</language>
+    <copyright>Joerg Battermann</copyright>
+    <iconUrl></iconUrl>
+    <licenseUrl>https://github.com/jbattermann/JB.Common/blob/master/LICENSE</licenseUrl>
+    <projectUrl>https://github.com/jbattermann/JB.Common/blob/master/README.md</projectUrl>
+    <dependencies></dependencies>
+    <tags>Collections Collection List BindingList Enumerable</tags>
+  </metadata>
+  <files>
+    <file src="JB.Common.Collections\bin\Release\JB.Common.Collections.dll" target="lib\net45" />
+    <file src="JB.Common.Collections\bin\Release\JB.Common.Collections.pdb" target="lib\net45" />
+    <file src="JB.Common.Collections\bin\Release\JB.Common.Collections.xml" target="lib\net45" />
+  </files>
+</package>
