@@ -91,7 +91,7 @@ namespace JB.Common.Collections
 		/// <param name="newIndex">The new index.</param>
 		/// <param name="correctNewIndexOnIndexShift">if set to <c>true</c> the <paramref name="newIndex" /> will be adjusted,
 		/// if required, depending on whether an index shift took place during the move due to the original position of the item.
-		/// Basically if you move an item from a lower index position to a higher one, the index positions of all items with higher index positions than <paramref name="itemIndex" />
+		/// Basically if you move an item from a lower index position to a higher one, the index positions of all items with higher index positions than the <paramref name="item" /> ones
 		/// will be shifted upwards (logically by -1).
 		/// Depending on whether the caller intents to move the item strictly or logically to the <paramref name="newIndex"/> position, correction might be useful.</param>
 		/// <exception cref="ArgumentOutOfRangeException">item</exception>
