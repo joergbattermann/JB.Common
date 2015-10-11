@@ -10,10 +10,8 @@
     <releaseNotes>Initial version with a synchronized BindingList implementation</releaseNotes>
     <language>en-US</language>
     <copyright>Joerg Battermann</copyright>
-    <iconUrl></iconUrl>
     <licenseUrl>https://github.com/jbattermann/JB.Common/blob/master/LICENSE</licenseUrl>
     <projectUrl>https://github.com/jbattermann/JB.Common/blob/master/README.md</projectUrl>
-    <dependencies></dependencies>
     <tags>Collections Collection List BindingList Enumerable</tags>
   </metadata>
   <files>
