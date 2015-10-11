@@ -54,32 +54,6 @@ namespace JB.Common.Collections
 		}
 
 		/// <summary>
-		///     Adds the range of items.
-		/// </summary>
-		/// <param name="items">The items.</param>
-		public void AddRange(IEnumerable<T> items)
-		{
-			if (items == null)
-				return;
-
-			var originalRaiseListChangedEvents = RaiseListChangedEvents;
-			RaiseListChangedEvents = false;
-			try
-			{
-				foreach (var item in items)
-				{
-					Add(item);
-				}
-			}
-			finally
-			{
-				RaiseListChangedEvents = originalRaiseListChangedEvents;
-				if (originalRaiseListChangedEvents)
-					ResetBindings();
-			}
-		}
-
-		/// <summary>
 		///     Synchronized version of <see cref="OnAddingNew" /> as this gets called on the initially provided or captured
 		///     <see cref="SynchronizationContext" />.
 		/// </summary>

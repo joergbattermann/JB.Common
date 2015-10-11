@@ -31,7 +31,7 @@ namespace JB.Common.Collections
 	public class EnhancedBindingList<T> : BindingList<T>
 	{
 		/// <summary>
-		/// Initializes a new instance of the <see cref="EnhancedBindingList{T}"/> class.
+		///     Initializes a new instance of the <see cref="EnhancedBindingList{T}" /> class.
 		/// </summary>
 		/// <param name="list">
 		///     An <see cref="T:System.Collections.Generic.IList`1" /> of items to be contained in the
@@ -40,6 +40,32 @@ namespace JB.Common.Collections
 		public EnhancedBindingList(IList<T> list = null)
 			: base(list ?? new List<T>())
 		{
+		}
+
+		/// <summary>
+		///     Adds the range of items.
+		/// </summary>
+		/// <param name="items">The items.</param>
+		public void AddRange(IEnumerable<T> items)
+		{
+			if (items == null)
+				return;
+
+			var originalRaiseListChangedEvents = RaiseListChangedEvents;
+			RaiseListChangedEvents = false;
+			try
+			{
+				foreach (var item in items)
+				{
+					Add(item);
+				}
+			}
+			finally
+			{
+				RaiseListChangedEvents = originalRaiseListChangedEvents;
+				if (originalRaiseListChangedEvents)
+					ResetBindings();
+			}
 		}
 
 		/// <summary>
