@@ -11,6 +11,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Reactive;
+using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using ReactiveUI;
 
@@ -21,6 +22,27 @@ namespace JB.Common.Collections
 	/// </summary>
 	public static class EnhancedBindingListExtensions
 	{
+		/// <summary>
+		/// Forwards the <paramref name="sourceBindingList" /> changes to the <paramref name="targetReactiveLists" />.
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="sourceBindingList">The source binding list.</param>
+		/// <param name="targetReactiveLists">The target reactive lists.</param>
+		/// <param name="includeItemChanges">if set to <c>true</c> individual items' changes will be propagated to the <paramref name="targetReactiveLists" /> via replacing the item completely.</param>
+		/// <returns></returns>
+		/// <exception cref="System.ArgumentNullException">sourceReactiveList
+		/// or
+		/// targetBindingList</exception>
+		/// <exception cref="System.InvalidOperationException">Source and Target Lists must contain exactly the same element(s) at
+		/// the exact same index position(s)</exception>
+		public static IDisposable ForwardListChangesTo<T>(this EnhancedBindingList<T> sourceBindingList, IEnumerable<ReactiveList<T>> targetReactiveLists, bool includeItemChanges = false)
+		{
+			if (sourceBindingList == null) throw new ArgumentNullException("sourceBindingList");
+			if (targetReactiveLists == null) throw new ArgumentNullException("targetReactiveLists");
+
+			return new CompositeDisposable(targetReactiveLists.Select(targetBindingList => sourceBindingList.ForwardListChangesTo(targetBindingList, includeItemChanges)));
+		}
+
 		/// <summary>
 		/// Forwards the <paramref name="sourceBindingList" /> changes to the <paramref name="targetReactiveList" />.
 		/// </summary>
