@@ -35,10 +35,12 @@ namespace JB.Common.Collections
 		/// targetBindingList</exception>
 		/// <exception cref="System.InvalidOperationException">Source and Target Lists must contain exactly the same element(s) at
 		/// the exact same index position(s)</exception>
-		public static IDisposable ForwardListChangesTo<T>(this EnhancedBindingList<T> sourceBindingList, IEnumerable<ReactiveList<T>> targetReactiveLists, bool includeItemChanges = false)
+		public static IDisposable ForwardListChangesTo<T>(this EnhancedBindingList<T> sourceBindingList, bool includeItemChanges = false, params ReactiveList<T>[] targetReactiveLists)
 		{
 			if (sourceBindingList == null) throw new ArgumentNullException("sourceBindingList");
 			if (targetReactiveLists == null) throw new ArgumentNullException("targetReactiveLists");
+
+			if (targetReactiveLists.Length <= 0) throw new ArgumentOutOfRangeException("targetReactiveLists");
 
 			return new CompositeDisposable(targetReactiveLists.Select(targetBindingList => sourceBindingList.ForwardListChangesTo(targetBindingList, includeItemChanges)));
 		}

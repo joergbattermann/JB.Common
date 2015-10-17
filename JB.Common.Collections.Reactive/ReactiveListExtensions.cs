@@ -39,10 +39,12 @@ namespace JB.Common.Collections
 		///     Source and Target Lists must contain exactly the same element(s) at
 		///     the exact same index position(s)
 		/// </exception>
-		public static IDisposable ForwardListChangesTo<T>(this ReactiveList<T> sourceReactiveList, IEnumerable<EnhancedBindingList<T>> targetBindingLists, bool includeItemChanges = false)
+		public static IDisposable ForwardListChangesTo<T>(this ReactiveList<T> sourceReactiveList, bool includeItemChanges = false, params EnhancedBindingList<T>[] targetBindingLists)
 		{
 			if (sourceReactiveList == null) throw new ArgumentNullException("sourceReactiveList");
 			if (targetBindingLists == null) throw new ArgumentNullException("targetBindingLists");
+
+			if (targetBindingLists.Length <= 0) throw new ArgumentOutOfRangeException("targetBindingLists");
 
 			return new CompositeDisposable(targetBindingLists.Select(targetBindingList => sourceReactiveList.ForwardListChangesTo(targetBindingList, includeItemChanges)));
 		}
