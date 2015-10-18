@@ -1,22 +1,26 @@
 <?xml version="1.0"?>
 <package xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
   <metadata xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
-    <id>JB.Common</id>
+    <id>JB.Common.Reactive</id>
     <version>0.1.8</version>
     <authors>Joerg Battermann</authors>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
-    <description>Provides custom types, helpers and extension methods.</description>
+    <description>Provides custom Reactive Extensions Related types and helpers.</description>
     <summary>This package contains custom type(s) I needed myself or deemed useful for current or future projects.</summary>
     <releaseNotes>Initial version.</releaseNotes>
     <language>en-US</language>
     <copyright>Joerg Battermann</copyright>
     <licenseUrl>https://github.com/jbattermann/JB.Common/blob/master/LICENSE</licenseUrl>
     <projectUrl>https://github.com/jbattermann/JB.Common/blob/master/README.md</projectUrl>
-    <tags>Common Helpers HelperMethods ExtensionMethods</tags>
+    <dependencies>
+      <dependency id="JB.Common" version="[0.1.7,]" />
+      <dependency id="Rx-Main" version="[2.2.5,]" />
+    </dependencies>
+    <tags>Reactive Extensions rxnet</tags>
   </metadata>
   <files>
-    <file src="JB.Common\bin\Release\JB.Common.dll" target="lib\net45" />
-    <file src="JB.Common\bin\Release\JB.Common.pdb" target="lib\net45" />
-    <file src="JB.Common\bin\Release\JB.Common.xml" target="lib\net45" />
+    <file src="JB.Common.Reactive\bin\Release\JB.Common.Reactive.dll" target="lib\net45" />
+    <file src="JB.Common.Reactive\bin\Release\JB.Common.Reactive.pdb" target="lib\net45" />
+    <file src="JB.Common.Reactive\bin\Release\JB.Common.Reactive.xml" target="lib\net45" />
   </files>
 </package>
