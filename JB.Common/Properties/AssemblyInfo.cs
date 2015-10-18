@@ -4,10 +4,10 @@ using System.Runtime.InteropServices;
 // General Information about an assembly is controlled through the following 
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
-[assembly: AssemblyTitle("JB.Common.Collections.Reactive")]
-[assembly: AssemblyDescription("Contains RX.Net / ReactiveUI helpers related to JB.Common.Collections")]
+[assembly: AssemblyTitle("JB.Common")]
+[assembly: AssemblyDescription("")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyProduct("JB.Common.Collections.Reactive")]
+[assembly: AssemblyProduct("JB.Common")]
 [assembly: AssemblyCulture("")]
 
 // Setting ComVisible to false makes the types in this assembly not visible 
@@ -16,4 +16,4 @@ using System.Runtime.InteropServices;
 [assembly: ComVisible(false)]
 
 // The following GUID is for the ID of the typelib if this project is exposed to COM
-[assembly: Guid("a30a30a6-9914-42dc-95a1-527b652b165d")]
+[assembly: Guid("248fadaf-12c1-41d1-8faa-8b786b4feb36")]

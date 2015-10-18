@@ -15,7 +15,7 @@ using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using ReactiveUI;
 
-namespace JB.Common.Collections
+namespace JB.Collections.ExtensionMethods
 {
 	/// <summary>
 	///     Provides Extension Method(s) for <see cref="EnhancedBindingList{T}" /> instances.
@@ -37,10 +37,10 @@ namespace JB.Common.Collections
 		/// the exact same index position(s)</exception>
 		public static IDisposable ForwardListChangesTo<T>(this EnhancedBindingList<T> sourceBindingList, bool includeItemChanges = false, params ReactiveList<T>[] targetReactiveLists)
 		{
-			if (sourceBindingList == null) throw new ArgumentNullException("sourceBindingList");
-			if (targetReactiveLists == null) throw new ArgumentNullException("targetReactiveLists");
+			if (sourceBindingList == null) throw new ArgumentNullException(nameof(sourceBindingList));
+			if (targetReactiveLists == null) throw new ArgumentNullException(nameof(targetReactiveLists));
 
-			if (targetReactiveLists.Length <= 0) throw new ArgumentOutOfRangeException("targetReactiveLists");
+			if (targetReactiveLists.Length <= 0) throw new ArgumentOutOfRangeException(nameof(targetReactiveLists));
 
 			return new CompositeDisposable(targetReactiveLists.Select(targetBindingList => sourceBindingList.ForwardListChangesTo(targetBindingList, includeItemChanges)));
 		}
@@ -60,8 +60,8 @@ namespace JB.Common.Collections
 		/// the exact same index position(s)</exception>
 		public static IDisposable ForwardListChangesTo<T>(this EnhancedBindingList<T> sourceBindingList, ReactiveList<T> targetReactiveList, bool includeItemChanges = false)
 		{
-			if (sourceBindingList == null) throw new ArgumentNullException("sourceBindingList");
-			if (targetReactiveList == null) throw new ArgumentNullException("targetReactiveList");
+			if (sourceBindingList == null) throw new ArgumentNullException(nameof(sourceBindingList));
+			if (targetReactiveList == null) throw new ArgumentNullException(nameof(targetReactiveList));
 
 			if (sourceBindingList.Except(targetReactiveList, EqualityComparer<T>.Default).Any()
 				|| targetReactiveList.Except(sourceBindingList, EqualityComparer<T>.Default).Any()
@@ -96,7 +96,7 @@ namespace JB.Common.Collections
 			var senderAsBindingList = eventPattern.Sender as BindingList<T>;
 
 			if (senderAsBindingList == null)
-				throw new ArgumentOutOfRangeException("eventPattern");
+				throw new ArgumentOutOfRangeException(nameof(eventPattern));
 
 			switch (eventPattern.EventArgs.ListChangedType)
 			{
@@ -124,7 +124,7 @@ namespace JB.Common.Collections
 					{
 						var itemRemovedListChangedEventArgs = eventPattern.EventArgs as ItemRemovedListChangedEventArgs<T>;
 						if (itemRemovedListChangedEventArgs == null)
-							throw new ArgumentOutOfRangeException("eventPattern");
+							throw new ArgumentOutOfRangeException(nameof(eventPattern));
 
 						targetReactiveList.Remove(itemRemovedListChangedEventArgs.Item);
 						break;

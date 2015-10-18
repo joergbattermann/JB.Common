@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel;
 
-namespace JB.Common.Collections
+namespace JB.Collections
 {
 	/// <summary>
 	/// A custom <see cref="ListChangedEventArgs"/> that contains the removed Item.

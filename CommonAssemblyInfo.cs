@@ -7,3 +7,6 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyCompany("Joerg Battermann")]
 [assembly: AssemblyCopyright("Copyright © 2015 Joerg Battermann")]
 [assembly: AssemblyTrademark("")]
+
+[assembly: AssemblyVersion("0.1.7.0")]
+[assembly: AssemblyFileVersion("0.1.7.0")]

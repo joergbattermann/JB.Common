@@ -12,7 +12,7 @@ using System.Linq;
 using System.Reactive.Disposables;
 using ReactiveUI;
 
-namespace JB.Common.Collections
+namespace JB.Collections.ExtensionMethods
 {
 	/// <summary>
 	///     Provides Extension Method(s) for <see cref="ReactiveList{T}" /> instances.
@@ -41,10 +41,10 @@ namespace JB.Common.Collections
 		/// </exception>
 		public static IDisposable ForwardListChangesTo<T>(this ReactiveList<T> sourceReactiveList, bool includeItemChanges = false, params EnhancedBindingList<T>[] targetBindingLists)
 		{
-			if (sourceReactiveList == null) throw new ArgumentNullException("sourceReactiveList");
-			if (targetBindingLists == null) throw new ArgumentNullException("targetBindingLists");
+			if (sourceReactiveList == null) throw new ArgumentNullException(nameof(sourceReactiveList));
+			if (targetBindingLists == null) throw new ArgumentNullException(nameof(targetBindingLists));
 
-			if (targetBindingLists.Length <= 0) throw new ArgumentOutOfRangeException("targetBindingLists");
+			if (targetBindingLists.Length <= 0) throw new ArgumentOutOfRangeException(nameof(targetBindingLists));
 
 			return new CompositeDisposable(targetBindingLists.Select(targetBindingList => sourceReactiveList.ForwardListChangesTo(targetBindingList, includeItemChanges)));
 		}
@@ -71,8 +71,8 @@ namespace JB.Common.Collections
 		/// </exception>
 		public static IDisposable ForwardListChangesTo<T>(this ReactiveList<T> sourceReactiveList, EnhancedBindingList<T> targetBindingList, bool includeItemChanges = false)
 		{
-			if (sourceReactiveList == null) throw new ArgumentNullException("sourceReactiveList");
-			if (targetBindingList == null) throw new ArgumentNullException("targetBindingList");
+			if (sourceReactiveList == null) throw new ArgumentNullException(nameof(sourceReactiveList));
+			if (targetBindingList == null) throw new ArgumentNullException(nameof(targetBindingList));
 
 			if (sourceReactiveList.Except(targetBindingList, EqualityComparer<T>.Default).Any()
 			    || targetBindingList.Except(sourceReactiveList, EqualityComparer<T>.Default).Any()

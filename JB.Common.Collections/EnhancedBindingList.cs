@@ -10,7 +10,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 
-namespace JB.Common.Collections
+namespace JB.Collections
 {
 	/// <summary>
 	///     Provides a Move operation and also a more details for deleted Item(s).
@@ -105,7 +105,7 @@ namespace JB.Common.Collections
 				var originalIndex = IndexOf(item);
 
 				if (originalIndex <= -1)
-					throw new ArgumentOutOfRangeException("item");
+					throw new ArgumentOutOfRangeException(nameof(item));
 
 				// first check whether there's no real move, but item kept exactly at its place
 				if (originalIndex == newIndex)

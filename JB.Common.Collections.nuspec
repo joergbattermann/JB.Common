@@ -12,6 +12,9 @@
     <copyright>Joerg Battermann</copyright>
     <licenseUrl>https://github.com/jbattermann/JB.Common/blob/master/LICENSE</licenseUrl>
     <projectUrl>https://github.com/jbattermann/JB.Common/blob/master/README.md</projectUrl>
+    <dependencies>
+      <dependency id="JB.Common" version="[0.1.6,]" />
+    </dependencies>
     <tags>Collections Collection List BindingList Enumerable</tags>
   </metadata>
   <files>

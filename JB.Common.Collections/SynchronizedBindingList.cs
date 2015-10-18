@@ -9,8 +9,9 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Threading;
+using JB.Threading;
 
-namespace JB.Common.Collections
+namespace JB.Collections
 {
 	/// <summary>
 	///     An <see cref="IBindingList" /> implementation that's synchronized via an underlying lock-based
@@ -21,19 +22,17 @@ namespace JB.Common.Collections
 	/// <typeparam name="T">The type of elements in the list.</typeparam>
 	public class SynchronizedBindingList<T> : EnhancedBindingList<T>
 	{
-		private readonly SendOrPostCallback _onAddingNewInvoker;
-		private readonly SendOrPostCallback _onListChangedInvoker;
 		private readonly SynchronizationContext _synchronizationContext;
 
 		/// <summary>
-		///     Gets or sets a value indicating whether asynchronuous <see cref="SynchronizationContext.Post" /> or the
-		///     synchronuous <see cref="SynchronizationContext.Send" /> will be used (default is the later)
+		///     Gets or sets a value indicating whether asynchronuous <see cref="SynchronizationContext.Send" /> or the
+		///     synchronuous <see cref="SynchronizationContext.Post" /> will be used (default is the later)
 		///     to raise the <see cref="BindingList{T}.ListChanged" /> or <see cref="BindingList{T}.AddingNew" /> events.
 		/// </summary>
 		/// <value>
 		///     <c>true</c> if [post synchronized messages]; otherwise, <c>false</c>.
 		/// </value>
-		public bool PostSynchronizedMessages { get; set; }
+		public bool SendMessagesToListSynchronously { get; set; }
 
 		/// <summary>
 		///     Initializes a new instance of the <see cref="SynchronizedBindingList{T}" /> class.
@@ -48,66 +47,41 @@ namespace JB.Common.Collections
 			: base(syncRoot == null ? new SynchronizedCollection<T>(list ?? new List<T>()) : new SynchronizedCollection<T>(syncRoot, list ?? new List<T>()))
 		{
 			_synchronizationContext = synchronizationContext ?? (SynchronizationContext.Current ?? new SynchronizationContext());
-
-			_onAddingNewInvoker = SynchronizedOnAddingNew;
-			_onListChangedInvoker = SynchronizedOnListChanged;
 		}
-
-		/// <summary>
-		///     Synchronized version of <see cref="OnAddingNew" /> as this gets called on the initially provided or captured
-		///     <see cref="SynchronizationContext" />.
-		/// </summary>
-		/// <param name="addingNewEventArgs">The addingNewEventArgs.</param>
-		private void SynchronizedOnAddingNew(object addingNewEventArgs)
-		{
-			var e = (AddingNewEventArgs) addingNewEventArgs;
-			base.OnAddingNew(e);
-		}
-
-		/// <summary>
-		///     Synchronized version of <see cref="OnListChanged" /> as this gets called on the initially provided or captured
-		///     <see cref="SynchronizationContext" />.
-		/// </summary>
-		/// <param name="listChangedEventArgs">The listChangedEventArgs.</param>
-		private void SynchronizedOnListChanged(object listChangedEventArgs)
-		{
-			var e = (ListChangedEventArgs) listChangedEventArgs;
-			base.OnListChanged(e);
-		}
-
+		
 		#region Overrides of BindingList<T>
 
 		/// <summary>
 		///     Raises the <see cref="E:System.ComponentModel.BindingList`1.AddingNew" /> event.
 		/// </summary>
-		/// <param name="e">An <see cref="T:System.ComponentModel.AddingNewEventArgs" /> that contains the event data. </param>
-		protected override void OnAddingNew(AddingNewEventArgs e)
+		/// <param name="addingNewEventArgs">An <see cref="T:System.ComponentModel.AddingNewEventArgs" /> that contains the event data. </param>
+		protected override void OnAddingNew(AddingNewEventArgs addingNewEventArgs)
 		{
 			var synchronizationContext = (_synchronizationContext ?? SynchronizationContext.Current);
-			if (PostSynchronizedMessages)
+			if (SendMessagesToListSynchronously)
 			{
-				synchronizationContext.Post(_onAddingNewInvoker, e);
+				synchronizationContext.Send(() => base.OnAddingNew(addingNewEventArgs));
 			}
 			else
 			{
-				synchronizationContext.Send(_onAddingNewInvoker, e);
+				synchronizationContext.Post(() => base.OnAddingNew(addingNewEventArgs));
 			}
 		}
 
 		/// <summary>
 		///     Raises the <see cref="E:System.ComponentModel.BindingList`1.ListChanged" /> event.
 		/// </summary>
-		/// <param name="e">A <see cref="T:System.ComponentModel.ListChangedEventArgs" /> that contains the event data. </param>
-		protected override void OnListChanged(ListChangedEventArgs e)
+		/// <param name="listChangedEventArgs">A <see cref="T:System.ComponentModel.ListChangedEventArgs" /> that contains the event data. </param>
+		protected override void OnListChanged(ListChangedEventArgs listChangedEventArgs)
 		{
 			var synchronizationContext = (_synchronizationContext ?? SynchronizationContext.Current);
-			if (PostSynchronizedMessages)
+			if (SendMessagesToListSynchronously)
 			{
-				synchronizationContext.Post(_onListChangedInvoker, e);
+				synchronizationContext.Send(() => base.OnListChanged(listChangedEventArgs));
 			}
 			else
 			{
-				synchronizationContext.Send(_onListChangedInvoker, e);
+				synchronizationContext.Post(() => base.OnListChanged(listChangedEventArgs));
 			}
 		}
 
