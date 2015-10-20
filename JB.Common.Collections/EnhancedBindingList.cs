@@ -158,7 +158,7 @@ namespace JB.Collections
 
 		/// <summary>
 		///     Removes the item at the specified index and follow-up ListChanged event will have an
-		///     <see cref="ItemRemovedListChangedEventArgs{T}" /> as its argument.
+		///     <see cref="ItemDeletedListChangedEventArgs{T}" /> as its argument.
 		/// </summary>
 		/// <param name="index">The zero-based index of the item to remove.</param>
 		/// <exception cref="T:System.NotSupportedException">
@@ -179,7 +179,7 @@ namespace JB.Collections
 				if (originalRaiseListChangedEventsValue)
 				{
 					// only if removal was performed, raise corresponding even here
-					OnListChanged(new ItemRemovedListChangedEventArgs<T>(this[index], index));
+					OnListChanged(new ItemDeletedListChangedEventArgs<T>(this[index], index));
 				}
 			}
 			finally

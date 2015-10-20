@@ -122,7 +122,7 @@ namespace JB.Collections.ExtensionMethods
 					}
 				case ListChangedType.ItemDeleted:
 					{
-						var itemRemovedListChangedEventArgs = eventPattern.EventArgs as ItemRemovedListChangedEventArgs<T>;
+						var itemRemovedListChangedEventArgs = eventPattern.EventArgs as ItemDeletedListChangedEventArgs<T>;
 						if (itemRemovedListChangedEventArgs == null)
 							throw new ArgumentOutOfRangeException(nameof(eventPattern));
 

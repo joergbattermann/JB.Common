@@ -8,14 +8,14 @@ namespace JB.Collections
 	/// the deleted index location, but no indication what was actually deleted.
 	/// </summary>
 	/// <typeparam name="T"></typeparam>
-	public class ItemRemovedListChangedEventArgs<T> : ListChangedEventArgs
+	public class ItemDeletedListChangedEventArgs<T> : ListChangedEventArgs
 	{
 		/// <summary>
-		/// Initializes a new instance of the <see cref="ItemRemovedListChangedEventArgs{T}" /> class.
+		/// Initializes a new instance of the <see cref="ItemDeletedListChangedEventArgs{T}" /> class.
 		/// </summary>
 		/// <param name="item">The removed item.</param>
 		/// <param name="index">The index of the removed item prior to removal.</param>
-		public ItemRemovedListChangedEventArgs(T item, int index)
+		public ItemDeletedListChangedEventArgs(T item, int index)
 			: base(ListChangedType.ItemDeleted, -1, index)
 		{
 			Item = item;
