@@ -48,7 +48,7 @@ namespace JB.Collections.ExtensionMethods
 
 			return new CompositeDisposable(targetBindingLists.Select(targetBindingList => sourceReactiveList.ForwardListChangesTo(targetBindingList, includeItemChanges)));
 		}
-
+		
 		/// <summary>
 		///     Forwards the <paramref name="sourceReactiveList" /> changes to the <paramref name="targetBindingList" />.
 		/// </summary>

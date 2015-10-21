@@ -48,7 +48,7 @@
     </Compile>
     <Compile Include="EnhancedBindingList.cs" />
     <Compile Include="ItemDeletedListChangedEventArgs.cs" />
-    <Compile Include="SynchronizedBindingList.cs" />
+    <Compile Include="SynchronizationContextSynchronizedBindingList.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
