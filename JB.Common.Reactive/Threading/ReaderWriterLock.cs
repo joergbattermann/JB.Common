@@ -13,6 +13,22 @@ namespace JB.Reactive.Threading
 		public long Id { get; private set; }
 
 		/// <summary>
+		/// Gets a value indicating whether this instance is exclusive.
+		/// </summary>
+		/// <value>
+		/// <c>true</c> if this instance is exclusive; otherwise, <c>false</c>.
+		/// </value>
+		public bool IsExclusive { get; }
+
+		/// <summary>
+		/// Gets or sets a value indicating whether this instance is a non-exclusive, concurrent one.
+		/// </summary>
+		/// <value>
+		///   <c>true</c> if this instance is concurrent; otherwise, <c>false</c>.
+		/// </value>
+		public bool IsConcurrent => !IsExclusive;
+
+		/// <summary>
 		/// Gets or sets the inner disposable.
 		/// </summary>
 		/// <value>
@@ -21,11 +37,15 @@ namespace JB.Reactive.Threading
 		private IDisposable InnerDisposable { get; set; }
 
 		/// <summary>
-		/// Prevents a default instance of the <see cref="ReaderWriterLock"/> class from being created.
+		/// Prevents a default instance of the <see cref="ReaderWriterLock" /> class from being created.
 		/// </summary>
-		internal ReaderWriterLock(long id, IDisposable innerDisposable = null)
+		/// <param name="id">The identifier.</param>
+		/// <param name="isExclusive">if set to <c>true</c> [is exclusive].</param>
+		/// <param name="innerDisposable">The inner disposable.</param>
+		internal ReaderWriterLock(long id, bool isExclusive, IDisposable innerDisposable = null)
 		{
 			Id = id;
+			IsExclusive = isExclusive;
 			InnerDisposable = innerDisposable;
 		}
 

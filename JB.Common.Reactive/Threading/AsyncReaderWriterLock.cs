@@ -3,14 +3,19 @@
 //   Copyright (c) 2015 Joerg Battermann. All rights reserved.
 // </copyright>
 // <author>Joerg Battermann</author>
-// <summary>A TPL Task and RX.Net compatible (Async)ReaderWriterLock. Largely based on and extended by https://gist.github.com/paulcbetts/9515910. </summary>
+// <summary>
+// A TPL Task and RX.Net compatible (Async)ReaderWriterLock.
+// Initially based on https://gist.github.com/paulcbetts/9515910 with a few additions here and there.
+// </summary>
 // -----------------------------------------------------------------------
 
 using System;
 using System.Reactive;
+using System.Reactive.Concurrency;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
+using System.Reactive.Threading.Tasks;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -26,7 +31,7 @@ namespace JB.Reactive.Threading
 		private long _scheduledOperationId = 0;
 
 		private IDisposable _disposingDisposable;
-		
+
 		/// <summary>
 		/// Gets the underlying <see cref="ConcurrentExclusiveSchedulerPair"/>.
 		/// </summary>
@@ -41,7 +46,15 @@ namespace JB.Reactive.Threading
 		/// <value>
 		/// The reader scheduler.
 		/// </value>
-		protected TaskFactory ReaderScheduler { get; private set; }
+		protected TaskFactory ConcurrentNonExclusiveTaskFactory { get; private set; }
+
+		/// <summary>
+		/// Gets the concurrent, non-exclusive task scheduler.
+		/// </summary>
+		/// <value>
+		/// The concurrent non exclusive task scheduler.
+		/// </value>
+		protected TaskScheduler ConcurrentNonExclusiveTaskScheduler => ConcurrentExclusiveSchedulerPair.ConcurrentScheduler;
 
 		/// <summary>
 		/// Gets the <see cref="TaskFactory"/> to schedule exclusive, writer tasks.
@@ -49,7 +62,15 @@ namespace JB.Reactive.Threading
 		/// <value>
 		/// The writer scheduler.
 		/// </value>
-		protected TaskFactory WriterScheduler { get; private set; }
+		protected TaskFactory ExclusiveTaskFactory { get; private set; }
+
+		/// <summary>
+		/// Gets the exclusive task scheduler.
+		/// </summary>
+		/// <value>
+		/// The concurrent exclusive task scheduler.
+		/// </value>
+		protected TaskScheduler ExclusiveTaskScheduler => ConcurrentExclusiveSchedulerPair.ExclusiveScheduler;
 
 		/// <summary>
 		/// Gets a value indicating whether this instance has been disposed.
@@ -81,77 +102,222 @@ namespace JB.Reactive.Threading
 		public AsyncReaderWriterLock()
 		{
 			// Built upon ConcurrentExclusiveSchedulerPair is a .Net TPL construct that provides exactly what we need
-			// - reader/writer handling
+			// - reader/writer orchestration
 			ConcurrentExclusiveSchedulerPair = new ConcurrentExclusiveSchedulerPair();
 
-			ReaderScheduler = new TaskFactory(this.ConcurrentExclusiveSchedulerPair.ConcurrentScheduler);
-			WriterScheduler = new TaskFactory(this.ConcurrentExclusiveSchedulerPair.ExclusiveScheduler);
+			ConcurrentNonExclusiveTaskFactory = new TaskFactory(this.ConcurrentExclusiveSchedulerPair.ConcurrentScheduler);
+			ExclusiveTaskFactory = new TaskFactory(this.ConcurrentExclusiveSchedulerPair.ExclusiveScheduler);
 		}
 
-		#region TPL Reader / Writer methods
+		/// <summary>
+		/// Adds the exclusive, non-concurrent work to the execution queue.
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="action">The action.</param>
+		/// <param name="synchronizationContext">The synchronization context to execute the work on. If none is provided, <see cref="SynchronizationContext.Current"/> is used.</param>
+		/// <param name="cancellationToken">The cancellation token.</param>
+		/// <returns></returns>
+		public Task<T> AddExclusiveWork<T>(Func<Task<T>> action, SynchronizationContext synchronizationContext = null, CancellationToken cancellationToken = default(CancellationToken))
+		{
+			if (action == null) throw new ArgumentNullException(nameof(action));
+
+			return this.AddOperationOnSynchronizationContext(this.AcquireWriterLock(), Observable.FromAsync(action), synchronizationContext).ToTask(cancellationToken);
+		}
+
+		/// <summary>
+		/// Adds the exclusive, non-concurrent work to the execution queue.
+		/// </summary>
+		/// <param name="action">The action.</param>
+		/// <param name="synchronizationContext">The synchronization context to execute the work on. If none is provided, <see cref="SynchronizationContext.Current"/> is used.</param>
+		/// <param name="cancellationToken">The cancellation token.</param>
+		/// <returns></returns>
+		public Task AddExclusiveWork(Func<Task> action, SynchronizationContext synchronizationContext = null, CancellationToken cancellationToken = default(CancellationToken))
+		{
+			if (action == null) throw new ArgumentNullException(nameof(action));
+
+			return this.AddOperationOnSynchronizationContext(this.AcquireWriterLock(), Observable.FromAsync(action), synchronizationContext).ToTask(cancellationToken);
+		}
+
+		/// <summary>
+		/// Adds the exclusive, non-concurrent work to the execution queue.
+		/// </summary>
+		/// <param name="action">The action.</param>
+		/// <param name="synchronizationContext">The synchronization context.</param>
+		/// <param name="cancellationToken">The cancellation token.</param>
+		/// <returns></returns>
+		public Task AddExclusiveWork(Func<CancellationToken, Task> action, SynchronizationContext synchronizationContext = null, CancellationToken cancellationToken = default(CancellationToken))
+		{
+			if (action == null) throw new ArgumentNullException(nameof(action));
+
+			return this.AddOperationOnSynchronizationContext(this.AcquireWriterLock(), Observable.FromAsync(token => action.Invoke(CancellationTokenSource.CreateLinkedTokenSource(token, cancellationToken).Token)), synchronizationContext).ToTask(cancellationToken);
+		}
+
+		/// <summary>
+		/// Adds the exclusive, non-concurrent work to the execution queue.
+		/// </summary>
+		/// <typeparam name="T">The result type.</typeparam>
+		/// <param name="action">The action.</param>
+		/// <param name="synchronizationContext">The synchronization context to execute the work on. If none is provided, <see cref="SynchronizationContext.Current"/> is used.</param>
+		/// <param name="cancellationToken">The cancellation token.</param>
+		/// <returns></returns>
+		public Task<T> AddExclusiveWork<T>(Func<CancellationToken, Task<T>> action, SynchronizationContext synchronizationContext = null, CancellationToken cancellationToken = default(CancellationToken))
+		{
+			if (action == null) throw new ArgumentNullException(nameof(action));
+
+			return this.AddOperationOnSynchronizationContext(this.AcquireWriterLock(), Observable.FromAsync(token => action.Invoke(CancellationTokenSource.CreateLinkedTokenSource(token, cancellationToken).Token)), synchronizationContext).ToTask(cancellationToken);
+		}
+
+		/// <summary>
+		/// Adds the exclusive, non-concurrent work to the execution queue.
+		/// </summary>
+		/// <param name="workerObservable">The worker observable.</param>
+		/// <param name="scheduler">The scheduler. If none is provided, <see cref="Scheduler.Default"/> is used.</param>
+		/// <returns></returns>
+		public IObservable<Unit> AddExclusiveWork(IObservable<Unit> workerObservable, IScheduler scheduler = null)
+		{
+			return this.AddOperationOnScheduler(this.AcquireWriterLock(), workerObservable, scheduler);
+		}
+
+		/// <summary>
+		/// Adds the exclusive, non-concurrent work to the execution queue.
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="workerObservable">The worker observable.</param>
+		/// <param name="scheduler">The scheduler. If none is provided, <see cref="Scheduler.Default"/> is used.</param>
+		/// <returns></returns>
+		public IObservable<T> AddExclusiveWork<T>(IObservable<T> workerObservable, IScheduler scheduler = null)
+		{
+			return this.AddOperationOnScheduler(this.AcquireWriterLock(), workerObservable, scheduler);
+		}
+
+		/// <summary>
+		/// Adds the concurrent non-exclusive work to the execution queue.
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="action">The action.</param>
+		/// <param name="synchronizationContext">The synchronization context to execute the work on. If none is provided, <see cref="SynchronizationContext.Current"/> is used.</param>
+		/// <param name="cancellationToken">The cancellation token.</param>
+		/// <returns></returns>
+		public Task<T> AddConcurrentNonExclusiveWork<T>(Func<Task<T>> action, SynchronizationContext synchronizationContext = null, CancellationToken cancellationToken = default(CancellationToken))
+		{
+			if (action == null) throw new ArgumentNullException(nameof(action));
+
+			return this.AddOperationOnSynchronizationContext(this.AcquireReaderLock(), Observable.FromAsync(action), synchronizationContext).ToTask(cancellationToken);
+		}
+
+		/// <summary>
+		/// Adds the concurrent non-exclusive work to the execution queue.
+		/// </summary>
+		/// <param name="action">The action.</param>
+		/// <param name="synchronizationContext">The synchronization context to execute the work on. If none is provided, <see cref="SynchronizationContext.Current"/> is used.</param>
+		/// <param name="cancellationToken">The cancellation token.</param>
+		/// <returns></returns>
+		public Task AddConcurrentNonExclusiveWork(Func<Task> action, SynchronizationContext synchronizationContext = null, CancellationToken cancellationToken = default(CancellationToken))
+		{
+			if (action == null) throw new ArgumentNullException(nameof(action));
+
+			return this.AddOperationOnSynchronizationContext(this.AcquireReaderLock(), Observable.FromAsync(action), synchronizationContext).ToTask(cancellationToken);
+		}
+
+		/// <summary>
+		/// Adds the concurrent non-exclusive work to the execution queue.
+		/// </summary>
+		/// <param name="action">The action.</param>
+		/// <param name="synchronizationContext">The synchronization context.</param>
+		/// <param name="cancellationToken">The cancellation token.</param>
+		/// <returns></returns>
+		public Task AddConcurrentNonExclusiveWork(Func<CancellationToken, Task> action, SynchronizationContext synchronizationContext = null, CancellationToken cancellationToken = default(CancellationToken))
+		{
+			if (action == null) throw new ArgumentNullException(nameof(action));
+
+			return this.AddOperationOnSynchronizationContext(this.AcquireReaderLock(), Observable.FromAsync(token => action.Invoke(CancellationTokenSource.CreateLinkedTokenSource(token, cancellationToken).Token)), synchronizationContext).ToTask(cancellationToken);
+		}
+
+		/// <summary>
+		/// Adds the concurrent non-exclusive work to the execution queue.
+		/// </summary>
+		/// <typeparam name="T">The result type.</typeparam>
+		/// <param name="action">The action.</param>
+		/// <param name="synchronizationContext">The synchronization context to execute the work on. If none is provided, <see cref="SynchronizationContext.Current"/> is used.</param>
+		/// <param name="cancellationToken">The cancellation token.</param>
+		/// <returns></returns>
+		public Task<T> AddConcurrentNonExclusiveWork<T>(Func<CancellationToken, Task<T>> action, SynchronizationContext synchronizationContext = null, CancellationToken cancellationToken = default(CancellationToken))
+		{
+			if (action == null) throw new ArgumentNullException(nameof(action));
+
+			return this.AddOperationOnSynchronizationContext(this.AcquireReaderLock(), Observable.FromAsync(token => action.Invoke(CancellationTokenSource.CreateLinkedTokenSource(token, cancellationToken).Token)), synchronizationContext).ToTask(cancellationToken);
+		}
+
+		/// <summary>
+		/// Adds the concurrent non-exclusive work to the execution queue.
+		/// </summary>
+		/// <param name="workerObservable">The worker observable.</param>
+		/// <param name="scheduler">The scheduler. If none is provided, <see cref="Scheduler.Default"/> is used.</param>
+		/// <returns></returns>
+		public IObservable<Unit> AddConcurrentNonExclusiveWork(IObservable<Unit> workerObservable, IScheduler scheduler = null)
+		{
+			return this.AddOperationOnScheduler(this.AcquireReaderLock(), workerObservable, scheduler);
+		}
+
+		/// <summary>
+		/// Adds the concurrent non-exclusive work to the execution queue.
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="workerObservable">The worker observable.</param>
+		/// <param name="scheduler">The scheduler. If none is provided, <see cref="Scheduler.Default"/> is used.</param>
+		/// <returns></returns>
+		public IObservable<T> AddConcurrentNonExclusiveWork<T>(IObservable<T> workerObservable, IScheduler scheduler = null)
+		{
+			return this.AddOperationOnScheduler(this.AcquireReaderLock(), workerObservable, scheduler);
+		}
+
+		/// <summary>
+		/// Adds the operation on the scheduler.
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="readerWriterLockObservable">The reader writer lock observable.</param>
+		/// <param name="work">The work.</param>
+		/// <param name="scheduler">The scheduler.</param>
+		/// <returns></returns>
+		private IObservable<T> AddOperationOnScheduler<T>(IObservable<ReaderWriterLock> readerWriterLockObservable, IObservable<T> work, IScheduler scheduler = null)
+		{
+			return readerWriterLockObservable.SelectMany(readerWriterLock => work.SubscribeOn(scheduler ?? Scheduler.Default));
+		}
+
+		/// <summary>
+		/// Adds the operation on the scheduler.
+		/// </summary>
+		/// <typeparam name="T"></typeparam>
+		/// <param name="readerWriterLockObservable">The reader writer lock observable.</param>
+		/// <param name="work">The work.</param>
+		/// <param name="synchronizationContext">The synchronization context.</param>
+		/// <returns></returns>
+		private IObservable<T> AddOperationOnSynchronizationContext<T>(IObservable<ReaderWriterLock> readerWriterLockObservable, IObservable<T> work, SynchronizationContext synchronizationContext = null)
+		{
+			return readerWriterLockObservable.SelectMany(readerWriterLock => work.SubscribeOn(synchronizationContext ?? SynchronizationContext.Current));
+		}
 
 		/// <summary>
 		/// Acquires reader permissions sometimes in the future and returns the corresponding <see cref="ReaderWriterLock">ticket</see>.
+		/// Please note - if you're using async and particularly await inside the lock (using block or prior to calling <see cref="ReaderWriterLock.Dispose"/>))
+		/// it might not work as expected, see http://stackoverflow.com/questions/12068645/how-do-i-create-a-scheduler-which-never-executes-more-than-one-task-at-a-time-us#comment16125533_12069460
 		/// </summary>
 		/// <returns></returns>
-		public Task<ReaderWriterLock> AcquireReaderLockAsync()
+		public Task<ReaderWriterLock> AcquireReaderLockAsync(CancellationToken cancellationToken = default(CancellationToken))
 		{
-			return AcquireReadOrWriteLockAsync(this.ReaderScheduler);
+			return AcquireReaderLock().ToTask(cancellationToken);
 		}
 
 		/// <summary>
 		/// Acquires writer permissions sometimes in the future and returns the corresponding <see cref="ReaderWriterLock">ticket</see>.
+		/// Please note - if you're using async and particularly await inside the lock (using block or prior to calling <see cref="ReaderWriterLock.Dispose"/>))
+		/// it might not work as expected, see http://stackoverflow.com/questions/12068645/how-do-i-create-a-scheduler-which-never-executes-more-than-one-task-at-a-time-us#comment16125533_12069460
 		/// </summary>
 		/// <returns></returns>
-		public Task<ReaderWriterLock> AcquireWriterLockAsync()
+		public Task<ReaderWriterLock> AcquireWriterLockAsync(CancellationToken cancellationToken = default(CancellationToken))
 		{
-			return AcquireReadOrWriteLockAsync(this.WriterScheduler);
+			return AcquireWriterLock().ToTask(cancellationToken);
 		}
-
-		/// <summary>
-		/// Acquires the read or write lock on the scheduler, asynchronously.
-		/// </summary>
-		/// <param name="taskFactory">The task factory.</param>
-		/// <returns></returns>
-		/// <exception cref="System.ArgumentNullException"></exception>
-		/// <exception cref="System.ObjectDisposedException"></exception>
-		private Task<ReaderWriterLock> AcquireReadOrWriteLockAsync(TaskFactory taskFactory)
-		{
-			// this shouldn't happen but wth
-			if (taskFactory == null) throw new ArgumentNullException(nameof(taskFactory));
-
-			// check for incorrect entry once we have already been disposed
-			if (IsDisposed)
-				throw new ObjectDisposedException(nameof(AsyncReaderWriterLock));
-
-			var asyncSubject = new TaskCompletionSource<ReaderWriterLock>();
-			var gate = new TaskCompletionSource<object>();
-
-			taskFactory.StartNew(async () =>
-			{
-				// the asyncSubject holds the task actually being handed back to the method's caller
-				// & whenever that ReaderWriterLock is disposed, the gate's .Result gets set and the await gate.Task etc
-				// can continue and end the entire method/task handed over to the outer ConcurrentSchedulerPair
-				asyncSubject.SetResult(
-					new ReaderWriterLock(
-						Interlocked.Increment(ref _scheduledOperationId),
-						Disposable.Create(() =>
-						{
-							gate.SetResult(new object());
-						})));
-
-				// The outer .Dispose() call on the returned asyncSubject.Task will allow this gate to run be set to completed, too
-				// and therefore finish this taskFactory scheduled task altogether, freeing up the queue.
-				await gate.Task.ConfigureAwait(false);
-			});
-
-			return asyncSubject.Task;
-		}
-
-		#endregion
-
-		#region RX Reader / Writer methods
-
 
 		/// <summary>
 		/// Returns a (future) reader lock, as an observable.
@@ -159,7 +325,7 @@ namespace JB.Reactive.Threading
 		/// <returns></returns>
 		public IObservable<ReaderWriterLock> AcquireReaderLock()
 		{
-			return AcquireReadOrWriteLockObservable(this.ReaderScheduler);
+			return AcquireReadOrWriteLockObservable(this.ConcurrentNonExclusiveTaskFactory);
 		}
 
 		/// <summary>
@@ -168,7 +334,7 @@ namespace JB.Reactive.Threading
 		/// <returns></returns>
 		public IObservable<ReaderWriterLock> AcquireWriterLock()
 		{
-			return AcquireReadOrWriteLockObservable(this.WriterScheduler);
+			return AcquireReadOrWriteLockObservable(this.ExclusiveTaskFactory);
 		}
 
 		/// <summary>
@@ -198,6 +364,7 @@ namespace JB.Reactive.Threading
 				asyncSubject.OnNext(
 					new ReaderWriterLock(
 						Interlocked.Increment(ref _scheduledOperationId),
+						taskFactory == ExclusiveTaskFactory,
 						Disposable.Create(() =>
 						{
 							gate.OnNext(Unit.Default);
@@ -211,8 +378,6 @@ namespace JB.Reactive.Threading
 
 			return asyncSubject;
 		}
-
-		#endregion
 
 		#region Implementation of IDisposable
 

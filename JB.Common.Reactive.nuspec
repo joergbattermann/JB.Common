@@ -2,12 +2,12 @@
 <package xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
   <metadata xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
     <id>JB.Common.Reactive</id>
-    <version>0.1.8</version>
+    <version>0.1.9</version>
     <authors>Joerg Battermann</authors>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>Provides custom Reactive Extensions Related types and helpers.</description>
     <summary>This package contains custom type(s) I needed myself or deemed useful for current or future projects.</summary>
-    <releaseNotes>Initial version.</releaseNotes>
+    <releaseNotes>Added an AsyncReaderWriterLock.</releaseNotes>
     <language>en-US</language>
     <copyright>Joerg Battermann</copyright>
     <licenseUrl>https://github.com/jbattermann/JB.Common/blob/master/LICENSE</licenseUrl>
@@ -16,7 +16,7 @@
       <dependency id="JB.Common" version="[0.1.7,]" />
       <dependency id="Rx-Main" version="[2.2.5,]" />
     </dependencies>
-    <tags>Reactive Extensions rxnet</tags>
+    <tags>Reactive Extensions rxnet Async AsyncReaderWriterLock</tags>
   </metadata>
   <files>
     <file src="JB.Common.Reactive\bin\Release\JB.Common.Reactive.dll" target="lib\net45" />
