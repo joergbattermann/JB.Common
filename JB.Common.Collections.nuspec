@@ -13,7 +13,7 @@
     <licenseUrl>https://github.com/jbattermann/JB.Common/blob/master/LICENSE</licenseUrl>
     <projectUrl>https://github.com/jbattermann/JB.Common/blob/master/README.md</projectUrl>
     <dependencies>
-      <dependency id="JB.Common" version="[0.1.7,]" />
+      <dependency id="JB.Common" version="[0.1.8,]" />
     </dependencies>
     <tags>Collections Collection List BindingList Enumerable</tags>
   </metadata>

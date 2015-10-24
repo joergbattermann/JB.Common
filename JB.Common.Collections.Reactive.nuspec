@@ -13,9 +13,9 @@
     <licenseUrl>https://github.com/jbattermann/JB.Common/blob/master/LICENSE</licenseUrl>
     <projectUrl>https://github.com/jbattermann/JB.Common/blob/master/README.md</projectUrl>
     <dependencies>
-      <dependency id="JB.Common" version="[0.1.7,]" />
-      <dependency id="JB.Common.Reactive" version="[0.1.7,]" />
-      <dependency id="JB.Common.Collections" version="[0.1.7,]" />
+      <dependency id="JB.Common" version="[0.1.8,]" />
+      <dependency id="JB.Common.Reactive" version="[0.1.8,]" />
+      <dependency id="JB.Common.Collections" version="[0.1.8,]" />
       <dependency id="Splat" version="[1.6.2,]" /> <!-- Workaround for Rxui 6.5 / see https://github.com/reactiveui/ReactiveUI/issues/928 -->
       <dependency id="reactiveui-core" version="[6.5.0,]" />
     </dependencies>
