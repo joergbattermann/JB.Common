@@ -2,7 +2,7 @@
 <package xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
   <metadata xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
     <id>JB.Common.Collections.Reactive</id>
-    <version>0.1.9</version>
+    <version>$version$</version>
     <authors>Joerg Battermann</authors>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>Custom collection, list types and helpers for JB.Common.Collections based on RX.Net / ReactiveUI .</description>
@@ -13,9 +13,9 @@
     <licenseUrl>https://github.com/jbattermann/JB.Common/blob/master/LICENSE</licenseUrl>
     <projectUrl>https://github.com/jbattermann/JB.Common/blob/master/README.md</projectUrl>
     <dependencies>
-      <dependency id="JB.Common" version="[0.1.8,]" />
-      <dependency id="JB.Common.Reactive" version="[0.1.8,]" />
-      <dependency id="JB.Common.Collections" version="[0.1.8,]" />
+      <dependency id="JB.Common" version="[$version$,]" />
+      <dependency id="JB.Common.Reactive" version="[$version$,]" />
+      <dependency id="JB.Common.Collections" version="[$version$,]" />
       <dependency id="Splat" version="[1.6.2,]" /> <!-- Workaround for Rxui 6.5 / see https://github.com/reactiveui/ReactiveUI/issues/928 -->
       <dependency id="reactiveui-core" version="[6.5.0,]" />
     </dependencies>
