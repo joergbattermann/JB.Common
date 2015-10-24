@@ -61,6 +61,8 @@
       <Link>Properties\CommonAssemblyInfo.cs</Link>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Threading\AsyncReaderWriterLock.cs" />
+    <Compile Include="Threading\ReaderWriterLock.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\JB.Common\JB.Common.csproj">
