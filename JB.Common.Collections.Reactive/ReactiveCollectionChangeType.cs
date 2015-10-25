@@ -31,7 +31,7 @@ namespace JB.Collections
 		/// </summary>
 		ItemsRemoved,
 		/// <summary>
-		/// A major change has taken place and consumers should reset (not clear!) any existing knowledge about the collection and refetch its current state.
+		/// Indicates a major change and consumers should reset any existing knowledge and state about the affected collection and refetch its current state.
 		/// </summary>
 		Reset,
 	}

@@ -11,6 +11,7 @@ namespace JB.Collections
 		/// The type of the change.
 		/// </value>
 		ReactiveCollectionChangeType ChangeType { get; }
+
 		/// <summary>
 		/// Gets the new, post-change (starting) index for the <see cref="Items"/>.
 		/// </summary>
@@ -18,6 +19,7 @@ namespace JB.Collections
 		/// The post-change starting index, -1 for removals, otherwise 0 or greater.
 		/// </value>
 		int NewStartingIndex { get; }
+
 		/// <summary>
 		/// Gets the previous, pre-change (starting) index for the <see cref="Items"/>.
 		/// </summary>

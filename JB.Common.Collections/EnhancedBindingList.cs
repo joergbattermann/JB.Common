@@ -77,7 +77,7 @@ namespace JB.Collections
 		/// if required, depending on whether an index shift took place during the move due to the original position of the item.
 		/// Basically if you move an item from a lower index position to a higher one, the index positions of all items with higher index positions than <paramref name="itemIndex" />
 		/// will be shifted upwards (logically by -1).
-		/// Depending on whether the caller intents to move the item strictly or logically to the <paramref name="newIndex"/> position, correction might be useful.</param>
+		/// Depending on whether the caller intends to move the item strictly or logically to the <paramref name="newIndex"/> position, correction might be useful.</param>
 		/// <exception cref="ArgumentOutOfRangeException">item</exception>
 		public void Move(int itemIndex, int newIndex, bool correctNewIndexOnIndexShift = false)
 		{
@@ -93,7 +93,7 @@ namespace JB.Collections
 		/// if required, depending on whether an index shift took place during the move due to the original position of the item.
 		/// Basically if you move an item from a lower index position to a higher one, the index positions of all items with higher index positions than the <paramref name="item" /> ones
 		/// will be shifted upwards (logically by -1).
-		/// Depending on whether the caller intents to move the item strictly or logically to the <paramref name="newIndex"/> position, correction might be useful.</param>
+		/// Depending on whether the caller intends to move the item strictly or logically to the <paramref name="newIndex"/> position, correction might be useful.</param>
 		/// <exception cref="ArgumentOutOfRangeException">item</exception>
 		public void Move(T item, int newIndex, bool correctNewIndexOnIndexShift = false)
 		{

@@ -4,7 +4,7 @@ using System.Reactive;
 
 namespace JB.Collections
 {
-	public interface INotifyReactiveCollectionChanged<T> : INotifyCollectionChanged
+	public interface INotifyReactiveCollectionChanged<out T> : INotifyCollectionChanged
 	{
 		IDisposable SuppressReactiveCollectionChangedNotifications();
 
@@ -15,7 +15,5 @@ namespace JB.Collections
 		IObservable<int> CountChanges { get; }
 
 		IObservable<Unit> Resets { get; }
-
-		
 	}
 }
