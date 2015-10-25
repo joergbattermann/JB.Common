@@ -14,12 +14,18 @@ namespace JB.Collections
 {
 	/// <summary>
 	///     An <see cref="IBindingList" /> implementation that's raising its <see cref="BindingList{T}.AddingNew"/> and <see cref="BindingList{T}.ListChanged"/> events
-	///		on the provided or <see cref="Scheduler.Default">constructor created</see> <see cref="IScheduler" />.
+	///		on the provided or <see cref="System.Reactive.Concurrency.Scheduler.Default">constructor created</see> <see cref="IScheduler" />.
 	/// </summary>
 	/// <typeparam name="T">The type of elements in the list.</typeparam>
 	public class SchedulerCoordinatedBindingList<T> : EnhancedBindingList<T>
 	{
-		private readonly IScheduler _scheduler;
+		/// <summary>
+		/// Gets the scheduler.
+		/// </summary>
+		/// <value>
+		/// The scheduler.
+		/// </value>
+		protected IScheduler Scheduler { get; }
 
 		/// <summary>
 		///     Initializes a new instance of the <see cref="SchedulerCoordinatedBindingList{T}" /> class.
@@ -32,7 +38,7 @@ namespace JB.Collections
 		public SchedulerCoordinatedBindingList(IList<T> list = null, IScheduler scheduler = null)
 			: base(list)
 		{
-			_scheduler = scheduler ?? Scheduler.Default;
+			Scheduler = scheduler ?? System.Reactive.Concurrency.Scheduler.Default;
 		}
 		
 		#region Overrides of BindingList<T>
@@ -43,7 +49,7 @@ namespace JB.Collections
 		/// <param name="addingNewEventArgs">An <see cref="T:System.ComponentModel.AddingNewEventArgs" /> that contains the event data. </param>
 		protected override void OnAddingNew(AddingNewEventArgs addingNewEventArgs)
 		{
-			_scheduler.Schedule(() => base.OnAddingNew(addingNewEventArgs));
+			Scheduler.Schedule(() => base.OnAddingNew(addingNewEventArgs));
 		}
 
 		/// <summary>
@@ -52,7 +58,7 @@ namespace JB.Collections
 		/// <param name="listChangedEventArgs">A <see cref="T:System.ComponentModel.ListChangedEventArgs" /> that contains the event data. </param>
 		protected override void OnListChanged(ListChangedEventArgs listChangedEventArgs)
 		{
-			_scheduler.Schedule(() => base.OnListChanged(listChangedEventArgs));
+			Scheduler.Schedule(() => base.OnListChanged(listChangedEventArgs));
 		}
 
 		#endregion

@@ -13,7 +13,6 @@ using System.Linq;
 using System.Reactive;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
-using ReactiveUI;
 
 namespace JB.Collections.ExtensionMethods
 {
@@ -35,7 +34,7 @@ namespace JB.Collections.ExtensionMethods
 		/// targetBindingList</exception>
 		/// <exception cref="System.InvalidOperationException">Source and Target Lists must contain exactly the same element(s) at
 		/// the exact same index position(s)</exception>
-		public static IDisposable ForwardListChangesTo<T>(this EnhancedBindingList<T> sourceBindingList, bool includeItemChanges = false, params ReactiveList<T>[] targetReactiveLists)
+		public static IDisposable ForwardListChangesTo<T>(this EnhancedBindingList<T> sourceBindingList, bool includeItemChanges = false, params ReactiveUI.ReactiveList<T>[] targetReactiveLists)
 		{
 			if (sourceBindingList == null) throw new ArgumentNullException(nameof(sourceBindingList));
 			if (targetReactiveLists == null) throw new ArgumentNullException(nameof(targetReactiveLists));
@@ -58,7 +57,7 @@ namespace JB.Collections.ExtensionMethods
 		/// targetBindingList</exception>
 		/// <exception cref="System.InvalidOperationException">Source and Target Lists must contain exactly the same element(s) at
 		/// the exact same index position(s)</exception>
-		public static IDisposable ForwardListChangesTo<T>(this EnhancedBindingList<T> sourceBindingList, ReactiveList<T> targetReactiveList, bool includeItemChanges = false)
+		public static IDisposable ForwardListChangesTo<T>(this EnhancedBindingList<T> sourceBindingList, ReactiveUI.ReactiveList<T> targetReactiveList, bool includeItemChanges = false)
 		{
 			if (sourceBindingList == null) throw new ArgumentNullException(nameof(sourceBindingList));
 			if (targetReactiveList == null) throw new ArgumentNullException(nameof(targetReactiveList));
@@ -88,7 +87,7 @@ namespace JB.Collections.ExtensionMethods
 		/// <exception cref="System.ArgumentOutOfRangeException">eventPattern
 		/// or
 		/// eventPattern</exception>
-		private static void OnNextListChanged<T>(EventPattern<ListChangedEventArgs> eventPattern, ReactiveList<T> targetReactiveList, bool includeItemChanges = false)
+		private static void OnNextListChanged<T>(EventPattern<ListChangedEventArgs> eventPattern, ReactiveUI.ReactiveList<T> targetReactiveList, bool includeItemChanges = false)
 		{
 			if (eventPattern == null) throw new ArgumentNullException(nameof(eventPattern));
 			if (targetReactiveList == null) throw new ArgumentNullException(nameof(targetReactiveList));

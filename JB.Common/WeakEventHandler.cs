@@ -20,13 +20,13 @@ namespace JB
 	/// Instead of registering the <see cref="EventHandler{TEventArgs}"/> to your event directly, wrap it in a <see cref="WeakEventHandler{TEventArgs,THandler}"/>. That's all.
 	/// </example>
 	/// <typeparam name="TEventArgs">The type of the event arguments.</typeparam>
-	/// <typeparam name="THandler">The type of the handler.</typeparam>
-	public sealed class WeakEventHandler<TEventArgs, THandler>
-			where TEventArgs : EventArgs
-			where THandler : class
+	/// <typeparam name="TEventTarget">The type of the handler.</typeparam>
+	public sealed class WeakEventHandler<TEventArgs, TEventTarget>
+		where TEventArgs : EventArgs
+		where TEventTarget : class
 	{
-		private readonly WeakReference<THandler> _targetReference;
-		private readonly Lazy<Action<THandler, object, TEventArgs>> _cachedCallback;
+		private WeakReference<TEventTarget> _targetReference;
+		private Lazy<Action<TEventTarget, object, TEventArgs>> _cachedCallback;
 
 		/// <summary>
 		/// Initializes a new instance of the <see cref="WeakEventHandler{TEventArgs, THandler}"/> class.
@@ -35,18 +35,39 @@ namespace JB
 		/// <exception cref="System.ArgumentOutOfRangeException"></exception>
 		public WeakEventHandler(EventHandler<TEventArgs> callback)
 		{
-			if (typeof(THandler) != callback.Target.GetType()) throw new ArgumentOutOfRangeException(nameof(callback));
+			if (typeof(TEventTarget) != callback.Target.GetType()) throw new ArgumentOutOfRangeException(nameof(callback));
 
-			_targetReference = new WeakReference<THandler>((THandler)callback.Target, true);
-			_cachedCallback = new Lazy<Action<THandler, object, TEventArgs>>(() =>
+			SetupReferenceAndInvoker(callback);
+		}
+
+		/// <summary>
+		/// Initializes a new instance of the <see cref="WeakEventHandler{TEventArgs, TEventTarget}"/> class.
+		/// </summary>
+		/// <param name="callback">The callback.</param>
+		/// <exception cref="System.ArgumentOutOfRangeException"></exception>
+		public WeakEventHandler(Delegate callback)
+		{
+			if (typeof(TEventTarget) != callback.Target.GetType()) throw new ArgumentOutOfRangeException(nameof(callback));
+
+			SetupReferenceAndInvoker(callback);
+		}
+
+		/// <summary>
+		/// Setups the (weak) target reference and (cached, lazy) invoker.
+		/// </summary>
+		/// <param name="callback">The callback.</param>
+		private void SetupReferenceAndInvoker(Delegate callback)
+		{
+			_targetReference = new WeakReference<TEventTarget>((TEventTarget)callback.Target, true);
+			_cachedCallback = new Lazy<Action<TEventTarget, object, TEventArgs>>(() =>
 			{
-				var instanceParameter = Expression.Parameter(typeof(THandler));
+				var instanceParameter = Expression.Parameter(typeof(TEventTarget));
 				var senderParameterExpression = Expression.Parameter(typeof(object));
 				var eventArgsParameterExpression = Expression.Parameter(typeof(TEventArgs));
 
 				var callExpression = Expression.Call(instanceParameter, callback.Method, senderParameterExpression, eventArgsParameterExpression);
 
-				return Expression.Lambda<Action<THandler, object, TEventArgs>>(callExpression, instanceParameter, senderParameterExpression, eventArgsParameterExpression).Compile();
+				return Expression.Lambda<Action<TEventTarget, object, TEventArgs>>(callExpression, instanceParameter, senderParameterExpression, eventArgsParameterExpression).Compile();
 			}, LazyThreadSafetyMode.ExecutionAndPublication);
 		}
 
@@ -56,9 +77,9 @@ namespace JB
 		/// <param name="sender">The sender.</param>
 		/// <param name="eventArgs">The <see cref="EventArgs" /> instance containing the event data.</param>
 		[DebuggerNonUserCode]
-		private void Handler(object sender, TEventArgs eventArgs)
+		public void Handler(object sender, TEventArgs eventArgs)
 		{
-			THandler target;
+			TEventTarget target;
 			if (_targetReference.TryGetTarget(out target))
 			{
 				_cachedCallback.Value.Invoke(target, sender, eventArgs);
@@ -72,7 +93,7 @@ namespace JB
 		/// <returns>
 		/// The result of the conversion.
 		/// </returns>
-		public static implicit operator EventHandler<TEventArgs>(WeakEventHandler<TEventArgs, THandler> eventHandler)
+		public static implicit operator EventHandler<TEventArgs>(WeakEventHandler<TEventArgs, TEventTarget> eventHandler)
 		{
 			return eventHandler.Handler;
 		}

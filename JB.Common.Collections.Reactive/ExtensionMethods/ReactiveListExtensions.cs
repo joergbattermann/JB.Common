@@ -10,7 +10,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reactive.Disposables;
-using ReactiveUI;
 
 namespace JB.Collections.ExtensionMethods
 {
@@ -39,7 +38,7 @@ namespace JB.Collections.ExtensionMethods
 		///     Source and Target Lists must contain exactly the same element(s) at
 		///     the exact same index position(s)
 		/// </exception>
-		public static IDisposable ForwardListChangesTo<T>(this ReactiveList<T> sourceReactiveList, bool includeItemChanges = false, params EnhancedBindingList<T>[] targetBindingLists)
+		public static IDisposable ForwardListChangesTo<T>(this ReactiveUI.ReactiveList<T> sourceReactiveList, bool includeItemChanges = false, params EnhancedBindingList<T>[] targetBindingLists)
 		{
 			if (sourceReactiveList == null) throw new ArgumentNullException(nameof(sourceReactiveList));
 			if (targetBindingLists == null) throw new ArgumentNullException(nameof(targetBindingLists));
@@ -69,7 +68,7 @@ namespace JB.Collections.ExtensionMethods
 		///     Source and Target Lists must contain exactly the same element(s) at
 		///     the exact same index position(s)
 		/// </exception>
-		public static IDisposable ForwardListChangesTo<T>(this ReactiveList<T> sourceReactiveList, EnhancedBindingList<T> targetBindingList, bool includeItemChanges = false)
+		public static IDisposable ForwardListChangesTo<T>(this ReactiveUI.ReactiveList<T> sourceReactiveList, EnhancedBindingList<T> targetBindingList, bool includeItemChanges = false)
 		{
 			if (sourceReactiveList == null) throw new ArgumentNullException(nameof(sourceReactiveList));
 			if (targetBindingList == null) throw new ArgumentNullException(nameof(targetBindingList));
