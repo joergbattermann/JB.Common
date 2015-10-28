@@ -8,6 +8,7 @@
 
 using System.ComponentModel.Composition;
 using System.Diagnostics;
+using System.Windows.Controls;
 using Microsoft.TeamFoundation.Controls;
 
 namespace JB.VisualStudio.TeamFoundation.TeamExplorer
