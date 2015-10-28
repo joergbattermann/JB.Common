@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<package xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <metadata xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+    <id>JB.Common.VisualStudio.TeamFoundation</id>
+    <version>$version$</version>
+    <authors>Joerg Battermann</authors>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>Provides custom types, helpers and extension methods for Visual Studio extensibility, particularly its Team Foundation part.</description>
+    <summary>This package contains custom type(s) I needed myself or deemed useful for current or future projects.</summary>
+    <releaseNotes>Initial version.</releaseNotes>
+    <language>en-US</language>
+    <copyright>Joerg Battermann</copyright>
+    <licenseUrl>https://github.com/jbattermann/JB.Common/blob/master/LICENSE</licenseUrl>
+    <projectUrl>https://github.com/jbattermann/JB.Common/blob/master/README.md</projectUrl>
+    <dependencies>
+      <dependency id="JB.Common" version="[$version$,]" />
+      <dependency id="JB.Common.VisualStudio" version="[$version$,]" />
+    </dependencies>
+    <tags>VisualStudio TeamFoundation TeamFoundationServer TFS TeamExplorer WorkItemTracking WorkItem Common Helpers HelperMethods ExtensionMethods Extensibility VSIX</tags>
+  </metadata>
+  <files>
+    <file src="JB.Common.VisualStudio.TeamFoundation\bin\Release\JB.Common.VisualStudio.TeamFoundation.dll" target="lib\net45" />
+    <file src="JB.Common.VisualStudio.TeamFoundation\bin\Release\JB.Common.VisualStudio.TeamFoundation.pdb" target="lib\net45" />
+    <file src="JB.Common.VisualStudio.TeamFoundation\bin\Release\JB.Common.VisualStudio.TeamFoundation.xml" target="lib\net45" />
+  </files>
+</package>
