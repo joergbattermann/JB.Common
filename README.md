@@ -21,3 +21,15 @@ This package provides custom collection, list types and helpers regarding observ
 
 `PM> Install-Package JB.Common.Collections.Reactive`
 
+## JB.Common.VisualStudio [![NuGet Version](http://img.shields.io/nuget/v/JB.Common.VisualStudio.svg?style=flat)](https://www.nuget.org/packages/JB.Common.VisualStudio/) 
+
+This is a different kind of package: it provides Visual Studio Extensibility helpers, base classes and extension methods. Start by installing the [JB.Common.VisualStudio](https://www.nuget.org/packages/JB.Common.VisualStudio/) NuGet package:
+
+`PM> Install-Package JB.Common.VisualStudio`
+
+## JB.Common.VisualStudio.TeamFoundation [![NuGet Version](http://img.shields.io/nuget/v/JB.Common.VisualStudio.TeamFoundation.svg?style=flat)](https://www.nuget.org/packages/JB.Common.VisualStudio.TeamFoundation/) 
+
+This package provides base classes and helpers regarding Visual Studio's Team Foundation Server functionality, including Work Item Tracking as well as for VS's Team Explorer. Start by installing the [JB.Common.VisualStudio.TeamFoundation](https://www.nuget.org/packages/JB.Common.VisualStudio.TeamFoundation/) NuGet package:
+
+`PM> Install-Package JB.Common.VisualStudio.TeamFoundation`
+

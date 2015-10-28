@@ -12,6 +12,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		JB.Common.Collections.Reactive.nuspec = JB.Common.Collections.Reactive.nuspec
 		JB.Common.nuspec = JB.Common.nuspec
 		JB.Common.Reactive.nuspec = JB.Common.Reactive.nuspec
+		LICENSE = LICENSE
+		README.md = README.md
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JB.Common.Collections.Reactive", "JB.Common.Collections.Reactive\JB.Common.Collections.Reactive.csproj", "{A30A30A6-9914-42DC-95A1-527B652B165D}"
@@ -19,6 +21,10 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JB.Common", "JB.Common\JB.Common.csproj", "{248FADAF-12C1-41D1-8FAA-8B786B4FEB36}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JB.Common.Reactive", "JB.Common.Reactive\JB.Common.Reactive.csproj", "{45F64424-6A73-45CD-942C-841225CB3AD6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JB.Common.VisualStudio", "JB.Common.VisualStudio\JB.Common.VisualStudio.csproj", "{E12CC753-0D0E-4933-9F1D-A46722C92B5F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JB.Common.VisualStudio.TeamFoundation", "JB.Common.VisualStudio.TeamFoundation\JB.Common.VisualStudio.TeamFoundation.csproj", "{6510F736-3FC5-49E1-9169-BB9CAB15D753}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -42,6 +48,14 @@ Global
 		{45F64424-6A73-45CD-942C-841225CB3AD6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{45F64424-6A73-45CD-942C-841225CB3AD6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{45F64424-6A73-45CD-942C-841225CB3AD6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E12CC753-0D0E-4933-9F1D-A46722C92B5F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E12CC753-0D0E-4933-9F1D-A46722C92B5F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E12CC753-0D0E-4933-9F1D-A46722C92B5F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E12CC753-0D0E-4933-9F1D-A46722C92B5F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6510F736-3FC5-49E1-9169-BB9CAB15D753}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6510F736-3FC5-49E1-9169-BB9CAB15D753}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6510F736-3FC5-49E1-9169-BB9CAB15D753}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6510F736-3FC5-49E1-9169-BB9CAB15D753}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
