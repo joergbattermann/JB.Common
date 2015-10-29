@@ -21,11 +21,10 @@ namespace JB.ExtensionMethods
 		/// <typeparam name="TService">Type of the service</typeparam>
 		/// <returns></returns>
 		public static TService GetService<TService>(this IServiceProvider serviceProvider)
-            where TService : class
         {
 			if (serviceProvider == null) throw new ArgumentNullException(nameof(serviceProvider));
-
-			return serviceProvider.GetService(typeof(TService)) as TService;
+            
+            return (TService)serviceProvider.GetService(typeof(TService));
 		}
 
         /// <summary>
