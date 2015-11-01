@@ -14,6 +14,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Windows.Input;
 using JB.ExtensionMethods;
+using JB.VisualStudio.TeamFoundation.ExtensionMethods;
 using Microsoft.TeamFoundation.Client;
 using Microsoft.TeamFoundation.Controls;
 using Microsoft.TeamFoundation.Controls.WPF.TeamExplorer;
@@ -27,7 +28,7 @@ namespace JB.VisualStudio.TeamFoundation.TeamExplorer
     public abstract class TeamExplorerBase : INotifyPropertyChanged, IDisposable
     {
         private IServiceProvider _serviceProvider;
-        private long _teamFoundationContextChangedSubscribed;
+        private long _isTeamFoundationContextChangedSubscribed;
 
         /// <summary>
         ///     Gets the team explorer page.
@@ -35,7 +36,7 @@ namespace JB.VisualStudio.TeamFoundation.TeamExplorer
         /// <value>
         ///     The team explorer page.
         /// </value>
-        protected ITeamExplorerPage CurrentTeamExplorerPage => ServiceProvider?.GetService<ITeamExplorerPage>();
+        protected ITeamExplorerPage CurrentTeamExplorerPage => ServiceProvider?.GetCurrentTeamExplorerPage();
 
         /// <summary>
         ///     Gets the current context.
@@ -87,9 +88,9 @@ namespace JB.VisualStudio.TeamFoundation.TeamExplorer
         {
             get
             {
-                Debug.Assert(ServiceProvider != null, string.Format(".{0} accessed before .{1} has been set", nameof(TeamExplorer), nameof(ServiceProvider)));
+                Debug.Assert(ServiceProvider != null, $".{nameof(TeamExplorer)} accessed before .{nameof(ServiceProvider)} has been set");
 
-                return ServiceProvider.GetService<ITeamExplorer>();
+                return ServiceProvider.GetTeamExplorer();
             }
         }
 
@@ -99,10 +100,10 @@ namespace JB.VisualStudio.TeamFoundation.TeamExplorer
         /// <value>
         ///     <c>true</c> if [team foundation context changed subscribed]; otherwise, <c>false</c>.
         /// </value>
-        protected bool TeamFoundationContextChangedSubscribed
+        protected bool IsTeamFoundationContextChangedSubscribed
         {
-            get { return Interlocked.Read(ref _teamFoundationContextChangedSubscribed) == 1; }
-            private set { Interlocked.Exchange(ref _teamFoundationContextChangedSubscribed, value ? 1 : 0); }
+            get { return Interlocked.Read(ref _isTeamFoundationContextChangedSubscribed) == 1; }
+            private set { Interlocked.Exchange(ref _isTeamFoundationContextChangedSubscribed, value ? 1 : 0); }
         }
 
         /// <summary>
@@ -115,9 +116,9 @@ namespace JB.VisualStudio.TeamFoundation.TeamExplorer
         {
             get
             {
-                Debug.Assert(ServiceProvider != null, string.Format(".{0} accessed before .{1} has been set", nameof(TeamFoundationContextManager), nameof(ServiceProvider)));
+                Debug.Assert(ServiceProvider != null, $".{nameof(TeamFoundationContextManager)} accessed before .{nameof(ServiceProvider)} has been set");
 
-                return ServiceProvider.GetService<ITeamFoundationContextManager4>();
+                return ServiceProvider.GetTeamFoundationContextManager();
             }
         }
 
@@ -335,17 +336,17 @@ namespace JB.VisualStudio.TeamFoundation.TeamExplorer
         /// </summary>
         protected void SubscribeTeamFoundationContextChanges()
         {
-            if (ServiceProvider == null || TeamFoundationContextChangedSubscribed)
+            if (ServiceProvider == null || IsTeamFoundationContextChangedSubscribed)
             {
                 return;
             }
 
             if (TeamFoundationContextManager != null)
             {
-                TeamFoundationContextManager.ContextChanging += TeamFoundationContextChanging;
-                TeamFoundationContextManager.ContextChanged += TeamFoundationContextChanged;
+                TeamFoundationContextManager.ContextChanging += OnTeamFoundationContextChanging;
+                TeamFoundationContextManager.ContextChanged += OnTeamFoundationContextChanged;
 
-                TeamFoundationContextChangedSubscribed = true;
+                IsTeamFoundationContextChangedSubscribed = true;
             }
         }
 
@@ -354,7 +355,7 @@ namespace JB.VisualStudio.TeamFoundation.TeamExplorer
         /// </summary>
         /// <param name="sender">The sender.</param>
         /// <param name="e">The <see cref="ContextChangedEventArgs" /> instance containing the event data.</param>
-        protected virtual void TeamFoundationContextChanged(object sender, ContextChangedEventArgs e)
+        protected virtual void OnTeamFoundationContextChanged(object sender, ContextChangedEventArgs e)
         {
         }
 
@@ -364,7 +365,7 @@ namespace JB.VisualStudio.TeamFoundation.TeamExplorer
         /// </summary>
         /// <param name="sender">The sender.</param>
         /// <param name="e">The <see cref="ContextChangingEventArgs" /> instance containing the event data.</param>
-        protected virtual void TeamFoundationContextChanging(object sender, ContextChangingEventArgs e)
+        protected virtual void OnTeamFoundationContextChanging(object sender, ContextChangingEventArgs e)
         {
         }
 
@@ -374,17 +375,17 @@ namespace JB.VisualStudio.TeamFoundation.TeamExplorer
         /// </summary>
         protected void UnsubscribeTeamFoundationContextChanges()
         {
-            if (ServiceProvider == null || !TeamFoundationContextChangedSubscribed)
+            if (ServiceProvider == null || !IsTeamFoundationContextChangedSubscribed)
             {
                 return;
             }
 
             if (TeamFoundationContextManager != null)
             {
-                TeamFoundationContextManager.ContextChanging -= TeamFoundationContextChanging;
-                TeamFoundationContextManager.ContextChanged -= TeamFoundationContextChanged;
+                TeamFoundationContextManager.ContextChanging -= OnTeamFoundationContextChanging;
+                TeamFoundationContextManager.ContextChanged -= OnTeamFoundationContextChanged;
 
-                TeamFoundationContextChangedSubscribed = false;
+                IsTeamFoundationContextChangedSubscribed = false;
             }
         }
     }

@@ -8,17 +8,49 @@ namespace JB.VisualStudio.ExtensionMethods
 	/// </summary>
 	public static class VisualStudioServiceProviderExtensions
 	{
-		/// <summary>
-		/// Gets the visual studio image service.
-		/// </summary>
-		/// <value>
-		/// The visual studio image service.
-		/// </value>
-		public static IVsImageService2 GetVisualStudioImageService(this IServiceProvider serviceProvider)
+        /// <summary>
+        /// Gets the <see cref="Microsoft.VisualStudio.Shell.Interop.IVsImageService2">visual studio image service</see>.
+        /// </summary>
+        /// <value>
+        /// The visual studio image service.
+        /// </value>
+        public static Microsoft.VisualStudio.Shell.Interop.IVsImageService2 GetVsImageService(this IServiceProvider serviceProvider)
 		{
 			if (serviceProvider == null) throw new ArgumentNullException(nameof(serviceProvider));
 
-			return (IVsImageService2)serviceProvider.GetService(typeof(SVsImageService));
+			return (Microsoft.VisualStudio.Shell.Interop.IVsImageService2)serviceProvider.GetService(typeof(SVsImageService));
         }
-	}
+
+        /// <summary>
+        /// Gets the <see cref="IVsShell"/> service.
+        /// </summary>
+        /// <param name="serviceProvider">The service provider.</param>
+        /// <returns></returns>
+        /// <exception cref="System.ArgumentNullException"></exception>
+        public static IVsShell GetVsShell(this IServiceProvider serviceProvider)
+        {
+            if (serviceProvider == null) throw new ArgumentNullException(nameof(serviceProvider));
+
+            return (IVsShell)serviceProvider.GetService(typeof(SVsShell));
+        }
+
+        /// <summary>
+        /// Loads the visual studio package.
+        /// </summary>
+        /// <param name="serviceProvider">The service provider.</param>
+        /// <param name="packageGuid">The unique identifier for the package to load.</param>
+        /// <returns></returns>
+        /// <exception cref="System.ArgumentNullException"></exception>
+        public static bool LoadVisualStudioPackage(this IServiceProvider serviceProvider, Guid packageGuid)
+        {
+            if (serviceProvider == null) throw new ArgumentNullException(nameof(serviceProvider));
+
+            IVsShell vsShell = serviceProvider.GetVsShell();
+            if (vsShell == null)
+                return false;
+
+            IVsPackage loadedPackage = null;
+            return vsShell.LoadPackage(ref packageGuid, out loadedPackage) == Microsoft.VisualStudio.VSConstants.S_OK;
+        }
+    }
 }
