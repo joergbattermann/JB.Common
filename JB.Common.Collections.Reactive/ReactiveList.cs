@@ -92,21 +92,24 @@ namespace JB.Collections
 		/// </returns>
 		public bool IsReadOnly => ((IList)InnerList).IsReadOnly;
 
-		#region Implementation of INotifyCollectionChanged
+        #region Implementation of INotifyCollectionChanged
 
-		public event NotifyCollectionChangedEventHandler CollectionChanged;
+        /// <summary>
+        /// Occurs when the collection changed.
+        /// </summary>
+        public event NotifyCollectionChangedEventHandler CollectionChanged;
 
-		#endregion
-		
-		#region Implementation of IEnumerable
+        #endregion
 
-		/// <summary>
-		/// Returns an enumerator that iterates through the collection.
-		/// </summary>
-		/// <returns>
-		/// An enumerator that can be used to iterate through the collection.
-		/// </returns>
-		public IEnumerator<T> GetEnumerator()
+        #region Implementation of IEnumerable
+
+        /// <summary>
+        /// Returns an enumerator that iterates through the collection.
+        /// </summary>
+        /// <returns>
+        /// An enumerator that can be used to iterate through the collection.
+        /// </returns>
+        public IEnumerator<T> GetEnumerator()
 		{
 			return InnerList.GetEnumerator();
 		}
