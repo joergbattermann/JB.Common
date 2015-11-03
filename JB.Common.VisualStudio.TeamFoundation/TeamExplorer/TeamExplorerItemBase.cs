@@ -10,6 +10,9 @@ using System.ComponentModel.Composition;
 
 namespace JB.VisualStudio.TeamFoundation.TeamExplorer
 {
+    /// <summary>
+    /// Common base class for <see cref="TeamExplorerNavigationItemBase"/> and <see cref="TeamExplorerPageNavigationItemBase"/>
+    /// </summary>
     [PartNotDiscoverable]
     public abstract class TeamExplorerItemBase : TeamExplorerBase
     {
@@ -71,7 +74,7 @@ namespace JB.VisualStudio.TeamFoundation.TeamExplorer
         /// </summary>
         public virtual void Execute()
         {
-            //var a = KnownMonikers.
+            
         }
 
         /// <summary>

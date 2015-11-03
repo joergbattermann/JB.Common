@@ -55,6 +55,9 @@ namespace JB.VisualStudio.TeamFoundation.TeamExplorer
             TargetPageId = targetPageId;
         }
 
+        /// <summary>
+        /// Whenever this <see cref="ITeamExplorerNavigationItem"/> shall execute its activity, it navigates to the <see cref="TargetPageId"/>.
+        /// </summary>
         public override void Execute()
         {
             TeamExplorerUtils.Instance.NavigateToPage(TargetPageId.ToString(), TeamExplorer, null);

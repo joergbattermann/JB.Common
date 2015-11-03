@@ -12,6 +12,9 @@ using System.Windows.Controls;
 
 namespace JB.VisualStudio.TeamFoundation.TeamExplorer
 {
+    /// <summary>
+    /// Common base class for <see cref="TeamExplorerPageBase"/> as well as <see cref="TeamExplorerSectionBase"/> as both provide a <see cref="Content"/>.
+    /// </summary>
     [PartNotDiscoverable]
     public abstract class TeamExplorerContentBase : TeamExplorerBase
     {
