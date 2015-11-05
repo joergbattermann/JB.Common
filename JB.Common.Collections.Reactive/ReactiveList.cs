@@ -13,19 +13,24 @@ using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Reactive;
 using System.Reactive.Concurrency;
+using System.Reactive.Disposables;
+using System.Reactive.Linq;
+using System.Reactive.Subjects;
 using System.Runtime.CompilerServices;
+using System.Threading;
+using JB.ExtensionMethods;
 
 namespace JB.Collections
 {
-	public class ReactiveList<T> : IReactiveList<T>
+	public class ReactiveList<T> : IReactiveList<T>, IDisposable
 	{
-		/// <summary>
-		/// Gets the inner list.
-		/// </summary>
-		/// <value>
-		/// The inner list.
-		/// </value>
-		protected SchedulerSynchronizedBindingList<T> InnerList { get; private set; }
+        /// <summary>
+        /// Gets the inner list.
+        /// </summary>
+        /// <value>
+        /// The inner list.
+        /// </value>
+        protected SchedulerSynchronizedBindingList<T> InnerList { get; }
 
 		/// <summary>
 		/// Gets the used scheduler.
@@ -53,16 +58,7 @@ namespace JB.Collections
 
 			ChangesToResetThreshold = changesToResetThreshold;
 
-			SetupObservables();
-		}
-
-		/// <summary>
-		/// Setups the observables.
-		/// </summary>
-		/// <exception cref="System.NotImplementedException"></exception>
-		private void SetupObservables()
-		{
-			throw new NotImplementedException();
+			SetupObservablesAndSubjects();
 		}
 
 		/// <summary>
@@ -73,7 +69,8 @@ namespace JB.Collections
 		/// <returns></returns>
 		private bool IsObjectOf<TObject>(object value)
 		{
-			return ((value is TObject) || ((value == null) && (default(TObject) == null)));
+            CheckForAndThrowIfDisposed();
+            return ((value is TObject) || ((value == null) && (default(TObject) == null)));
 		}
 
 		/// <summary>
@@ -82,17 +79,31 @@ namespace JB.Collections
 		/// <returns>
 		/// The number of elements contained in this instance.
 		/// </returns>
-		public int Count => InnerList.Count;
+		public int Count
+		{
+		    get
+		    {
+                CheckForAndThrowIfDisposed();
+                return InnerList.Count;
+		    }
+		}
 
-		/// <summary>
+	    /// <summary>
 		/// Gets a value indicating whether the instance is read-only.
 		/// </summary>
 		/// <returns>
 		/// true if the instance is read-only; otherwise, false.
 		/// </returns>
-		public bool IsReadOnly => ((IList)InnerList).IsReadOnly;
+		public bool IsReadOnly
+		{
+		    get
+		    {
+                CheckForAndThrowIfDisposed();
+                return ((IList) InnerList).IsReadOnly;
+		    }
+		}
 
-        #region Implementation of INotifyCollectionChanged
+	    #region Implementation of INotifyCollectionChanged
 
         /// <summary>
         /// Occurs when the collection changed.
@@ -111,7 +122,8 @@ namespace JB.Collections
         /// </returns>
         public IEnumerator<T> GetEnumerator()
 		{
-			return InnerList.GetEnumerator();
+            CheckForAndThrowIfDisposed();
+            return InnerList.GetEnumerator();
 		}
 
 		/// <summary>
@@ -122,7 +134,8 @@ namespace JB.Collections
 		/// </returns>
 		IEnumerator IEnumerable.GetEnumerator()
 		{
-			return GetEnumerator();
+            CheckForAndThrowIfDisposed();
+            return GetEnumerator();
 		}
 
 		#endregion
@@ -135,7 +148,8 @@ namespace JB.Collections
 		/// <param name="item">The object to add to the <see cref="T:System.Collections.Generic.ICollection`1"/>.</param><exception cref="T:System.NotSupportedException">The <see cref="T:System.Collections.Generic.ICollection`1"/> is read-only.</exception>
 		public void Add(T item)
 		{
-			throw new NotImplementedException();
+            CheckForAndThrowIfDisposed();
+            throw new NotImplementedException();
 		}
 
 		/// <summary>
@@ -147,7 +161,8 @@ namespace JB.Collections
 		/// <param name="value">The object to add to the <see cref="T:System.Collections.IList"/>. </param><exception cref="T:System.NotSupportedException">The <see cref="T:System.Collections.IList"/> is read-only.-or- The <see cref="T:System.Collections.IList"/> has a fixed size. </exception>
 		public int Add(object value)
 		{
-			throw new NotImplementedException();
+            CheckForAndThrowIfDisposed();
+            throw new NotImplementedException();
 		}
 
 		/// <summary>
@@ -159,7 +174,8 @@ namespace JB.Collections
 		/// <param name="value">The object to locate in the <see cref="T:System.Collections.IList"/>. </param>
 		public bool Contains(object value)
 		{
-			return ((IList)InnerList).Contains(value);
+            CheckForAndThrowIfDisposed();
+            return ((IList)InnerList).Contains(value);
 		}
 
 		/// <summary>
@@ -168,7 +184,8 @@ namespace JB.Collections
 		/// <exception cref="T:System.NotSupportedException">The <see cref="T:System.Collections.IList"/> is read-only. </exception>
 		void IList.Clear()
 		{
-			throw new NotImplementedException();
+            CheckForAndThrowIfDisposed();
+            throw new NotImplementedException();
 		}
 
 		/// <summary>
@@ -180,7 +197,8 @@ namespace JB.Collections
 		/// <param name="value">The object to locate in the <see cref="T:System.Collections.IList"/>. </param>
 		public int IndexOf(object value)
 		{
-			return ((IList)InnerList).IndexOf(value);
+            CheckForAndThrowIfDisposed();
+            return ((IList)InnerList).IndexOf(value);
 		}
 
 		/// <summary>
@@ -189,7 +207,8 @@ namespace JB.Collections
 		/// <param name="index">The zero-based index at which <paramref name="value"/> should be inserted. </param><param name="value">The object to insert into the <see cref="T:System.Collections.IList"/>. </param><exception cref="T:System.ArgumentOutOfRangeException"><paramref name="index"/> is not a valid index in the <see cref="T:System.Collections.IList"/>. </exception><exception cref="T:System.NotSupportedException">The <see cref="T:System.Collections.IList"/> is read-only.-or- The <see cref="T:System.Collections.IList"/> has a fixed size. </exception><exception cref="T:System.NullReferenceException"><paramref name="value"/> is null reference in the <see cref="T:System.Collections.IList"/>.</exception>
 		public void Insert(int index, object value)
 		{
-			throw new NotImplementedException();
+            CheckForAndThrowIfDisposed();
+            throw new NotImplementedException();
 		}
 
 		/// <summary>
@@ -198,7 +217,8 @@ namespace JB.Collections
 		/// <param name="value">The object to remove from the <see cref="T:System.Collections.IList"/>. </param><exception cref="T:System.NotSupportedException">The <see cref="T:System.Collections.IList"/> is read-only.-or- The <see cref="T:System.Collections.IList"/> has a fixed size. </exception>
 		public void Remove(object value)
 		{
-			throw new NotImplementedException();
+            CheckForAndThrowIfDisposed();
+            throw new NotImplementedException();
 		}
 
 		/// <summary>
@@ -207,7 +227,8 @@ namespace JB.Collections
 		/// <param name="index">The zero-based index of the item to remove. </param><exception cref="T:System.ArgumentOutOfRangeException"><paramref name="index"/> is not a valid index in the <see cref="T:System.Collections.IList"/>. </exception><exception cref="T:System.NotSupportedException">The <see cref="T:System.Collections.IList"/> is read-only.-or- The <see cref="T:System.Collections.IList"/> has a fixed size. </exception>
 		void IList.RemoveAt(int index)
 		{
-			throw new NotImplementedException();
+            CheckForAndThrowIfDisposed();
+            throw new NotImplementedException();
 		}
 
 		/// <summary>
@@ -219,8 +240,17 @@ namespace JB.Collections
 		/// <param name="index">The zero-based index of the element to get or set. </param><exception cref="T:System.ArgumentOutOfRangeException"><paramref name="index"/> is not a valid index in the <see cref="T:System.Collections.IList"/>. </exception><exception cref="T:System.NotSupportedException">The property is set and the <see cref="T:System.Collections.IList"/> is read-only. </exception>
 		object IList.this[int index]
 		{
-			get { return InnerList[index]; }
-			set { throw new NotImplementedException(); }
+		    get
+		    {
+                CheckForAndThrowIfDisposed();
+                return InnerList[index];
+		    }
+		    set
+		    {
+                CheckForAndThrowIfDisposed();
+
+                throw new NotImplementedException();
+		    }
 		}
 
 		/// <summary>
@@ -229,23 +259,39 @@ namespace JB.Collections
 		/// <returns>
 		/// true if the <see cref="T:System.Collections.IList"/> is read-only; otherwise, false.
 		/// </returns>
-		bool IList.IsReadOnly => IsReadOnly;
+		bool IList.IsReadOnly
+		{
+		    get
+            {
+                CheckForAndThrowIfDisposed();
+                return IsReadOnly;
+            }
+		}
 
-		/// <summary>
+	    /// <summary>
 		/// Gets a value indicating whether the <see cref="T:System.Collections.IList"/> has a fixed size.
 		/// </summary>
 		/// <returns>
 		/// true if the <see cref="T:System.Collections.IList"/> has a fixed size; otherwise, false.
 		/// </returns>
-		public bool IsFixedSize => ((IList)InnerList).IsFixedSize;
+		public bool IsFixedSize
+		{
+		    get
+		    {
+                CheckForAndThrowIfDisposed();
+                return ((IList) InnerList).IsFixedSize;
+		    }
+		}
 
-		/// <summary>
+	    /// <summary>
 		/// Removes all items from the <see cref="T:System.Collections.Generic.ICollection`1"/>.
 		/// </summary>
 		/// <exception cref="T:System.NotSupportedException">The <see cref="T:System.Collections.Generic.ICollection`1"/> is read-only. </exception>
 		void ICollection<T>.Clear()
 		{
-			throw new NotImplementedException();
+            CheckForAndThrowIfDisposed();
+
+            throw new NotImplementedException();
 		}
 
 		/// <summary>
@@ -255,15 +301,21 @@ namespace JB.Collections
 		/// true if <paramref name="item"/> is found in the <see cref="T:System.Collections.Generic.ICollection`1"/>; otherwise, false.
 		/// </returns>
 		/// <param name="item">The object to locate in the <see cref="T:System.Collections.Generic.ICollection`1"/>.</param>
-		public bool Contains(T item) => InnerList.Contains(item);
+		public bool Contains(T item)
+		{
+            CheckForAndThrowIfDisposed();
+            return InnerList.Contains(item);
+		}
 
-		/// <summary>
+	    /// <summary>
 		/// Copies the elements of the <see cref="T:System.Collections.Generic.ICollection`1"/> to an <see cref="T:System.Array"/>, starting at a particular <see cref="T:System.Array"/> index.
 		/// </summary>
 		/// <param name="array">The one-dimensional <see cref="T:System.Array"/> that is the destination of the elements copied from <see cref="T:System.Collections.Generic.ICollection`1"/>. The <see cref="T:System.Array"/> must have zero-based indexing.</param><param name="arrayIndex">The zero-based index in <paramref name="array"/> at which copying begins.</param><exception cref="T:System.ArgumentNullException"><paramref name="array"/> is null.</exception><exception cref="T:System.ArgumentOutOfRangeException"><paramref name="arrayIndex"/> is less than 0.</exception><exception cref="T:System.ArgumentException">The number of elements in the source <see cref="T:System.Collections.Generic.ICollection`1"/> is greater than the available space from <paramref name="arrayIndex"/> to the end of the destination <paramref name="array"/>.</exception>
 		public void CopyTo(T[] array, int arrayIndex)
 		{
-			InnerList.CopyTo(array, arrayIndex);
+            CheckForAndThrowIfDisposed();
+
+            InnerList.CopyTo(array, arrayIndex);
         }
 
 		/// <summary>
@@ -275,7 +327,9 @@ namespace JB.Collections
 		/// <param name="item">The object to remove from the <see cref="T:System.Collections.Generic.ICollection`1"/>.</param><exception cref="T:System.NotSupportedException">The <see cref="T:System.Collections.Generic.ICollection`1"/> is read-only.</exception>
 		public bool Remove(T item)
 		{
-			throw new NotImplementedException();
+            CheckForAndThrowIfDisposed();
+
+            throw new NotImplementedException();
 		}
 
 		/// <summary>
@@ -284,7 +338,9 @@ namespace JB.Collections
 		/// <param name="array">The one-dimensional <see cref="T:System.Array"/> that is the destination of the elements copied from <see cref="T:System.Collections.ICollection"/>. The <see cref="T:System.Array"/> must have zero-based indexing. </param><param name="index">The zero-based index in <paramref name="array"/> at which copying begins. </param><exception cref="T:System.ArgumentNullException"><paramref name="array"/> is null. </exception><exception cref="T:System.ArgumentOutOfRangeException"><paramref name="index"/> is less than zero. </exception><exception cref="T:System.ArgumentException"><paramref name="array"/> is multidimensional.-or- The number of elements in the source <see cref="T:System.Collections.ICollection"/> is greater than the available space from <paramref name="index"/> to the end of the destination <paramref name="array"/>.-or-The type of the source <see cref="T:System.Collections.ICollection"/> cannot be cast automatically to the type of the destination <paramref name="array"/>.</exception>
 		public void CopyTo(Array array, int index)
 		{
-			((IList)InnerList).CopyTo(array, index);
+            CheckForAndThrowIfDisposed();
+
+            ((IList)InnerList).CopyTo(array, index);
 		}
 
 		/// <summary>
@@ -293,9 +349,17 @@ namespace JB.Collections
 		/// <returns>
 		/// The number of elements contained in the <see cref="T:System.Collections.ICollection"/>.
 		/// </returns>
-		int ICollection.Count => Count;
+		int ICollection.Count
+		{
+		    get
+		    {
+                CheckForAndThrowIfDisposed();
 
-		/// <summary>
+                return Count;
+		    }
+		}
+
+	    /// <summary>
 		/// Gets an object that can be used to synchronize access to the <see cref="T:System.Collections.ICollection"/>.
 		/// </summary>
 		/// <returns>
@@ -309,33 +373,61 @@ namespace JB.Collections
 		/// <returns>
 		/// true if access to the <see cref="T:System.Collections.ICollection"/> is synchronized (thread safe); otherwise, false.
 		/// </returns>
-		public bool IsSynchronized => ((IList)InnerList).IsSynchronized;
+		public bool IsSynchronized
+		{
+		    get
+		    {
+                CheckForAndThrowIfDisposed();
+                return ((IList) InnerList).IsSynchronized;
+		    }
+		}
 
-		/// <summary>
+	    /// <summary>
 		/// Gets the number of elements contained in the <see cref="T:System.Collections.Generic.ICollection`1"/>.
 		/// </summary>
 		/// <returns>
 		/// The number of elements contained in the <see cref="T:System.Collections.Generic.ICollection`1"/>.
 		/// </returns>
-		int ICollection<T>.Count => Count;
+		int ICollection<T>.Count
+		{
+		    get
+		    {
+                CheckForAndThrowIfDisposed();
+                return Count;
+		    }
+		}
 
-		/// <summary>
+	    /// <summary>
 		/// Gets a value indicating whether the <see cref="T:System.Collections.Generic.ICollection`1"/> is read-only.
 		/// </summary>
 		/// <returns>
 		/// true if the <see cref="T:System.Collections.Generic.ICollection`1"/> is read-only; otherwise, false.
 		/// </returns>
-		bool ICollection<T>.IsReadOnly => IsReadOnly;
+		bool ICollection<T>.IsReadOnly
+		{
+		    get
+            {
+                CheckForAndThrowIfDisposed();
+                return IsReadOnly;
+            }
+		}
 
-		/// <summary>
+	    /// <summary>
 		/// Gets the number of elements in the collection.
 		/// </summary>
 		/// <returns>
 		/// The number of elements in the collection. 
 		/// </returns>
-		int IReadOnlyCollection<T>.Count => Count;
+		int IReadOnlyCollection<T>.Count
+		{
+		    get
+		    {
+                CheckForAndThrowIfDisposed();
+                return Count;
+		    }
+		}
 
-		#endregion
+	    #endregion
 
 		#region Implementation of IReactiveCollection<T>
 
@@ -345,7 +437,9 @@ namespace JB.Collections
 		/// <param name="items">The items.</param>
 		public void Add(IEnumerable<T> items)
 		{
-			throw new NotImplementedException();
+            CheckForAndThrowIfDisposed();
+
+            throw new NotImplementedException();
 		}
 
 		/// <summary>
@@ -360,7 +454,9 @@ namespace JB.Collections
 		/// Depending on whether the caller intends to move the item strictly or logically to the <paramref name="newIndex"/> position, correction might be useful.</param>
 		public void Move(T item, int newIndex, bool correctNewIndexOnIndexShift = false)
 		{
-			throw new NotImplementedException();
+            CheckForAndThrowIfDisposed();
+
+            throw new NotImplementedException();
 		}
 
 		/// <summary>
@@ -376,7 +472,9 @@ namespace JB.Collections
 		/// Depending on whether the caller intends to move the item strictly or logically to the <paramref name="newIndex" /> position, correction might be useful.</param>
 		public void Move(int itemIndex, int newIndex, int count = 1, bool correctNewIndexOnIndexShift = false)
 		{
-			throw new NotImplementedException();
+            CheckForAndThrowIfDisposed();
+
+            throw new NotImplementedException();
 		}
 
 		/// <summary>
@@ -385,7 +483,9 @@ namespace JB.Collections
 		/// <param name="items">The items.</param>
 		public void Remove(IEnumerable<T> items)
 		{
-			throw new NotImplementedException();
+            CheckForAndThrowIfDisposed();
+
+            throw new NotImplementedException();
 		}
 
 		/// <summary>
@@ -395,7 +495,9 @@ namespace JB.Collections
 		/// <param name="count">The count.</param>
 		public void RemoveRange(int index, int count)
 		{
-			throw new NotImplementedException();
+            CheckForAndThrowIfDisposed();
+
+            throw new NotImplementedException();
 		}
 
 		/// <summary>
@@ -403,7 +505,9 @@ namespace JB.Collections
 		/// </summary>
 		public void Reset()
 		{
-			throw new NotImplementedException();
+            CheckForAndThrowIfDisposed();
+
+            _resets.OnNext(Unit.Default);
 		}
 
 		#endregion
@@ -418,8 +522,10 @@ namespace JB.Collections
 		/// </returns>
 		/// <param name="item">The object to locate in the <see cref="T:System.Collections.Generic.IList`1"/>.</param>
 		public int IndexOf(T item)
-		{
-			return InnerList.IndexOf(item);
+        {
+            CheckForAndThrowIfDisposed();
+
+            return InnerList.IndexOf(item);
 		}
 
 		/// <summary>
@@ -428,7 +534,9 @@ namespace JB.Collections
 		/// <param name="index">The zero-based index at which <paramref name="item"/> should be inserted.</param><param name="item">The object to insert into the <see cref="T:System.Collections.Generic.IList`1"/>.</param><exception cref="T:System.ArgumentOutOfRangeException"><paramref name="index"/> is not a valid index in the <see cref="T:System.Collections.Generic.IList`1"/>.</exception><exception cref="T:System.NotSupportedException">The <see cref="T:System.Collections.Generic.IList`1"/> is read-only.</exception>
 		public void Insert(int index, T item)
 		{
-			throw new NotImplementedException();
+            CheckForAndThrowIfDisposed();
+
+            throw new NotImplementedException();
 		}
 
 		/// <summary>
@@ -437,7 +545,9 @@ namespace JB.Collections
 		/// <param name="index">The zero-based index of the item to remove.</param><exception cref="T:System.ArgumentOutOfRangeException"><paramref name="index"/> is not a valid index in the <see cref="T:System.Collections.Generic.IList`1"/>.</exception><exception cref="T:System.NotSupportedException">The <see cref="T:System.Collections.Generic.IList`1"/> is read-only.</exception>
 		void IList<T>.RemoveAt(int index)
 		{
-			throw new NotImplementedException();
+            CheckForAndThrowIfDisposed();
+
+            throw new NotImplementedException();
 		}
 
 		/// <summary>
@@ -449,24 +559,75 @@ namespace JB.Collections
 		/// <param name="index">The zero-based index of the element to get or set.</param><exception cref="T:System.ArgumentOutOfRangeException"><paramref name="index"/> is not a valid index in the <see cref="T:System.Collections.Generic.IList`1"/>.</exception><exception cref="T:System.NotSupportedException">The property is set and the <see cref="T:System.Collections.Generic.IList`1"/> is read-only.</exception>
 		public T this[int index]
 		{
-			get { return InnerList[index]; }
-			set { throw new NotImplementedException(); }
+		    get
+		    {
+                CheckForAndThrowIfDisposed();
+
+                return InnerList[index];
+		    }
+		    set
+		    {
+                CheckForAndThrowIfDisposed();
+
+                throw new NotImplementedException();
+		    }
 		}
 
-		#endregion
+        #endregion
 
-		#region Implementation of INotifyReactiveCollectionChanged<out T>
+        #region Implementation of INotifyReactiveCollectionChanged<out T>
 
-		/// <summary>
-		/// (Temporarily) suppresses change notifications until the returned <see cref="IDisposable" />
-		/// has been Disposed and a Reset will be signaled.
-		/// </summary>
-		/// <param name="signalResetWhenFinished">if set to <c>true</c> signals a reset when finished.</param>
-		/// <returns></returns>
-		/// <exception cref="System.NotImplementedException"></exception>
-		public IDisposable SuppressReactiveCollectionChangedNotifications(bool signalResetWhenFinished = true)
+        private readonly object _isSuppressingReactiveCollectionChangedNotificationsLocker = new object();
+        long _isSuppressingReactiveCollectionChangedNotifications = 0;
+
+        /// <summary>
+        /// Gets or sets a value indicating whether this instance is suppressing reactive collection changed notifications.
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if this instance is suppressing reactive collection changed notifications; otherwise, <c>false</c>.
+        /// </value>
+        public bool IsSuppressingReactiveCollectionChangedNotifications
+        {
+            get
+            {
+                return Interlocked.Read(ref _isSuppressingReactiveCollectionChangedNotifications) == 1;
+                
+            }
+            protected set
+            {
+                CheckForAndThrowIfDisposed();
+
+                lock (_isSuppressingReactiveCollectionChangedNotificationsLocker)
+                {
+                    if (value && IsSuppressingReactiveCollectionChangedNotifications)
+                        throw new InvalidOperationException("A Change Notification Suppression is currently already ongoing, multiple concurrent suppressions are not supported.");
+
+                    Interlocked.Exchange(ref _isSuppressingReactiveCollectionChangedNotifications, value ? 1 : 0);
+                }
+            }
+        }
+
+        /// <summary>
+        /// (Temporarily) suppresses change notifications until the returned <see cref="IDisposable" />
+        /// has been Disposed and a Reset will be signaled.
+        /// </summary>
+        /// <param name="signalResetWhenFinished">if set to <c>true</c> signals a reset when finished.</param>
+        /// <returns></returns>
+        /// <exception cref="System.NotImplementedException"></exception>
+        public IDisposable SuppressReactiveCollectionChangedNotifications(bool signalResetWhenFinished = true)
 		{
-			throw new NotImplementedException();
+            CheckForAndThrowIfDisposed();
+
+            IsSuppressingReactiveCollectionChangedNotifications = true;
+
+            return Disposable.Create(() =>
+            {
+                IsSuppressingReactiveCollectionChangedNotifications = false;
+                if (signalResetWhenFinished)
+                {
+                    _resets.OnNext(Unit.Default);
+                }
+            });
 		}
 
 		/// <summary>
@@ -484,33 +645,80 @@ namespace JB.Collections
 		/// <value>
 		/// The collection changes.
 		/// </value>
-		public IObservable<IReactiveCollectionChange<T>> CollectionChanges { get; }
+		public IObservable<IReactiveCollectionChange<T>> CollectionChanges
+		{
+		    get
+		    {
+                CheckForAndThrowIfDisposed();
 
-		/// <summary>
-		/// Gets the count change notifications as an observable stream.
+                return _collectionChanges.SkipWhile(_ => IsSuppressingReactiveCollectionChangedNotifications);
+		    }
+		}
+
+	    /// <summary>
+        /// Gets the count change notifications as an observable stream.
+        /// </summary>
+        /// <value>
+        /// The count changes.
+        /// </value>
+        public IObservable<int> CountChanges
+        {
+            get
+            {
+                CheckForAndThrowIfDisposed();
+
+                return _countChanges.SkipWhile(_ => IsSuppressingReactiveCollectionChangedNotifications).DistinctUntilChanged();
+            }
+        }
+
+        /// <summary>
+        /// Gets the reset notifications as an observable stream.  Whenever signaled,
+        /// observers should reset any knowledge / state etc about the list.
+        /// </summary>
+        /// <value>
+        /// The resets.
+        /// </value>
+        public IObservable<Unit> Resets
+        {
+            get
+            {
+                CheckForAndThrowIfDisposed();
+
+                return _resets.SkipWhile(_ => IsSuppressingReactiveCollectionChangedNotifications);
+            }
+        }
+
+	    #endregion
+
+        Subject<IReactiveCollectionChange<T>> _collectionChanges;
+        Subject<int> _countChanges;
+        Subject<Unit> _resets;
+
+	    IDisposable _countChangesPropertyChangeForwarder = null;
+        IDisposable _collectionChangesAndResetsPropertyChangeForwarder = null;
+
+        /// <summary>
+		/// Setups the observables.
 		/// </summary>
-		/// <value>
-		/// The count changes.
-		/// </value>
-		public IObservable<int> CountChanges { get; }
+		private void SetupObservablesAndSubjects()
+        {
+            _collectionChanges = new Subject<IReactiveCollectionChange<T>>();
+            _countChanges = new Subject<int>();
+            _resets = new Subject<Unit>();
 
-		/// <summary>
-		/// Gets the reset notifications as an observable stream.  Whenever signaled,
-		/// observers should reset any knowledge / state etc about the list.
-		/// </summary>
-		/// <value>
-		/// The resets.
-		/// </value>
-		public IObservable<Unit> Resets { get; }
+            // 'Count' and 'Item[]' PropertyChanged events are used by WPF
+            _countChangesPropertyChangeForwarder = CountChanges.Subscribe(_ => RaisePropertyChanged("Count"));
+            _collectionChangesAndResetsPropertyChangeForwarder = CollectionChanges.Select(_ => Unit.Default).Merge(Resets).Subscribe(_ => RaisePropertyChanged("Item[]"));
 
-		#endregion
+            throw new NotImplementedException();
+        }
 
-		#region Implementation of INotifyPropertyChanged
+        #region Implementation of INotifyPropertyChanged
 
-		/// <summary>
-		/// Occurs when a property changed.
-		/// </summary>
-		public event PropertyChangedEventHandler PropertyChanged;
+        /// <summary>
+        /// Occurs when a property changed.
+        /// </summary>
+        public event PropertyChangedEventHandler PropertyChanged;
 
 		/// <summary>
 		/// Raises the property changed event.
@@ -518,9 +726,120 @@ namespace JB.Collections
 		/// <param name="propertyName">Name of the property.</param>
 		protected virtual void RaisePropertyChanged([CallerMemberName] string propertyName = null)
 		{
-			Scheduler.Schedule(() => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName)));
+		    CheckForAndThrowIfDisposed();
+
+            Scheduler.Schedule(() => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName)));
 		}
 
 		#endregion
-	}
+
+	    #region Implementation of IDisposable
+
+	    private long _isDisposing = 0;
+        private long _isDisposed = 0;
+
+        private readonly object _isDisposedLocker = new object();
+
+        /// <summary>
+        /// Gets or sets a value indicating whether this instance has been disposed.
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if this instance is disposed; otherwise, <c>false</c>.
+        /// </value>
+        public bool IsDisposed
+        {
+            get
+            {
+                return Interlocked.Read(ref _isDisposed) == 1;
+
+            }
+            protected set
+            {
+                lock (_isDisposedLocker)
+                {
+                    if (value == false && IsDisposed)
+                        throw new InvalidOperationException("Once Disposed has been set, it cannot be reset back to false.");
+
+                    Interlocked.Exchange(ref _isDisposed, value ? 1 : 0);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether this instance is disposing.
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if this instance is disposing; otherwise, <c>false</c>.
+        /// </value>
+        public bool IsDisposing
+        {
+            get
+            {
+                return Interlocked.Read(ref _isDisposing) == 1;
+
+            }
+            protected set
+            {
+                Interlocked.Exchange(ref _isDisposing, value ? 1 : 0);
+            }
+        }
+
+        /// <summary>
+        /// Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+        /// </summary>
+        public void Dispose()
+	    {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// Releases unmanaged and - optionally - managed resources.
+        /// </summary>
+        /// <param name="disposeManagedResources">
+        ///   <c>true</c> to release both managed and unmanaged resources; <c>false</c> to release only unmanaged resources.</param>
+        protected virtual void Dispose(bool disposeManagedResources)
+        {
+            if (IsDisposing || IsDisposed)
+                return;
+
+            try
+            {
+                IsDisposing = true;
+
+                if (disposeManagedResources)
+                {
+                    _collectionChangesAndResetsPropertyChangeForwarder.CheckAndDispose();
+                    _countChangesPropertyChangeForwarder.CheckAndDispose();
+
+                    _collectionChanges.CheckAndDispose();
+                    _countChanges.CheckAndDispose();
+                    _resets.CheckAndDispose();
+                }
+            }
+            finally
+            {
+                IsDisposing = false;
+                IsDisposed = true;
+            }
+        }
+
+        /// <summary>
+        /// Checks whether this instance is currently or already has been disposed.
+        /// </summary>
+        private void CheckForAndThrowIfDisposed()
+        {
+            if (IsDisposing)
+            {
+                throw new ObjectDisposedException("This instance is currently being disposed.");
+            }
+
+            if (IsDisposed)
+            {
+                throw new ObjectDisposedException("This instance has been disposed.");
+            }
+        }
+
+        #endregion
+    }
 }

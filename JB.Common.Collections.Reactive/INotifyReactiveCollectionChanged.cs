@@ -14,14 +14,22 @@ namespace JB.Collections
 		/// <returns></returns>
 		IDisposable SuppressReactiveCollectionChangedNotifications(bool signalResetWhenFinished = true);
 
-		/// <summary>
-		/// Indicates at what percentage / fraction bulk changes are signaled as a Reset rather than individual change()s.
-		/// [0] = Always, [1] = Never.
-		/// </summary>
-		/// <value>
-		/// The changes to reset threshold.
-		/// </value>
-		double ChangesToResetThreshold { get; }
+        /// <summary>
+        /// Gets a value indicating whether this instance is currently suppressing reactive collection changed notifications.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if this instance is suppressing reactive collection changed notifications; otherwise, <c>false</c>.
+        /// </value>
+        bool IsSuppressingReactiveCollectionChangedNotifications { get; }
+
+        /// <summary>
+        /// Indicates at what percentage / fraction bulk changes are signaled as a Reset rather than individual change()s.
+        /// [0] = Always, [1] = Never.
+        /// </summary>
+        /// <value>
+        /// The changes to reset threshold.
+        /// </value>
+        double ChangesToResetThreshold { get; }
 
 		/// <summary>
 		/// Gets the collection change notifications as an observable stream.
