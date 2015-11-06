@@ -28,6 +28,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JB.Common.VisualStudio", "J
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JB.Common.VisualStudio.TeamFoundation", "JB.Common.VisualStudio.TeamFoundation\JB.Common.VisualStudio.TeamFoundation.csproj", "{6510F736-3FC5-49E1-9169-BB9CAB15D753}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JB.Common.Collections.Reactive.Tests", "JB.Common.Collections.Reactive.Tests\JB.Common.Collections.Reactive.Tests.csproj", "{067E492E-F300-4DC5-89C1-1AEF9C061C01}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -58,6 +60,10 @@ Global
 		{6510F736-3FC5-49E1-9169-BB9CAB15D753}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6510F736-3FC5-49E1-9169-BB9CAB15D753}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6510F736-3FC5-49E1-9169-BB9CAB15D753}.Release|Any CPU.Build.0 = Release|Any CPU
+		{067E492E-F300-4DC5-89C1-1AEF9C061C01}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{067E492E-F300-4DC5-89C1-1AEF9C061C01}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{067E492E-F300-4DC5-89C1-1AEF9C061C01}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{067E492E-F300-4DC5-89C1-1AEF9C061C01}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

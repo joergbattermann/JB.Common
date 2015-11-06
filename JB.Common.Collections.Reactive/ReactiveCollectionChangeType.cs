@@ -19,18 +19,6 @@ namespace JB.Collections
 		/// </summary>
 		ItemRemoved,
 		/// <summary>
-		/// More than one Item have been added.
-		/// </summary>
-		ItemsAdded,
-		/// <summary>
-		/// More than one Item have been moved.
-		/// </summary>
-		ItemsMoved,
-		/// <summary>
-		/// More than one Item have been removed.
-		/// </summary>
-		ItemsRemoved,
-		/// <summary>
 		/// Indicates a major change and consumers should reset any existing knowledge and state about the affected collection and refetch its current state.
 		/// </summary>
 		Reset,

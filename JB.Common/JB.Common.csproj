@@ -45,7 +45,9 @@
       <Link>Properties\CommonAssemblyInfo.cs</Link>
     </Compile>
     <Compile Include="ExtensionMethods\DisposableExtensions.cs" />
+    <Compile Include="ExtensionMethods\ObjectExtensions.cs" />
     <Compile Include="ExtensionMethods\ServiceProviderExtensions.cs" />
+    <Compile Include="ExtensionMethods\TypeExtensions.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Threading\SynchronizationContextExtensions.cs" />
     <Compile Include="Threading\Tasks\TaskCompletionSource.cs" />

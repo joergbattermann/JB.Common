@@ -41,12 +41,12 @@ namespace JB.Collections
 			: base(list ?? new List<T>())
 		{
 		}
-
-		/// <summary>
-		///     Adds the range of items.
-		/// </summary>
-		/// <param name="items">The items.</param>
-		public void AddRange(IEnumerable<T> items)
+       
+        /// <summary>
+        ///     Adds the range of items.
+        /// </summary>
+        /// <param name="items">The items.</param>
+        public void AddRange(IEnumerable<T> items)
 		{
 			if (items == null)
 				return;

@@ -7,6 +7,7 @@
 // -----------------------------------------------------------------------
 
 using System;
+using System.Diagnostics.Contracts;
 
 namespace JB.ExtensionMethods
 {
@@ -15,12 +16,13 @@ namespace JB.ExtensionMethods
 	/// </summary>
 	public static class ServiceProviderExtensions
 	{
-		/// <summary>
-		///     Gets the service of the specific type.
-		/// </summary>
-		/// <typeparam name="TService">Type of the service</typeparam>
-		/// <returns></returns>
-		public static TService GetService<TService>(this IServiceProvider serviceProvider)
+        /// <summary>
+        ///     Gets the service of the specific type.
+        /// </summary>
+        /// <typeparam name="TService">Type of the service</typeparam>
+        /// <returns></returns>
+        [Pure]
+        public static TService GetService<TService>(this IServiceProvider serviceProvider)
         {
 			if (serviceProvider == null) throw new ArgumentNullException(nameof(serviceProvider));
             
@@ -33,6 +35,7 @@ namespace JB.ExtensionMethods
         /// <typeparam name="TService">The type of the service interface.</typeparam>
         /// <typeparam name="TKnownServiceImplementation">The known type of the service implementation.</typeparam>
         /// <returns></returns>
+        [Pure]
         public static TService GetService<TService, TKnownServiceImplementation>(this IServiceProvider serviceProvider)
             where TService : class
             where TKnownServiceImplementation : TService

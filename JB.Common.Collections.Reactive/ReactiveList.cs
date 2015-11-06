@@ -22,7 +22,7 @@ using JB.ExtensionMethods;
 
 namespace JB.Collections
 {
-	public class ReactiveList<T> : IReactiveList<T>, IDisposable
+	public class ReactiveList<T> : IReactiveBindingList<T>, IDisposable
 	{
         /// <summary>
         /// Gets the inner list.
@@ -40,37 +40,30 @@ namespace JB.Collections
 		/// </value>
 		private IScheduler Scheduler { get; }
 
-		/// <summary>
-		/// Initializes a new instance of the <see cref="ReactiveList{T}"/> class.
-		/// </summary>
-		/// <param name="list">The list.</param>
-		/// <param name="changesToResetThreshold">The <see cref="ChangesToResetThreshold"/> value.</param>
-		/// <param name="syncRoot">The synchronize root.</param>
-		/// <param name="scheduler">The scheduler.</param>
-		public ReactiveList(IList<T> list = null, double changesToResetThreshold = 0.3, object syncRoot = null, IScheduler scheduler = null)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ReactiveList{T}" /> class.
+        /// </summary>
+        /// <param name="list">The list.</param>
+        /// <param name="enableItemChangeTracking">if set to <c>true</c> and if <typeparam name="T"/> implements <see cref="INotifyPropertyChanged"/>, individual items' changes will handled and forwarded by this instance.</param>
+        /// <param name="itemChangesToResetThreshold">The <see cref="ItemChangesToResetThreshold" /> value.</param>
+        /// <param name="syncRoot">The synchronize root.</param>
+        /// <param name="scheduler">The scheduler.</param>
+        /// <exception cref="System.ArgumentOutOfRangeException">Must be between 0 and 1 (both inclusive)</exception>
+        public ReactiveList(IList<T> list = null, bool enableItemChangeTracking = true, double itemChangesToResetThreshold = 0.3, object syncRoot = null, IScheduler scheduler = null)
 		{
-			if(changesToResetThreshold < 0 || changesToResetThreshold > 1) throw new ArgumentOutOfRangeException(nameof(changesToResetThreshold), "Must be between 0 and 1 (both inclusive)");
+			if(itemChangesToResetThreshold < 0 || itemChangesToResetThreshold > 1) throw new ArgumentOutOfRangeException(nameof(itemChangesToResetThreshold), "Must be between 0 and 1 (both inclusive)");
 
 			SyncRoot = syncRoot ?? new object();
 			Scheduler = scheduler ?? System.Reactive.Concurrency.Scheduler.Default;
 
 			InnerList = new SchedulerSynchronizedBindingList<T>(list, SyncRoot, Scheduler);
 
-			ChangesToResetThreshold = changesToResetThreshold;
+			ItemChangesToResetThreshold = itemChangesToResetThreshold;
+            MinimumItemsChangedToBeConsideredReset = 10;
+
+            IsItemChangeTrackingEnabled = enableItemChangeTracking;
 
 			SetupObservablesAndSubjects();
-		}
-
-		/// <summary>
-		/// Determines whether the provided object is one of the given type.
-		/// </summary>
-		/// <typeparam name="TObject">The type of the object.</typeparam>
-		/// <param name="value">The value.</param>
-		/// <returns></returns>
-		private bool IsObjectOf<TObject>(object value)
-		{
-            CheckForAndThrowIfDisposed();
-            return ((value is TObject) || ((value == null) && (default(TObject) == null)));
 		}
 
 		/// <summary>
@@ -123,6 +116,7 @@ namespace JB.Collections
         public IEnumerator<T> GetEnumerator()
 		{
             CheckForAndThrowIfDisposed();
+
             return InnerList.GetEnumerator();
 		}
 
@@ -134,7 +128,6 @@ namespace JB.Collections
 		/// </returns>
 		IEnumerator IEnumerable.GetEnumerator()
 		{
-            CheckForAndThrowIfDisposed();
             return GetEnumerator();
 		}
 
@@ -148,9 +141,8 @@ namespace JB.Collections
 		/// <param name="item">The object to add to the <see cref="T:System.Collections.Generic.ICollection`1"/>.</param><exception cref="T:System.NotSupportedException">The <see cref="T:System.Collections.Generic.ICollection`1"/> is read-only.</exception>
 		public void Add(T item)
 		{
-            CheckForAndThrowIfDisposed();
-            throw new NotImplementedException();
-		}
+            Insert(InnerList.Count, item);
+        }
 
 		/// <summary>
 		/// Adds an item to the <see cref="T:System.Collections.IList"/>.
@@ -161,8 +153,15 @@ namespace JB.Collections
 		/// <param name="value">The object to add to the <see cref="T:System.Collections.IList"/>. </param><exception cref="T:System.NotSupportedException">The <see cref="T:System.Collections.IList"/> is read-only.-or- The <see cref="T:System.Collections.IList"/> has a fixed size. </exception>
 		public int Add(object value)
 		{
-            CheckForAndThrowIfDisposed();
-            throw new NotImplementedException();
+		    if (value != null && value.IsObjectOfType<T>())
+		    {
+		        Add((T) value);
+		        return Count - 1;
+		    }
+		    else
+		    {
+		        return -1;
+		    }
 		}
 
 		/// <summary>
@@ -435,8 +434,10 @@ namespace JB.Collections
 		/// Adds a range of items.
 		/// </summary>
 		/// <param name="items">The items.</param>
-		public void Add(IEnumerable<T> items)
+		public void AddRange(IEnumerable<T> items)
 		{
+		    if (items == null) throw new ArgumentNullException(nameof(items));
+
             CheckForAndThrowIfDisposed();
 
             throw new NotImplementedException();
@@ -481,7 +482,7 @@ namespace JB.Collections
 		/// Removes the specified items.
 		/// </summary>
 		/// <param name="items">The items.</param>
-		public void Remove(IEnumerable<T> items)
+		public void RemoveRange(IEnumerable<T> items)
 		{
             CheckForAndThrowIfDisposed();
 
@@ -535,6 +536,25 @@ namespace JB.Collections
 		public void Insert(int index, T item)
 		{
             CheckForAndThrowIfDisposed();
+
+		    InnerList.Insert(index, item);
+
+		    if (IsItemChangeTrackingEnabled)
+		    {
+		        AddItemToPropertyChangedTracking(item);
+		    }
+
+		    if (IsSuppressingReactiveCollectionChangedNotifications == false)
+		    {
+		        if (IsItemsChangedAmountGreaterThanResetThreshold(1, Count, MinimumItemsChangedToBeConsideredReset, ItemChangesToResetThreshold))
+		        {
+
+		        }
+		        else
+		        {
+		            
+		        }
+		    }
 
             throw new NotImplementedException();
 		}
@@ -607,7 +627,30 @@ namespace JB.Collections
             }
         }
 
+        private long _isItemChangeTrackingEnabled = 0;
+
         /// <summary>
+        /// Gets a value indicating whether this instance has per item change tracking enabled and therefore listens to <typeparam name="T"/>'s <see cref="INotifyPropertyChanged.PropertyChanged"/> events, if the interface is implemented.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if this instance has item change tracking enabled; otherwise, <c>false</c>.
+        /// </value>
+        public bool IsItemChangeTrackingEnabled
+	    {
+            get
+            {
+                return Interlocked.Read(ref _isItemChangeTrackingEnabled) == 1;
+
+            }
+            protected set
+            {
+                CheckForAndThrowIfDisposed();
+
+                Interlocked.Exchange(ref _isItemChangeTrackingEnabled, value ? 1 : 0);
+            }
+        }
+
+	    /// <summary>
         /// (Temporarily) suppresses change notifications until the returned <see cref="IDisposable" />
         /// has been Disposed and a Reset will be signaled.
         /// </summary>
@@ -632,14 +675,33 @@ namespace JB.Collections
 
 		/// <summary>
 		/// Indicates at what percentage / fraction bulk changes are signaled as a Reset rather than individual change()s.
-		/// [0] = Always, [1] = Never.
+		/// [0] = Always, [1] = Only when ALL current items change (well except if list is entirely empty to begin with).
 		/// </summary>
 		/// <value>
 		/// The changes to reset threshold.
 		/// </value>
-		public double ChangesToResetThreshold { get; }
+		public double ItemChangesToResetThreshold { get; }
 
-		/// <summary>
+	    /// <summary>
+	    /// Gets the minimum amount of items that have been changed to be notified / considered a <see cref="ReactiveCollectionChangeType.Reset"/> rather than indivudal <see cref="ReactiveCollectionChangeType"/> notifications.
+	    /// </summary>
+	    /// <value>
+	    /// The minimum items changed to be considered reset.
+	    /// </value>
+	    public int MinimumItemsChangedToBeConsideredReset
+	    {
+	        get
+	        {
+	            return _minimumItemsChangedToBeConsideredReset;
+	        }
+	        set
+	        {
+                _minimumItemsChangedToBeConsideredReset = value;
+                RaisePropertyChanged();
+	        }
+	    }
+
+	    /// <summary>
 		/// Gets the collection change notifications as an observable stream.
 		/// </summary>
 		/// <value>
@@ -651,7 +713,7 @@ namespace JB.Collections
 		    {
                 CheckForAndThrowIfDisposed();
 
-                return _collectionChanges.SkipWhile(_ => IsSuppressingReactiveCollectionChangedNotifications);
+                return _collectionChanges.TakeWhile(_ => !IsDisposing && !IsDisposed).SkipWhile(_ => IsSuppressingReactiveCollectionChangedNotifications);
 		    }
 		}
 
@@ -667,7 +729,7 @@ namespace JB.Collections
             {
                 CheckForAndThrowIfDisposed();
 
-                return _countChanges.SkipWhile(_ => IsSuppressingReactiveCollectionChangedNotifications).DistinctUntilChanged();
+                return _countChanges.TakeWhile(_ => !IsDisposing && !IsDisposed).SkipWhile(_ => IsSuppressingReactiveCollectionChangedNotifications).DistinctUntilChanged();
             }
         }
 
@@ -684,7 +746,7 @@ namespace JB.Collections
             {
                 CheckForAndThrowIfDisposed();
 
-                return _resets.SkipWhile(_ => IsSuppressingReactiveCollectionChangedNotifications);
+                return _resets.TakeWhile(_ => !IsDisposing && !IsDisposed).SkipWhile(_ => IsSuppressingReactiveCollectionChangedNotifications);
             }
         }
 
@@ -697,18 +759,84 @@ namespace JB.Collections
 	    IDisposable _countChangesPropertyChangeForwarder = null;
         IDisposable _collectionChangesAndResetsPropertyChangeForwarder = null;
 
+	    IDisposable _innerListListChangedForwader = null;
+
         /// <summary>
 		/// Setups the observables.
 		/// </summary>
 		private void SetupObservablesAndSubjects()
         {
+            // prepare subjects for RX
             _collectionChanges = new Subject<IReactiveCollectionChange<T>>();
             _countChanges = new Subject<int>();
             _resets = new Subject<Unit>();
 
+            // then connect to InnerList's ListChanged Event
+            _innerListListChangedForwader = Observable.FromEventPattern<ListChangedEventHandler, ListChangedEventArgs>(
+                handler => InnerList.ListChanged += handler,
+                handler => InnerList.ListChanged -= handler)
+                .TakeWhile(_ => !IsDisposing && !IsDisposed)
+                .SkipWhile(_ => IsSuppressingReactiveCollectionChangedNotifications)
+                .ObserveOn(Scheduler)
+                .Subscribe(ForwardInnerListChangedEventsToObservers);
+
             // 'Count' and 'Item[]' PropertyChanged events are used by WPF
             _countChangesPropertyChangeForwarder = CountChanges.Subscribe(_ => RaisePropertyChanged("Count"));
             _collectionChangesAndResetsPropertyChangeForwarder = CollectionChanges.Select(_ => Unit.Default).Merge(Resets).Subscribe(_ => RaisePropertyChanged("Item[]"));
+        }
+
+	    private void ForwardInnerListChangedEventsToObservers(EventPattern<ListChangedEventArgs> eventPattern)
+	    {
+	        switch (eventPattern.EventArgs.ListChangedType)
+	        {
+	            case ListChangedType.Reset:
+	            {
+                        _resets.OnNext(Unit.Default);
+                        _collectionChanges.OnNext(new ReactiveCollectionChange<T>(ReactiveCollectionChangeType.Reset));
+	                break;
+	            }
+                    case ListChangedType.ItemAdded:
+	            {
+	                _collectionChanges.On
+	            }
+	        }
+        }
+
+	    /// <summary>
+        /// Determines whether the amount of changed items is greater than the reset threshold and / or the minimum amount of items to be considered as a reset.
+        /// </summary>
+        /// <param name="itemsChanged">The items changed.</param>
+        /// <param name="totalCount">The total count.</param>
+        /// <param name="minimumItemsChangedCountToBeConsideredReset">The minimum changed items count to be considered a reset.</param>
+        /// <param name="resetThreshold">The reset threshold.</param>
+        /// <returns></returns>
+        private bool IsItemsChangedAmountGreaterThanResetThreshold(int itemsChanged, int totalCount, int minimumItemsChangedCountToBeConsideredReset, double resetThreshold)
+        {
+            if (itemsChanged < 0) throw new ArgumentOutOfRangeException(nameof(itemsChanged));
+            if (totalCount < 0) throw new ArgumentOutOfRangeException(nameof(totalCount));
+            if (minimumItemsChangedCountToBeConsideredReset < 0) throw new ArgumentOutOfRangeException(nameof(minimumItemsChangedCountToBeConsideredReset));
+
+            // if the list is entirely empty, it isn't really a reset
+            if (itemsChanged < minimumItemsChangedCountToBeConsideredReset || totalCount == 0)
+                return false;
+
+            return (((double)itemsChanged) / totalCount) >= resetThreshold;
+        }
+
+        private void AddItemToPropertyChangedTracking(T item)
+	    {
+	        if (item == null) throw new ArgumentNullException(nameof(item));
+
+            CheckForAndThrowIfDisposed();
+
+            throw new NotImplementedException();
+        }
+
+        private void RemoveItemFromPropertyChangedTracking(T item)
+        {
+            if (item == null) throw new ArgumentNullException(nameof(item));
+
+            CheckForAndThrowIfDisposed();
 
             throw new NotImplementedException();
         }
@@ -739,8 +867,19 @@ namespace JB.Collections
         private long _isDisposed = 0;
 
         private readonly object _isDisposedLocker = new object();
+	    private volatile int _minimumItemsChangedToBeConsideredReset;
+	    private bool _allowNew;
+	    private bool _allowEdit;
+	    private bool _allowRemove;
+	    private bool _supportsChangeNotification;
+	    private bool _supportsSearching;
+	    private bool _supportsSorting;
+	    private bool _isSorted;
+	    private PropertyDescriptor _sortProperty;
+	    private ListSortDirection _sortDirection;
+	    private bool _raisesItemChangedEvents;
 
-        /// <summary>
+	    /// <summary>
         /// Gets or sets a value indicating whether this instance has been disposed.
         /// </summary>
         /// <value>
@@ -841,5 +980,276 @@ namespace JB.Collections
         }
 
         #endregion
-    }
+
+	    #region Implementation of IBindingList
+
+	    /// <summary>
+	    /// Adds a new item to the list.
+	    /// </summary>
+	    /// <returns>
+	    /// The item added to the list.
+	    /// </returns>
+	    /// <exception cref="T:System.NotSupportedException"><see cref="P:System.ComponentModel.IBindingList.AllowNew"/> is false. </exception>
+	    public object AddNew()
+	    {
+            return (InnerList as IBindingList).AddNew();
+        }
+
+	    /// <summary>
+	    /// Adds the <see cref="T:System.ComponentModel.PropertyDescriptor"/> to the indexes used for searching.
+	    /// </summary>
+	    /// <param name="property">The <see cref="T:System.ComponentModel.PropertyDescriptor"/> to add to the indexes used for searching. </param>
+	    public void AddIndex(PropertyDescriptor property)
+	    {
+            (InnerList as IBindingList).AddIndex(property);
+        }
+
+        /// <summary>
+        /// Sorts the list based on a <see cref="T:System.ComponentModel.PropertyDescriptor"/> and a <see cref="T:System.ComponentModel.ListSortDirection"/>.
+        /// </summary>
+        /// <param name="property">The <see cref="T:System.ComponentModel.PropertyDescriptor"/> to sort by. </param><param name="direction">One of the <see cref="T:System.ComponentModel.ListSortDirection"/> values. </param><exception cref="T:System.NotSupportedException"><see cref="P:System.ComponentModel.IBindingList.SupportsSorting"/> is false. </exception>
+        public void ApplySort(PropertyDescriptor property, ListSortDirection direction)
+	    {
+            (InnerList as IBindingList).ApplySort(property, direction);
+        }
+
+	    /// <summary>
+	    /// Returns the index of the row that has the given <see cref="T:System.ComponentModel.PropertyDescriptor"/>.
+	    /// </summary>
+	    /// <returns>
+	    /// The index of the row that has the given <see cref="T:System.ComponentModel.PropertyDescriptor"/>.
+	    /// </returns>
+	    /// <param name="property">The <see cref="T:System.ComponentModel.PropertyDescriptor"/> to search on. </param><param name="key">The value of the <paramref name="property"/> parameter to search for. </param><exception cref="T:System.NotSupportedException"><see cref="P:System.ComponentModel.IBindingList.SupportsSearching"/> is false. </exception>
+	    public int Find(PropertyDescriptor property, object key)
+	    {
+            return (InnerList as IBindingList).Find(property, key);
+        }
+
+	    /// <summary>
+	    /// Removes the <see cref="T:System.ComponentModel.PropertyDescriptor"/> from the indexes used for searching.
+	    /// </summary>
+	    /// <param name="property">The <see cref="T:System.ComponentModel.PropertyDescriptor"/> to remove from the indexes used for searching. </param>
+	    public void RemoveIndex(PropertyDescriptor property)
+	    {
+            (InnerList as IBindingList).RemoveIndex(property);
+        }
+
+        /// <summary>
+        /// Removes any sort applied using <see cref="M:System.ComponentModel.IBindingList.ApplySort(System.ComponentModel.PropertyDescriptor,System.ComponentModel.ListSortDirection)"/>.
+        /// </summary>
+        /// <exception cref="T:System.NotSupportedException"><see cref="P:System.ComponentModel.IBindingList.SupportsSorting"/> is false. </exception>
+        public void RemoveSort()
+	    {
+            (InnerList as IBindingList).RemoveSort();
+        }
+
+	    /// <summary>
+	    /// Gets whether you can add items to the list using <see cref="M:System.ComponentModel.IBindingList.AddNew"/>.
+	    /// </summary>
+	    /// <returns>
+	    /// true if you can add items to the list using <see cref="M:System.ComponentModel.IBindingList.AddNew"/>; otherwise, false.
+	    /// </returns>
+	    public bool AllowNew
+        {
+            get
+            {
+                CheckForAndThrowIfDisposed();
+                return InnerList.AllowNew;
+            }
+        }
+
+        /// <summary>
+        /// Gets whether you can update items in the list.
+        /// </summary>
+        /// <returns>
+        /// true if you can update the items in the list; otherwise, false.
+        /// </returns>
+        public bool AllowEdit
+	    {
+            get
+            {
+                CheckForAndThrowIfDisposed();
+                return InnerList.AllowEdit;
+            }
+        }
+
+	    /// <summary>
+	    /// Gets whether you can remove items from the list, using <see cref="M:System.Collections.IList.Remove(System.Object)"/> or <see cref="M:System.Collections.IList.RemoveAt(System.Int32)"/>.
+	    /// </summary>
+	    /// <returns>
+	    /// true if you can remove items from the list; otherwise, false.
+	    /// </returns>
+	    public bool AllowRemove
+	    {
+	        get
+	        {
+                CheckForAndThrowIfDisposed();
+                return InnerList.AllowRemove;
+            }
+	    }
+
+	    /// <summary>
+	    /// Gets whether a <see cref="E:System.ComponentModel.IBindingList.ListChanged"/> event is raised when the list changes or an item in the list changes.
+	    /// </summary>
+	    /// <returns>
+	    /// true if a <see cref="E:System.ComponentModel.IBindingList.ListChanged"/> event is raised when the list changes or when an item changes; otherwise, false.
+	    /// </returns>
+	    public bool SupportsChangeNotification
+        {
+            get
+            {
+                CheckForAndThrowIfDisposed();
+
+                return (InnerList as IBindingList).SupportsChangeNotification;
+            }
+        }
+
+        /// <summary>
+        /// Gets whether the list supports searching using the <see cref="M:System.ComponentModel.IBindingList.Find(System.ComponentModel.PropertyDescriptor,System.Object)"/> method.
+        /// </summary>
+        /// <returns>
+        /// true if the list supports searching using the <see cref="M:System.ComponentModel.IBindingList.Find(System.ComponentModel.PropertyDescriptor,System.Object)"/> method; otherwise, false.
+        /// </returns>
+        public bool SupportsSearching
+        {
+            get
+            {
+                CheckForAndThrowIfDisposed();
+
+                return (InnerList as IBindingList).SupportsSearching;
+            }
+        }
+
+        /// <summary>
+        /// Gets whether the list supports sorting.
+        /// </summary>
+        /// <returns>
+        /// true if the list supports sorting; otherwise, false.
+        /// </returns>
+        public bool SupportsSorting
+        {
+            get
+            {
+                CheckForAndThrowIfDisposed();
+
+                return (InnerList as IBindingList).SupportsSorting;
+            }
+        }
+
+        /// <summary>
+        /// Gets whether the items in the list are sorted.
+        /// </summary>
+        /// <returns>
+        /// true if <see cref="M:System.ComponentModel.IBindingList.ApplySort(System.ComponentModel.PropertyDescriptor,System.ComponentModel.ListSortDirection)"/> has been called and <see cref="M:System.ComponentModel.IBindingList.RemoveSort"/> has not been called; otherwise, false.
+        /// </returns>
+        /// <exception cref="T:System.NotSupportedException"><see cref="P:System.ComponentModel.IBindingList.SupportsSorting"/> is false. </exception>
+        public bool IsSorted
+	    {
+	        get
+	        {
+                CheckForAndThrowIfDisposed();
+
+                return (InnerList as IBindingList).IsSorted;
+	        }
+	    }
+
+	    /// <summary>
+	    /// Gets the <see cref="T:System.ComponentModel.PropertyDescriptor"/> that is being used for sorting.
+	    /// </summary>
+	    /// <returns>
+	    /// The <see cref="T:System.ComponentModel.PropertyDescriptor"/> that is being used for sorting.
+	    /// </returns>
+	    /// <exception cref="T:System.NotSupportedException"><see cref="P:System.ComponentModel.IBindingList.SupportsSorting"/> is false. </exception>
+	    public PropertyDescriptor SortProperty
+	    {
+	        get
+	        {
+                CheckForAndThrowIfDisposed();
+
+                return (InnerList as IBindingList).SortProperty;
+	        }
+	    }
+
+	    /// <summary>
+	    /// Gets the direction of the sort.
+	    /// </summary>
+	    /// <returns>
+	    /// One of the <see cref="T:System.ComponentModel.ListSortDirection"/> values.
+	    /// </returns>
+	    /// <exception cref="T:System.NotSupportedException"><see cref="P:System.ComponentModel.IBindingList.SupportsSorting"/> is false. </exception>
+	    public ListSortDirection SortDirection
+	    {
+	        get
+	        {
+                CheckForAndThrowIfDisposed();
+
+                return (InnerList as IBindingList).SortDirection;
+	        }
+	    }
+
+	    /// <summary>
+        /// Occurs when the list changes or an item in the list changes.
+        /// </summary>
+        public event ListChangedEventHandler ListChanged
+        {
+            add
+            {
+                CheckForAndThrowIfDisposed();
+                InnerList.ListChanged += value;
+            }
+            remove
+            {
+                CheckForAndThrowIfDisposed();
+                InnerList.ListChanged -= value;
+            }
+        }
+
+        #endregion
+
+        #region Implementation of ICancelAddNew
+
+        /// <summary>
+        /// Discards a pending new item from the collection.
+        /// </summary>
+        /// <param name="itemIndex">The index of the item that was previously added to the collection. </param>
+        public void CancelNew(int itemIndex)
+	    {
+            CheckForAndThrowIfDisposed();
+
+            InnerList.CancelNew(itemIndex);
+	    }
+
+	    /// <summary>
+	    /// Commits a pending new item to the collection.
+	    /// </summary>
+	    /// <param name="itemIndex">The index of the item that was previously added to the collection. </param>
+	    public void EndNew(int itemIndex)
+	    {
+            CheckForAndThrowIfDisposed();
+
+            InnerList.EndNew(itemIndex);
+        }
+
+	    #endregion
+
+	    #region Implementation of IRaiseItemChangedEvents
+
+	    /// <summary>
+	    /// Gets a value indicating whether the <see cref="T:System.ComponentModel.IRaiseItemChangedEvents"/> object raises <see cref="E:System.ComponentModel.IBindingList.ListChanged"/> events.
+	    /// </summary>
+	    /// <returns>
+	    /// true if the <see cref="T:System.ComponentModel.IRaiseItemChangedEvents"/> object raises <see cref="E:System.ComponentModel.IBindingList.ListChanged"/> events when one of its property values changes; otherwise, false.
+	    /// </returns>
+	    public bool RaisesItemChangedEvents
+	    {
+	        get
+	        {
+                CheckForAndThrowIfDisposed();
+
+	            return InnerList.RaiseListChangedEvents;
+	        }
+	    }
+
+	    #endregion
+	}
 }

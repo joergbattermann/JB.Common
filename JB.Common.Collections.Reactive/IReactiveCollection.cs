@@ -5,14 +5,13 @@ using System.ComponentModel;
 
 namespace JB.Collections
 {
-	// ToDo: INotifyPropertyChanged > Raise property changed for Items[] and Count, see ObservableCollection
 	public interface IReactiveCollection<T> : INotifyReactiveCollectionChanged<T>, IReadOnlyCollection<T>, ICollection<T>, IEnumerable<T>, IEnumerable, INotifyCollectionChanged, INotifyPropertyChanged
 	{
 		/// <summary>
 		/// Adds a range of items.
 		/// </summary>
 		/// <param name="items">The items.</param>
-		void Add(IEnumerable<T> items);
+		void AddRange(IEnumerable<T> items);
 
 		/// <summary>
 		/// Moves the specified item to the new index position.
@@ -43,7 +42,7 @@ namespace JB.Collections
 		/// Removes the specified items.
 		/// </summary>
 		/// <param name="items">The items.</param>
-		void Remove(IEnumerable<T> items);
+		void RemoveRange(IEnumerable<T> items);
 
 		/// <summary>
 		/// Removes the amount of items starting at the specified index.
