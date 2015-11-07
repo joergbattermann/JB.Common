@@ -18,7 +18,7 @@ namespace JB.Collections.Tests
 {
     public class ReactiveListTests
     {
-        [Fact]
+        [Theory]
         [InlineData(0, 10)]
         [InlineData(99, 999)]
         [InlineData(42, 42)]
@@ -41,11 +41,14 @@ namespace JB.Collections.Tests
             rangeAdded.ShouldAllBeEquivalentTo(observableReportedCounts);
         }
 
-        [Fact]
-        public void AddCountChangesForEmptyListTest()
+        [Theory]
+        [InlineData(1, 1)]
+        [InlineData(10, 100)]
+        [InlineData(0, 1000)]
+        public void AddingIndividualItemsForEmptyListIncreasesCountTest(int lowerLimit, int upperLimit)
         {
+            // given
             var testScheduler = new TestScheduler();
-
             int observableReportedCount = -1;
             var reactiveList = new ReactiveList<int>(scheduler: testScheduler);
             reactiveList.CountChanges.Subscribe(i =>
@@ -53,10 +56,18 @@ namespace JB.Collections.Tests
                 observableReportedCount = i;
             });
 
-            reactiveList.Add(42);
-            testScheduler.AdvanceBy(1);
 
-            observableReportedCount.Should().Be(1);
+            // when
+            for (int i = lowerLimit; i <= upperLimit; i++)
+            {
+                reactiveList.Add(i);
+            }
+
+            testScheduler.Start();
+
+            // then check whether all items have been accounted for
+            observableReportedCount.Should().Be((upperLimit == lowerLimit) ? upperLimit : (upperLimit - lowerLimit + 1)); // +1 because the upper for loop goes up to & inclusive the upperLimit
+            reactiveList.Count.Should().Be(observableReportedCount);
         }
     }
 }
