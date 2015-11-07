@@ -1526,10 +1526,11 @@ namespace JB.Collections
         #region Implementation of IRaiseItemChangedEvents
 
         /// <summary>
-        /// Gets a value indicating whether the <see cref="T:System.ComponentModel.IRaiseItemChangedEvents"/> object raises <see cref="E:System.ComponentModel.IBindingList.ListChanged"/> events.
+        /// Gets a value indicating whether the this instance forwards the inner Items' <see cref="INotifyPropertyChanged.PropertyChanged"/> events as corresponding ItemChanged events.
+        /// Obviously only works if the <typeparam name="T">type</typeparam> does implement the <see cref="INotifyPropertyChanged"/> interface.
         /// </summary>
         /// <returns>
-        /// true if the <see cref="T:System.ComponentModel.IRaiseItemChangedEvents"/> object raises <see cref="E:System.ComponentModel.IBindingList.ListChanged"/> events when one of its property values changes; otherwise, false.
+        /// [true] if the items property changed events are forwarded as ItemChanged ones, [false] if not.
         /// </returns>
         public bool RaisesItemChangedEvents
         {
