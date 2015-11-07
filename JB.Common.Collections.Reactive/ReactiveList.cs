@@ -11,6 +11,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.ComponentModel;
+using System.Linq;
 using System.Reactive;
 using System.Reactive.Concurrency;
 using System.Reactive.Disposables;
@@ -39,7 +40,7 @@ namespace JB.Collections
         /// <value>
         /// The scheduler.
         /// </value>
-        private IScheduler Scheduler { get; }
+        public IScheduler Scheduler { get; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ReactiveList{T}" /> class.
@@ -486,9 +487,24 @@ namespace JB.Collections
 
             CheckForAndThrowIfDisposed();
 
-            // IsItemsChangedAmountGreaterThanResetThreshold(1, Count, MinimumItemsChangedToBeConsideredReset, ItemChangesToResetThreshold)
+            var itemsAsList = items.ToList();
 
-            throw new NotImplementedException();
+            if (itemsAsList.Count == 0)
+                return;
+
+            // only use the Suppress & Reset mechanism if possible
+            var useCollectionChangeSuppression = 
+                IsItemsChangedAmountGreaterThanResetThreshold(itemsAsList.Count, Count, MinimumItemsChangedToBeConsideredReset, ItemChangesToResetThreshold)
+                && IsTrackingCollectionChanges;
+
+            // we use an IDisposable either way, but in case of not sending a reset, an empty Disposable will be used to simplify the logic here
+            using (useCollectionChangeSuppression ? SuppressCollectionChangedNotifications(true) : Disposable.Empty)
+            {
+                foreach (var item in itemsAsList)
+                {
+                    Add(item);
+                }
+            }
         }
 
         /// <summary>
@@ -853,7 +869,7 @@ namespace JB.Collections
             {
                 CheckForAndThrowIfDisposed();
 
-                return _changes.TakeWhile(_ => !IsDisposing && !IsDisposed).SkipWhile(_ => IsTrackingCollectionChanges == false);
+                return _changes.TakeWhile(_ => !IsDisposing && !IsDisposed).SkipWhile(_ => IsTrackingCollectionChanges == false).ObserveOn(Scheduler);
             }
         }
 
@@ -887,7 +903,8 @@ namespace JB.Collections
 
                 // we don't care about item moves/-changes so only the other ones are Count relevant
                 return CollectionChanges
-                    .Where(change => change.ChangeType != ReactiveCollectionChangeType.ItemChanged && change.ChangeType != ReactiveCollectionChangeType.ItemMoved)
+                    .Where(change => 
+                        change.ChangeType == ReactiveCollectionChangeType.ItemAdded || change.ChangeType == ReactiveCollectionChangeType.ItemRemoved || change.ChangeType == ReactiveCollectionChangeType.Reset)
                     .Select(_ => Count)
                     .DistinctUntilChanged();
             }
@@ -909,7 +926,24 @@ namespace JB.Collections
                 return CollectionChanges.Where(change => change.ChangeType == ReactiveCollectionChangeType.Reset).SkipWhile(_ => IsTrackingResets == false).Select(_ => Unit.Default);
             }
         }
-        
+
+        /// <summary>
+        /// Gets the thrown exceptions for the <see cref="INotifyReactiveCollectionChanged{T}.CollectionChanges"/> stream. Ugly, but oh well.
+        /// </summary>
+        /// <value>
+        /// The thrown exceptions.
+        /// </value>
+        public IObservable<Exception> ThrownExceptions
+        {
+            get
+            {
+                CheckForAndThrowIfDisposed();
+
+                // not caring about IsDisposing / IsDisposed on purpose, so corresponding Exceptions are forwarded 'til the "end"
+                return _thrownExceptions.ObserveOn(Scheduler);
+            }
+        }
+
         /// <summary>
         /// The actual <see cref="ReactiveCollectionChanged"/> event.
         /// </summary>
@@ -948,6 +982,7 @@ namespace JB.Collections
 
         #endregion
 
+        Subject<Exception> _thrownExceptions;
         Subject<IReactiveCollectionChange<T>> _changes;
 
         IDisposable _countChangesPropertyChangeForwarder = null;
@@ -968,7 +1003,7 @@ namespace JB.Collections
                 handler => InnerList.ListChanged += handler,
                 handler => InnerList.ListChanged -= handler)
                 .TakeWhile(_ => !IsDisposing && !IsDisposed)
-                .SkipWhile(_ => IsTrackingCollectionChanges == false)
+                .SkipWhile(_ => !IsTrackingCollectionChanges)
                 .Where(eventPattern => eventPattern != null && eventPattern.EventArgs!= null)
                 .Select(eventPattern => eventPattern.EventArgs.ToReactiveCollectionChange(this))
                 .ObserveOn(Scheduler)
@@ -976,8 +1011,8 @@ namespace JB.Collections
 
             // 'Count' and 'Item[]' PropertyChanged events are used by WPF typically via / for ObservableCollections, see
             // http://referencesource.microsoft.com/#System/compmod/system/collections/objectmodel/observablecollection.cs,421
-            _countChangesPropertyChangeForwarder = CountChanges.Subscribe(_ => RaisePropertyChanged("Count"));
-            _collectionChangesAndResetsPropertyChangeForwarder = CollectionChanges.Subscribe(_ => RaisePropertyChanged("Item[]"));
+            _countChangesPropertyChangeForwarder = CountChanges.ObserveOn(Scheduler).Subscribe(_ => RaisePropertyChanged("Count"));
+            _collectionChangesAndResetsPropertyChangeForwarder = CollectionChanges.ObserveOn(Scheduler).Subscribe(_ => RaisePropertyChanged("Item[]"));
         }
 
         /// <summary>
@@ -1008,11 +1043,41 @@ namespace JB.Collections
                 : reactiveCollectionChange;
 
             // otherwise go ahead and raise events and notifiy about collection/list changes
-            RaiseCollectionChanged(actualReactiveCollectionChange.ToNotifyCollectionChangedEventArgs());
-            RaiseListChanged(actualReactiveCollectionChange.ToListChangedEventArgs());
-            RaiseReactiveCollectionChanged(new ReactiveCollectionChangedEventArgs<T>(actualReactiveCollectionChange));
-            
-            _changes.OnNext(actualReactiveCollectionChange);
+            try
+            {
+                RaiseCollectionChanged(actualReactiveCollectionChange.ToNotifyCollectionChangedEventArgs());
+            }
+            catch (Exception exception)
+            {
+                _thrownExceptions.OnNext(exception);
+            }
+
+            try
+            {
+                RaiseListChanged(actualReactiveCollectionChange.ToListChangedEventArgs());
+            }
+            catch (Exception exception)
+            {
+                _thrownExceptions.OnNext(exception);
+            }
+
+            try
+            {
+                RaiseReactiveCollectionChanged(new ReactiveCollectionChangedEventArgs<T>(actualReactiveCollectionChange));
+            }
+            catch (Exception exception)
+            {
+                _thrownExceptions.OnNext(exception);
+            }
+
+            try
+            {
+                _changes.OnNext(actualReactiveCollectionChange);
+            }
+            catch (Exception exception)
+            {
+                _thrownExceptions.OnNext(exception);
+            }
         }
 
         /// <summary>
@@ -1030,7 +1095,7 @@ namespace JB.Collections
             if (minimumItemsChangedCountToBeConsideredReset < 0) throw new ArgumentOutOfRangeException(nameof(minimumItemsChangedCountToBeConsideredReset));
 
             // if the list is entirely empty, it isn't really a reset
-            if (itemsCount < minimumItemsChangedCountToBeConsideredReset || totalCount == 0)
+            if (itemsCount < minimumItemsChangedCountToBeConsideredReset)
                 return false;
 
             return (((double)itemsCount) / totalCount) >= resetThreshold;
@@ -1160,6 +1225,7 @@ namespace JB.Collections
                     _changes.CheckAndDispose();
 
                     _innerListChangedForwader.CheckAndDispose();
+                    _thrownExceptions.CheckAndDispose();
                 }
             }
             finally

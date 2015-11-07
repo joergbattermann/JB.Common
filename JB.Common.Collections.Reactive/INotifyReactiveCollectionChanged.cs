@@ -106,6 +106,14 @@ namespace JB.Collections
 		IObservable<Unit> Resets { get; }
 
         /// <summary>
+        /// Gets the thrown exceptions for the <see cref="CollectionChanges"/> stream. Ugly, but oh well.
+        /// </summary>
+        /// <value>
+        /// The thrown exceptions.
+        /// </value>
+        IObservable<Exception> ThrownExceptions { get; }
+
+        /// <summary>
         /// Occurs when the corresponding <see cref="IReactiveCollection{T}"/> changed.
         /// </summary>
         event EventHandler<ReactiveCollectionChangedEventArgs<T>> ReactiveCollectionChanged;
