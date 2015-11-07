@@ -16,7 +16,7 @@ namespace JB.Collections
 		/// <value>
 		/// The post-change starting index, -1 for removals, otherwise 0 or greater.
 		/// </value>
-		int NewStartingIndex { get; }
+		int Index { get; }
 
         /// <summary>
         /// Gets the previous, pre-change (starting) index for the <see cref="Item"/>.
@@ -24,7 +24,7 @@ namespace JB.Collections
         /// <value>
         /// The pre-change (starting) index, -1 for additions, otherwise 0 or greater.
         /// </value>
-        int OldStartingIndex { get; }
+        int OldIndex { get; }
 
 		/// <summary>
 		/// Gets the item that was added, changed or removed.

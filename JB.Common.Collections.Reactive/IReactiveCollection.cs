@@ -38,11 +38,18 @@ namespace JB.Collections
 		/// Depending on whether the caller intends to move the item strictly or logically to the <paramref name="newIndex" /> position, correction might be useful.</param>
 		void Move(int itemIndex, int newIndex, int count = 1, bool correctNewIndexOnIndexShift = false);
 
-		/// <summary>
-		/// Removes the specified items.
-		/// </summary>
-		/// <param name="items">The items.</param>
-		void RemoveRange(IEnumerable<T> items);
+        /// <summary>
+        /// Inserts the range of items at the specified <paramref name="index"/> position.
+        /// </summary>
+        /// <param name="items">The items.</param>
+        /// <param name="index">The index.</param>
+        void InsertRange(IEnumerable<T> items, int index);
+
+        /// <summary>
+        /// Removes the specified items.
+        /// </summary>
+        /// <param name="items">The items.</param>
+        void RemoveRange(IEnumerable<T> items);
 
 		/// <summary>
 		/// Removes the amount of items starting at the specified index.
@@ -55,5 +62,5 @@ namespace JB.Collections
 		/// Resets this instance.
 		/// </summary>
 		void Reset();
-	}
+    }
 }

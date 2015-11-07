@@ -5,7 +5,7 @@ using System.Reactive;
 
 namespace JB.Collections
 {
-    public interface INotifyReactiveCollectionChanged<out T> : INotifyCollectionChanged
+    public interface INotifyReactiveCollectionChanged<T> : INotifyCollectionChanged
 	{
 		/// <summary>
 		/// (Temporarily) suppresses change notifications until the returned <see cref="IDisposable" />
@@ -13,7 +13,7 @@ namespace JB.Collections
 		/// </summary>
 		/// <param name="signalResetWhenFinished">if set to <c>true</c> signals a reset when finished.</param>
 		/// <returns></returns>
-		IDisposable SuppressReactiveCollectionChangedNotifications(bool signalResetWhenFinished = true);
+		IDisposable SuppressCollectionChangedNotifications(bool signalResetWhenFinished = true);
 
         /// <summary>
         /// Gets a value indicating whether this instance is currently suppressing reactive collection changed notifications.
@@ -21,7 +21,15 @@ namespace JB.Collections
         /// <value>
         /// <c>true</c> if this instance is suppressing reactive collection changed notifications; otherwise, <c>false</c>.
         /// </value>
-        bool IsSuppressingReactiveCollectionChangedNotifications { get; }
+        bool IsTrackingCollectionChanges { get; }
+
+        /// <summary>
+		/// (Temporarily) suppresses change notifications for <see cref="ReactiveCollectionChangeType.ItemChanged"/> events until the returned <see cref="IDisposable" />
+		/// has been Disposed and a Reset will be signaled.
+		/// </summary>
+		/// <param name="signalResetWhenFinished">if set to <c>true</c> signals a reset when finished.</param>
+		/// <returns></returns>
+		IDisposable SuppressItemChangedNotifications(bool signalResetWhenFinished = true);
 
         /// <summary>
         /// Gets a value indicating whether this instance has per item change tracking enabled and therefore listens to <typeparam name="T"/>'s <see cref="INotifyPropertyChanged.PropertyChanged"/> events, if the interface is implemented.
@@ -29,7 +37,23 @@ namespace JB.Collections
         /// <value>
         /// <c>true</c> if this instance has item change tracking enabled; otherwise, <c>false</c>.
         /// </value>
-        bool IsItemChangeTrackingEnabled { get; }
+        bool IsTrackingItemChanges { get; }
+
+        /// <summary>
+        /// Gets a value indicating whether this instance is tracking resets.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if this instance is tracking resets; otherwise, <c>false</c>.
+        /// </value>
+        bool IsTrackingResets { get; }
+
+        /// <summary>
+		/// (Temporarily) suppresses change notifications for <see cref="ReactiveCollectionChangeType.Reset"/> events until the returned <see cref="IDisposable" />
+		/// has been Disposed and a Reset will be signaled.
+		/// </summary>
+		/// <param name="signalResetWhenFinished">if set to <c>true</c> signals a reset when finished.</param>
+		/// <returns></returns>
+		IDisposable SuppressResetNotifications(bool signalResetWhenFinished = true);
 
         /// <summary>
         /// Indicates at what percentage / fraction bulk changes are signaled as a Reset rather than individual change()s.
@@ -49,20 +73,28 @@ namespace JB.Collections
         int MinimumItemsChangedToBeConsideredReset { get; set; }
 
         /// <summary>
-        /// Gets the collection change notifications as an observable stream.
+        /// Gets all collection change notifications as an observable stream.
         /// </summary>
         /// <value>
         /// The collection changes.
         /// </value>
         IObservable<IReactiveCollectionChange<T>> CollectionChanges { get; }
 
-		/// <summary>
-		/// Gets the count change notifications as an observable stream.
-		/// </summary>
-		/// <value>
-		/// The count changes.
-		/// </value>
-		IObservable<int> CountChanges { get; }
+        /// <summary>
+        /// Gets the observable streams of (<see cref="INotifyPropertyChanged"/> implementing) items inside this collection that have changed.
+        /// </summary>
+        /// <value>
+        /// The item changes.
+        /// </value>
+        IObservable<IReactiveCollectionChange<T>> ItemChanges { get; }
+
+        /// <summary>
+        /// Gets the count change notifications as an observable stream.
+        /// </summary>
+        /// <value>
+        /// The count changes.
+        /// </value>
+        IObservable<int> CountChanges { get; }
 
 		/// <summary>
 		/// Gets the reset notifications as an observable stream.  Whenever signaled,
@@ -72,5 +104,10 @@ namespace JB.Collections
 		/// The resets.
 		/// </value>
 		IObservable<Unit> Resets { get; }
+
+        /// <summary>
+        /// Occurs when the corresponding <see cref="IReactiveCollection{T}"/> changed.
+        /// </summary>
+        event EventHandler<ReactiveCollectionChangedEventArgs<T>> ReactiveCollectionChanged;
 	}
 }

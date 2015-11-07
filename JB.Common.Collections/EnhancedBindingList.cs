@@ -41,9 +41,11 @@ namespace JB.Collections
 			: base(list ?? new List<T>())
 		{
 		}
-       
+
         /// <summary>
-        ///     Adds the range of items.
+        ///     Adds the range of items. If <see cref="BindingList{T}.RaiseListChangedEvents"/> is set to [true],
+        ///     the range addition will be communicated via an impliciit <see cref="BindingList{T}.ResetBindings"/> call
+        ///     and therefore a <see cref="ListChangedType.Reset"/> will be sent via the <see cref="IBindingList.ListChanged"/> event.
         /// </summary>
         /// <param name="items">The items.</param>
         public void AddRange(IEnumerable<T> items)

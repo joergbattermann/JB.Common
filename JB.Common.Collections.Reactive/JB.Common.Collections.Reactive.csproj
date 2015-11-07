@@ -75,6 +75,8 @@
       <Link>Properties\CommonAssemblyInfo.cs</Link>
     </Compile>
     <Compile Include="ExtensionMethods\EnhancedBindingListExtensions.cs" />
+    <Compile Include="ExtensionMethods\ListChangedEventArgsExtensions.cs" />
+    <Compile Include="ExtensionMethods\ReactiveCollectionChangeExtensions.cs" />
     <Compile Include="ExtensionMethods\ListChangedTypeExtensions.cs" />
     <Compile Include="INotifyReactiveCollectionChanged.cs" />
     <Compile Include="IReactiveBindingDictionary.cs" />
@@ -89,6 +91,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ExtensionMethods\ReactiveListExtensions.cs" />
     <Compile Include="ReactiveCollectionChange.cs" />
+    <Compile Include="ReactiveCollectionChangedEventArgs.cs" />
     <Compile Include="ReactiveCollectionChangeType.cs" />
     <Compile Include="ReactiveList.cs" />
     <Compile Include="SchedulerCoordinatedBindingList.cs" />
