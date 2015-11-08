@@ -23,7 +23,7 @@ namespace JB.Collections.Tests
         [InlineData(0, 10)]
         [InlineData(99, 999)]
         [InlineData(42, 42)]
-        public async Task AddRangeIncreasesCountOneByOneTest(int lowerLimit, int upperLimit)
+        public void AddRangeIncreasesCountOneByOneTest(int lowerLimit, int upperLimit)
         {
             // given
             var rangeToAdd = Enumerable.Range(lowerLimit, upperLimit - lowerLimit + 1).ToList();
@@ -37,8 +37,6 @@ namespace JB.Collections.Tests
 
             // when
             reactiveList.AddRange(rangeToAdd);
-
-            await Task.Delay(500000);
 
             // then
             receivedCountChanges.Count.Should().Be(rangeToAdd.Count);

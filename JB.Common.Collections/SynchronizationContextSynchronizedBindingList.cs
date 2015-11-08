@@ -4,14 +4,14 @@ using System.Threading;
 
 namespace JB.Collections
 {
-	/// <summary>
-	///     An <see cref="IBindingList" /> implementation that's synchronized via an underlying lock-based
-	///     <see cref="IList{T}" />
-	///     implementation, but also ensuring all events are raised on the same initially created or provided
-	///     <see cref="SynchronizationContext" />.
-	/// </summary>
-	/// <typeparam name="T">The type of elements in the list.</typeparam>
-	public class SynchronizationContextSynchronizedBindingList<T> : SynchronizationContextCoordinatedBindingList<T>
+    /// <summary>
+    ///     An <see cref="IBindingList" /> implementation that's synchronized via an underlying lock-based
+    ///     <see cref="IList{T}" />
+    ///     implementation, but also ensuring all events are raised on the same initially created or provided
+    ///     <see cref="SynchronizationContext" />.
+    /// </summary>
+    /// <typeparam name="T">The type of elements in the list.</typeparam>
+    public class SynchronizationContextSynchronizedBindingList<T> : SynchronizationContextCoordinatedBindingList<T>
 	{	
 		/// <summary>
 		///     Initializes a new instance of the <see cref="SynchronizationContextSynchronizedBindingList{T}" /> class.

@@ -32,7 +32,7 @@ namespace JB.Collections
         /// <value>
         /// The inner list.
         /// </value>
-        protected SchedulerSynchronizedBindingList<T> InnerList { get; }
+        protected SynchronizedBindingList<T> InnerList { get; }
 
         /// <summary>
         /// Gets the used scheduler.
@@ -57,7 +57,7 @@ namespace JB.Collections
             SyncRoot = syncRoot ?? new object();
             Scheduler = scheduler ?? System.Reactive.Concurrency.Scheduler.Default;
 
-            InnerList = new SchedulerSynchronizedBindingList<T>(list, SyncRoot, Scheduler);
+            InnerList = new SynchronizedBindingList<T>(list, SyncRoot);
 
             ItemChangesToResetThreshold = itemChangesToResetThreshold;
             MinimumItemsChangedToBeConsideredReset = 10;
@@ -931,8 +931,7 @@ namespace JB.Collections
                     .TakeWhile(_ => !IsDisposing && !IsDisposed)
                     .SkipWhile(change => IsTrackingCollectionChanges == false)
                     .SkipWhile(change => change.ChangeType == ReactiveCollectionChangeType.ItemChanged && IsTrackingItemChanges == false)
-                    .SkipWhile(change => change.ChangeType == ReactiveCollectionChangeType.Reset && IsTrackingResets == false)
-                    .ObserveOn(Scheduler);
+                    .SkipWhile(change => change.ChangeType == ReactiveCollectionChangeType.Reset && IsTrackingResets == false);
             }
         }
 
@@ -948,7 +947,9 @@ namespace JB.Collections
             {
                 CheckForAndThrowIfDisposed();
 
-                return CollectionChanges.Where(change => change.ChangeType == ReactiveCollectionChangeType.ItemChanged).SkipWhile(_ => IsTrackingItemChanges == false);
+                return CollectionChanges
+                    .Where(change => change.ChangeType == ReactiveCollectionChangeType.ItemChanged)
+                    .SkipWhile(_ => IsTrackingItemChanges == false);
             }
         }
 
@@ -964,7 +965,10 @@ namespace JB.Collections
             {
                 CheckForAndThrowIfDisposed();
 
-                return _countChanges.TakeWhile(_ => !IsDisposing && !IsDisposed).SkipWhile(_ => IsTrackingCountChanges == false).DistinctUntilChanged().ObserveOn(Scheduler);
+                return _countChanges
+                    .TakeWhile(_ => !IsDisposing && !IsDisposed)
+                    .SkipWhile(_ => IsTrackingCountChanges == false)
+                    .DistinctUntilChanged();
             }
         }
 
@@ -981,7 +985,10 @@ namespace JB.Collections
             {
                 CheckForAndThrowIfDisposed();
 
-                return CollectionChanges.Where(change => change.ChangeType == ReactiveCollectionChangeType.Reset).SkipWhile(_ => IsTrackingResets == false).Select(_ => Unit.Default);
+                return CollectionChanges
+                    .Where(change => change.ChangeType == ReactiveCollectionChangeType.Reset)
+                    .SkipWhile(_ => IsTrackingResets == false)
+                    .Select(_ => Unit.Default);
             }
         }
 
@@ -998,7 +1005,7 @@ namespace JB.Collections
                 CheckForAndThrowIfDisposed();
 
                 // not caring about IsDisposing / IsDisposed on purpose, so corresponding Exceptions are forwarded 'til the "end"
-                return _thrownExceptions.ObserveOn(Scheduler);
+                return _thrownExceptions;
             }
         }
 
@@ -1067,14 +1074,12 @@ namespace JB.Collections
                 .SkipWhile(_ => !IsTrackingCollectionChanges)
                 .Where(eventPattern => eventPattern != null && eventPattern.EventArgs!= null)
                 .Select(eventPattern => eventPattern.EventArgs.ToReactiveCollectionChange(this))
-                .SubscribeOn(ThreadPoolScheduler.Instance)
-                .ObserveOn(Scheduler)
                 .Subscribe(NotifySubscribersAndRaiseListAndCollectionChangedEvents);
 
             // 'Count' and 'Item[]' PropertyChanged events are used by WPF typically via / for ObservableCollections, see
             // http://referencesource.microsoft.com/#System/compmod/system/collections/objectmodel/observablecollection.cs,421
-            _countChangesPropertyChangeForwarder = CountChanges.ObserveOn(Scheduler).Subscribe(_ => RaisePropertyChanged("Count"));
-            _collectionChangesAndResetsPropertyChangeForwarder = CollectionChanges.ObserveOn(Scheduler).Subscribe(_ => RaisePropertyChanged("Item[]"));
+            _countChangesPropertyChangeForwarder = CountChanges.Subscribe(_ => RaisePropertyChanged("Count"));
+            _collectionChangesAndResetsPropertyChangeForwarder = CollectionChanges.Subscribe(_ => RaisePropertyChanged("Item[]"));
         }
 
         /// <summary>

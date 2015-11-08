@@ -51,6 +51,7 @@
     <Compile Include="SynchronizationContextCoordinatedBindingList.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SynchronizationContextSynchronizedBindingList.cs" />
+    <Compile Include="SynchronizedBindingList.cs" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="ExtensionMethods\" />
