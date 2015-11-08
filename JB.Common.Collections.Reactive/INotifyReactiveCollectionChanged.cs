@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Reactive;
@@ -25,7 +26,7 @@ namespace JB.Collections
 
         /// <summary>
 		/// (Temporarily) suppresses change notifications for <see cref="ReactiveCollectionChangeType.ItemChanged"/> events until the returned <see cref="IDisposable" />
-		/// has been Disposed and a Reset will be signaled.
+		/// has been Disposed and a Reset will be signaled, if applicable.
 		/// </summary>
 		/// <param name="signalResetWhenFinished">if set to <c>true</c> signals a reset when finished.</param>
 		/// <returns></returns>
@@ -40,7 +41,7 @@ namespace JB.Collections
         bool IsTrackingItemChanges { get; }
 
         /// <summary>
-        /// Gets a value indicating whether this instance is tracking resets.
+        /// Gets a value indicating whether this instance is tracking <see cref="ReactiveCollectionChangeType.Reset">resets</see>.
         /// </summary>
         /// <value>
         /// <c>true</c> if this instance is tracking resets; otherwise, <c>false</c>.
@@ -48,12 +49,28 @@ namespace JB.Collections
         bool IsTrackingResets { get; }
 
         /// <summary>
+        /// Gets a value indicating whether this instance is tracking <see cref="IReadOnlyCollection{T}.Count"/> changes.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if this instance is tracking resets; otherwise, <c>false</c>.
+        /// </value>
+        bool IsTrackingCountChanges { get; }
+
+        /// <summary>
 		/// (Temporarily) suppresses change notifications for <see cref="ReactiveCollectionChangeType.Reset"/> events until the returned <see cref="IDisposable" />
-		/// has been Disposed and a Reset will be signaled.
+		/// has been Disposed and a Reset will be signaled, if applicable.
 		/// </summary>
 		/// <param name="signalResetWhenFinished">if set to <c>true</c> signals a reset when finished.</param>
 		/// <returns></returns>
 		IDisposable SuppressResetNotifications(bool signalResetWhenFinished = true);
+
+        /// <summary>
+		/// (Temporarily) suppresses item count change notification until the returned <see cref="IDisposable" />
+		/// has been Disposed.
+		/// </summary>
+		/// <param name="signalCountWhenFinished">if set to <c>true</c> signals a the <see cref="IReadOnlyCollection{T}.Count"/> when finished.</param>
+		/// <returns></returns>
+        IDisposable SuppressCountChangeNotifications(bool signalCountWhenFinished = true);
 
         /// <summary>
         /// Indicates at what percentage / fraction bulk changes are signaled as a Reset rather than individual change()s.

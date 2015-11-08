@@ -63,7 +63,9 @@ namespace JB.Collections
             MinimumItemsChangedToBeConsideredReset = 10;
 
             IsTrackingCollectionChanges = true;
+
             IsTrackingItemChanges = true;
+            IsTrackingCountChanges = true;
             IsTrackingResets = true;
 
             SetupObservablesAndSubjects();
@@ -828,6 +830,62 @@ namespace JB.Collections
             });
         }
 
+        private readonly object _isTrackingCountChangesLocker = new object();
+        private long _isTrackingCountChanges = 0;
+
+        /// <summary>
+        /// Gets a value indicating whether this instance is tracking <see cref="IReadOnlyCollection{T}.Count"/> changes.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if this instance is tracking resets; otherwise, <c>false</c>.
+        /// </value>
+        public bool IsTrackingCountChanges
+        {
+            get
+            {
+                return Interlocked.Read(ref _isTrackingCountChanges) == 1;
+
+            }
+            protected set
+            {
+                CheckForAndThrowIfDisposed();
+
+                lock (_isTrackingCountChangesLocker)
+                {
+                    if (value == false && IsTrackingCountChanges == false)
+                        throw new InvalidOperationException("A Count Change(s) Notification Suppression is currently already ongoing, multiple concurrent suppressions are not supported.");
+
+                    // First set marker here to prevent re-entry
+                    Interlocked.Exchange(ref _isTrackingCountChanges, value ? 1 : 0);
+
+                    RaisePropertyChanged();
+                }
+            }
+        }
+
+        /// <summary>
+        /// (Temporarily) suppresses item count change notification until the returned <see cref="IDisposable" />
+        /// has been Disposed.
+        /// </summary>
+        /// <param name="signalCountWhenFinished">if set to <c>true</c> signals a the <see cref="IReadOnlyCollection{T}.Count"/> when finished.</param>
+        /// <returns></returns>
+        public IDisposable SuppressCountChangeNotifications(bool signalCountWhenFinished = true)
+        {
+            CheckForAndThrowIfDisposed();
+
+            IsTrackingCountChanges = false;
+
+            return Disposable.Create(() =>
+            {
+                IsTrackingCountChanges = true;
+
+                if (signalCountWhenFinished)
+                {
+                    _countChanges.OnNext(Count);
+                }
+            });
+        }
+
         /// <summary>
         /// Indicates at what percentage / fraction bulk changes are signaled as a Reset rather than individual change()s.
         /// [0] = Always, [1] = Only when ALL current items change (well except if list is entirely empty to begin with).
@@ -869,7 +927,12 @@ namespace JB.Collections
             {
                 CheckForAndThrowIfDisposed();
 
-                return _changes.TakeWhile(_ => !IsDisposing && !IsDisposed).SkipWhile(_ => IsTrackingCollectionChanges == false).ObserveOn(Scheduler);
+                return _changes
+                    .TakeWhile(_ => !IsDisposing && !IsDisposed)
+                    .SkipWhile(change => IsTrackingCollectionChanges == false)
+                    .SkipWhile(change => change.ChangeType == ReactiveCollectionChangeType.ItemChanged && IsTrackingItemChanges == false)
+                    .SkipWhile(change => change.ChangeType == ReactiveCollectionChangeType.Reset && IsTrackingResets == false)
+                    .ObserveOn(Scheduler);
             }
         }
 
@@ -901,12 +964,7 @@ namespace JB.Collections
             {
                 CheckForAndThrowIfDisposed();
 
-                // we don't care about item moves/-changes so only the other ones are Count relevant
-                return CollectionChanges
-                    .Where(change => 
-                        change.ChangeType == ReactiveCollectionChangeType.ItemAdded || change.ChangeType == ReactiveCollectionChangeType.ItemRemoved || change.ChangeType == ReactiveCollectionChangeType.Reset)
-                    .Select(_ => Count)
-                    .DistinctUntilChanged();
+                return _countChanges.TakeWhile(_ => !IsDisposing && !IsDisposed).SkipWhile(_ => IsTrackingCountChanges == false).DistinctUntilChanged().ObserveOn(Scheduler);
             }
         }
 
@@ -984,6 +1042,7 @@ namespace JB.Collections
 
         Subject<Exception> _thrownExceptions;
         Subject<IReactiveCollectionChange<T>> _changes;
+        Subject<int> _countChanges;
 
         IDisposable _countChangesPropertyChangeForwarder = null;
         IDisposable _collectionChangesAndResetsPropertyChangeForwarder = null;
@@ -996,7 +1055,9 @@ namespace JB.Collections
 		private void SetupObservablesAndSubjects()
         {
             // prepare subjects for RX
+            _thrownExceptions = new Subject<Exception>();
             _changes = new Subject<IReactiveCollectionChange<T>>();
+            _countChanges = new Subject<int>();
 
             // then connect to InnerList's ListChanged Event
             _innerListChangedForwader = Observable.FromEventPattern<ListChangedEventHandler, ListChangedEventArgs>(
@@ -1006,6 +1067,7 @@ namespace JB.Collections
                 .SkipWhile(_ => !IsTrackingCollectionChanges)
                 .Where(eventPattern => eventPattern != null && eventPattern.EventArgs!= null)
                 .Select(eventPattern => eventPattern.EventArgs.ToReactiveCollectionChange(this))
+                .SubscribeOn(ThreadPoolScheduler.Instance)
                 .ObserveOn(Scheduler)
                 .Subscribe(NotifySubscribersAndRaiseListAndCollectionChangedEvents);
 
@@ -1026,23 +1088,36 @@ namespace JB.Collections
 
             CheckForAndThrowIfDisposed();
 
-            // check whether changes shall currently actually be communicated
-            if (IsTrackingCollectionChanges == false)
-                return;
-
-            if (IsTrackingItemChanges == false && reactiveCollectionChange.ChangeType == ReactiveCollectionChangeType.ItemChanged)
-                return;
-
-            if (IsTrackingResets == false && reactiveCollectionChange.ChangeType == ReactiveCollectionChangeType.Reset)
-                return;
-
-            // then go ahead and check whether a Reset or item add, -change, -move or -remove shall be signaled
+            // go ahead and check whether a Reset or item add, -change, -move or -remove shall be signaled
             // .. based on the MinimumItemsChangedToBeConsideredReset and ItemChangesToResetThreshold values.
             var actualReactiveCollectionChange = (reactiveCollectionChange.ChangeType == ReactiveCollectionChangeType.Reset || IsItemsChangedAmountGreaterThanResetThreshold(1, Count, MinimumItemsChangedToBeConsideredReset, ItemChangesToResetThreshold))
                 ? ReactiveCollectionChange<T>.Reset
                 : reactiveCollectionChange;
 
-            // otherwise go ahead and raise events and notifiy about collection/list changes
+            // raise events and notifiy about collection/list changes
+            try
+            {
+                _changes.OnNext(actualReactiveCollectionChange);
+            }
+            catch (Exception exception)
+            {
+                _thrownExceptions.OnNext(exception);
+            }
+
+            if (actualReactiveCollectionChange.ChangeType == ReactiveCollectionChangeType.ItemAdded
+                || actualReactiveCollectionChange.ChangeType == ReactiveCollectionChangeType.ItemRemoved
+                || actualReactiveCollectionChange.ChangeType == ReactiveCollectionChangeType.Reset)
+            {
+                try
+                {
+                    _countChanges.OnNext(Count);
+                }
+                catch (Exception exception)
+                {
+                    _thrownExceptions.OnNext(exception);
+                }
+            }
+
             try
             {
                 RaiseCollectionChanged(actualReactiveCollectionChange.ToNotifyCollectionChangedEventArgs());
@@ -1064,15 +1139,6 @@ namespace JB.Collections
             try
             {
                 RaiseReactiveCollectionChanged(new ReactiveCollectionChangedEventArgs<T>(actualReactiveCollectionChange));
-            }
-            catch (Exception exception)
-            {
-                _thrownExceptions.OnNext(exception);
-            }
-
-            try
-            {
-                _changes.OnNext(actualReactiveCollectionChange);
             }
             catch (Exception exception)
             {
@@ -1221,9 +1287,10 @@ namespace JB.Collections
                 {
                     _collectionChangesAndResetsPropertyChangeForwarder.CheckAndDispose();
                     _countChangesPropertyChangeForwarder.CheckAndDispose();
-                    
-                    _changes.CheckAndDispose();
 
+                    _countChanges.CheckAndDispose();
+                    _changes.CheckAndDispose();
+                    
                     _innerListChangedForwader.CheckAndDispose();
                     _thrownExceptions.CheckAndDispose();
                 }

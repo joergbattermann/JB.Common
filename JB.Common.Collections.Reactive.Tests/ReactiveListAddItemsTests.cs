@@ -23,28 +23,26 @@ namespace JB.Collections.Tests
         [InlineData(0, 10)]
         [InlineData(99, 999)]
         [InlineData(42, 42)]
-        public void AddRangeIncreasesCountTest(int lowerLimit, int upperLimit)
+        public async Task AddRangeIncreasesCountOneByOneTest(int lowerLimit, int upperLimit)
         {
             // given
-            var testScheduler = new TestScheduler();
-
-            var observableReportedCounts = new List<int>();
             var rangeToAdd = Enumerable.Range(lowerLimit, upperLimit - lowerLimit + 1).ToList();
-
-            var reactiveList = new ReactiveList<int>(itemChangesToResetThreshold: 1D, scheduler: testScheduler);
+            var receivedCountChanges = new List<int>();
+            var reactiveList = new ReactiveList<int>(itemChangesToResetThreshold: 1D);
             reactiveList.MinimumItemsChangedToBeConsideredReset = rangeToAdd.Count + 1;
-
-            reactiveList.CountChanges.Subscribe(i =>
+            reactiveList.CountChanges.Subscribe(c =>
             {
-                observableReportedCounts.Add(i);
+                receivedCountChanges.Add(c);
             });
 
             // when
             reactiveList.AddRange(rangeToAdd);
-            testScheduler.Start();
+
+            await Task.Delay(500000);
 
             // then
-            observableReportedCounts.ShouldAllBeEquivalentTo(rangeToAdd);
+            receivedCountChanges.Count.Should().Be(rangeToAdd.Count);
+            reactiveList.Count.Should().Be(rangeToAdd.Count);
         }
 
         [Theory]
