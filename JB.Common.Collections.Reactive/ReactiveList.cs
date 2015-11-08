@@ -502,10 +502,7 @@ namespace JB.Collections
             // we use an IDisposable either way, but in case of not sending a reset, an empty Disposable will be used to simplify the logic here
             using (useCollectionChangeSuppression ? SuppressCollectionChangedNotifications(true) : Disposable.Empty)
             {
-                foreach (var item in itemsAsList)
-                {
-                    Add(item);
-                }
+                InnerList.AddRange(itemsAsList, !useCollectionChangeSuppression);
             }
         }
 
