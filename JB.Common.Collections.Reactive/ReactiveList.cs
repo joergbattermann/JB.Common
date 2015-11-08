@@ -495,17 +495,17 @@ namespace JB.Collections
                 return;
 
             // only use the Suppress & Reset mechanism if possible
-            var suppressionItemChangesWhileAdding = 
+            var suppressItemChangesWhileAdding = 
                 IsItemsChangedAmountGreaterThanResetThreshold(itemsAsList.Count, Count, MinimumItemsChangedToBeConsideredReset, ItemChangesToResetThreshold)
                 && IsTrackingCollectionChanges;
 
             // we use an IDisposable either way, but in case of not sending a reset, an empty Disposable will be used to simplify the logic here
-            using (suppressionItemChangesWhileAdding ? SuppressCollectionChangedNotifications(true) : Disposable.Empty)
+            using (suppressItemChangesWhileAdding ? SuppressCollectionChangedNotifications(true) : Disposable.Empty)
             {
                 var originalRaiseListChangedEvents = InnerList.RaiseListChangedEvents;
                 try
                 {
-                    InnerList.RaiseListChangedEvents = !suppressionItemChangesWhileAdding;
+                    InnerList.RaiseListChangedEvents = !suppressItemChangesWhileAdding;
                     InnerList.AddRange(itemsAsList);
                 }
                 finally
@@ -719,7 +719,7 @@ namespace JB.Collections
 
                 if (signalResetWhenFinished)
                 {
-                    _changes.OnNext(ReactiveCollectionChange<T>.Reset);
+                    InnerList.ResetBindings();
                 }
             });
         }
@@ -775,7 +775,7 @@ namespace JB.Collections
 
                 if (signalResetWhenFinished)
                 {
-                    _changes.OnNext(ReactiveCollectionChange<T>.Reset);
+                    InnerList.ResetBindings();
                 }
             });
         }
@@ -831,7 +831,7 @@ namespace JB.Collections
 
                 if (signalResetWhenFinished)
                 {
-                    _changes.OnNext(ReactiveCollectionChange<T>.Reset);
+                    InnerList.ResetBindings();
                 }
             });
         }
@@ -1167,15 +1167,24 @@ namespace JB.Collections
         /// <returns></returns>
         private bool IsItemsChangedAmountGreaterThanResetThreshold(int itemsCount, int totalCount, int minimumItemsChangedCountToBeConsideredReset, double resetThreshold)
         {
-            if (itemsCount < 0) throw new ArgumentOutOfRangeException(nameof(itemsCount));
+            if (itemsCount <= 0) throw new ArgumentOutOfRangeException(nameof(itemsCount));
             if (totalCount < 0) throw new ArgumentOutOfRangeException(nameof(totalCount));
             if (minimumItemsChangedCountToBeConsideredReset < 0) throw new ArgumentOutOfRangeException(nameof(minimumItemsChangedCountToBeConsideredReset));
 
-            // if the list is entirely empty, it isn't really a reset
+            // check for '0' thresholds
+            if (minimumItemsChangedCountToBeConsideredReset == 0 || Equals(resetThreshold, 0D))
+                return true;
+
+            // first check for fixed size minimum reset threshold
             if (itemsCount < minimumItemsChangedCountToBeConsideredReset)
                 return false;
 
-            return (((double)itemsCount) / totalCount) >= resetThreshold;
+            if (totalCount == 0)
+            {
+                return itemsCount >= minimumItemsChangedCountToBeConsideredReset;
+            }
+
+            return (((double)itemsCount) / totalCount) > resetThreshold;
         }
         
         #region Implementation of INotifyPropertyChanged
