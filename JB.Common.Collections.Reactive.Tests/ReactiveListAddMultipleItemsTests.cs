@@ -22,8 +22,8 @@ namespace JB.Collections.Tests
             var testScheduler = new TestScheduler();
             var testObserver = testScheduler.CreateObserver<int>();
             
-            var reactiveList = new ReactiveList<int>(itemChangesToResetThreshold: 1D);
-            reactiveList.MinimumItemsChangedToBeConsideredReset = rangeToAdd.Count + 1;
+            var reactiveList = new ReactiveList<int>();
+            reactiveList.ThresholdOfItemChangesToNotifyAsReset = rangeToAdd.Count + 1;
             reactiveList.CountChanges.Subscribe(testObserver);
 
             // when
@@ -46,8 +46,8 @@ namespace JB.Collections.Tests
             var testScheduler = new TestScheduler();
             var testObserver = testScheduler.CreateObserver<IReactiveCollectionChange<int>>();
 
-            var reactiveList = new ReactiveList<int>(itemChangesToResetThreshold: 1D);
-            reactiveList.MinimumItemsChangedToBeConsideredReset = rangeToAdd.Count + 1;
+            var reactiveList = new ReactiveList<int>();
+            reactiveList.ThresholdOfItemChangesToNotifyAsReset = rangeToAdd.Count + 1;
             reactiveList.CollectionChanges.Subscribe(testObserver);
 
             // when
@@ -72,8 +72,8 @@ namespace JB.Collections.Tests
             var testObserverCollectionChanges = testScheduler.CreateObserver<IReactiveCollectionChange<int>>();
             var testObserverResets = testScheduler.CreateObserver<Unit>();
 
-            var reactiveList = new ReactiveList<int>(itemChangesToResetThreshold: 0D);
-            reactiveList.MinimumItemsChangedToBeConsideredReset = 0;
+            var reactiveList = new ReactiveList<int>();
+            reactiveList.ThresholdOfItemChangesToNotifyAsReset = 0;
 
             reactiveList.CollectionChanges.Subscribe(testObserverCollectionChanges);
             reactiveList.Resets.Subscribe(testObserverResets);
@@ -83,7 +83,7 @@ namespace JB.Collections.Tests
             testScheduler.Start();
 
             // then
-            var shouldBeReset = rangeToAdd.Count >= reactiveList.MinimumItemsChangedToBeConsideredReset;
+            var shouldBeReset = rangeToAdd.Count >= reactiveList.ThresholdOfItemChangesToNotifyAsReset;
             testObserverCollectionChanges.Messages.Count.Should().Be(shouldBeReset ? 1 : rangeToAdd.Count);
             testObserverCollectionChanges.Messages.Should()
                 .Match(recordedMessages => 
@@ -103,8 +103,8 @@ namespace JB.Collections.Tests
             var testScheduler = new TestScheduler();
             var testObserver = testScheduler.CreateObserver<int>();
 
-            var reactiveList = new ReactiveList<int>(itemChangesToResetThreshold: 0D);
-            reactiveList.MinimumItemsChangedToBeConsideredReset = 0;
+            var reactiveList = new ReactiveList<int>();
+            reactiveList.ThresholdOfItemChangesToNotifyAsReset = 0;
             reactiveList.CountChanges.Subscribe(testObserver);
 
             // when

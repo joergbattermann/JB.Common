@@ -71,23 +71,14 @@ namespace JB.Collections
 		/// <param name="signalCountWhenFinished">if set to <c>true</c> signals a the <see cref="IReadOnlyCollection{T}.Count"/> when finished.</param>
 		/// <returns></returns>
         IDisposable SuppressCountChangeNotifications(bool signalCountWhenFinished = true);
-
-        /// <summary>
-        /// Indicates at what percentage / fraction bulk changes are signaled as a Reset rather than individual change()s.
-        /// [0] = Always, [1] = Never.
-        /// </summary>
-        /// <value>
-        /// The changes to reset threshold.
-        /// </value>
-        double ItemChangesToResetThreshold { get; }
-
+        
         /// <summary>
         /// Gets the minimum amount of items that have been changed to be notified / considered a <see cref="ReactiveCollectionChangeType.Reset"/> rather than indivudal <see cref="ReactiveCollectionChangeType"/> notifications.
         /// </summary>
         /// <value>
         /// The minimum items changed to be considered reset.
         /// </value>
-        int MinimumItemsChangedToBeConsideredReset { get; set; }
+        int ThresholdOfItemChangesToNotifyAsReset { get; set; }
 
         /// <summary>
         /// Gets all collection change notifications as an observable stream.

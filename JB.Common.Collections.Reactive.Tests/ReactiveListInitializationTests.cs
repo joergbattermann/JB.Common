@@ -21,21 +21,7 @@ namespace JB.Collections.Tests
             reactiveList.Count.Should().Be(initialList.Count);
             reactiveList.ShouldAllBeEquivalentTo(initialList);
         }
-
-        [Fact]
-        public void ShouldUseProvidedItemChangesToResetThreshold()
-        {
-            // given
-            var testScheduler = new TestScheduler();
-            var itemChangesToResetThreshold = 0.88D;
-
-            // when
-            var reactiveList = new ReactiveList<int>(itemChangesToResetThreshold: itemChangesToResetThreshold, scheduler: testScheduler);
-
-            // then
-            reactiveList.ItemChangesToResetThreshold.Should().Be(itemChangesToResetThreshold);
-        }
-
+        
         [Fact]
         public void ShouldUseProvidedScheduler()
         {

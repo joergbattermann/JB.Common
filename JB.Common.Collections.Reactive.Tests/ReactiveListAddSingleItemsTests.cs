@@ -28,7 +28,7 @@ namespace JB.Collections.Tests
             var testScheduler = new TestScheduler();
             int observableReportedCount = -1;
             int countChangesCalled = 0;
-            var reactiveList = new ReactiveList<int>(itemChangesToResetThreshold: 1D, scheduler: testScheduler);
+            var reactiveList = new ReactiveList<int>();
             reactiveList.CountChanges.Subscribe(i =>
             {
                 observableReportedCount = i;
@@ -61,7 +61,9 @@ namespace JB.Collections.Tests
             int observableReportedCount = initialList.Count;
             int countChangesCalled = 0;
 
-            var reactiveList = new ReactiveList<int>(initialList, itemChangesToResetThreshold: 1D, scheduler: testScheduler);
+            var reactiveList = new ReactiveList<int>(initialList, scheduler: testScheduler);
+            reactiveList.ThresholdOfItemChangesToNotifyAsReset = int.MaxValue;
+
             reactiveList.CountChanges.Subscribe(i =>
             {
                 observableReportedCount = i;

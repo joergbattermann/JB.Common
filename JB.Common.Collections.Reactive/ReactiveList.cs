@@ -46,21 +46,17 @@ namespace JB.Collections
         /// Initializes a new instance of the <see cref="ReactiveList{T}" /> class.
         /// </summary>
         /// <param name="list">The initial list, if any.</param>
-        /// <param name="itemChangesToResetThreshold">The <see cref="ItemChangesToResetThreshold" /> value.</param>
         /// <param name="syncRoot">The synchronize root.</param>
         /// <param name="scheduler">The scheduler.</param>
         /// <exception cref="System.ArgumentOutOfRangeException">Must be between 0 and 1 (both inclusive)</exception>
-        public ReactiveList(IList<T> list = null, double itemChangesToResetThreshold = 0.3, object syncRoot = null, IScheduler scheduler = null)
+        public ReactiveList(IList<T> list = null, object syncRoot = null, IScheduler scheduler = null)
         {
-            if (itemChangesToResetThreshold < 0 || itemChangesToResetThreshold > 1) throw new ArgumentOutOfRangeException(nameof(itemChangesToResetThreshold), "Must be between 0 and 1 (both inclusive)");
-
             SyncRoot = syncRoot ?? new object();
             Scheduler = scheduler ?? System.Reactive.Concurrency.Scheduler.Default;
 
             InnerList = new SynchronizedBindingList<T>(list, SyncRoot);
 
-            ItemChangesToResetThreshold = itemChangesToResetThreshold;
-            MinimumItemsChangedToBeConsideredReset = 10;
+            ThresholdOfItemChangesToNotifyAsReset = 100;
 
             IsTrackingCollectionChanges = true;
 
@@ -496,7 +492,7 @@ namespace JB.Collections
 
             // only use the Suppress & Reset mechanism if possible
             var suppressItemChangesWhileAdding = 
-                IsItemsChangedAmountGreaterThanResetThreshold(itemsAsList.Count, Count, MinimumItemsChangedToBeConsideredReset, ItemChangesToResetThreshold)
+                IsItemsChangedAmountGreaterThanResetThreshold(itemsAsList.Count, ThresholdOfItemChangesToNotifyAsReset)
                 && IsTrackingCollectionChanges;
 
             // we use an IDisposable either way, but in case of not sending a reset, an empty Disposable will be used to simplify the logic here
@@ -572,7 +568,7 @@ namespace JB.Collections
 
             // only use the Suppress & Reset mechanism if possible
             var suppressionItemChanges =
-                IsItemsChangedAmountGreaterThanResetThreshold(itemsAsList.Count, Count, MinimumItemsChangedToBeConsideredReset, ItemChangesToResetThreshold)
+                IsItemsChangedAmountGreaterThanResetThreshold(itemsAsList.Count, ThresholdOfItemChangesToNotifyAsReset)
                 && IsTrackingCollectionChanges;
 
             // we use an IDisposable either way, but in case of not sending a reset, an empty Disposable will be used to simplify the logic here
@@ -893,29 +889,21 @@ namespace JB.Collections
         }
 
         /// <summary>
-        /// Indicates at what percentage / fraction bulk changes are signaled as a Reset rather than individual change()s.
-        /// [0] = Always, [1] = Only when ALL current items change (well except if list is entirely empty to begin with).
+        /// Gets the threshold amount (inclusive) of item changes to be signaled as a <see cref="ReactiveCollectionChangeType.Reset"/>
+        /// rather than individual <see cref="ReactiveCollectionChangeType"/> notifications.
         /// </summary>
         /// <value>
-        /// The changes to reset threshold.
+        /// The threshold amount of item changes to be signal a reset rather than item change(s).
         /// </value>
-        public double ItemChangesToResetThreshold { get; }
-
-        /// <summary>
-        /// Gets the minimum amount of items that have been changed to be notified / considered a <see cref="ReactiveCollectionChangeType.Reset"/> rather than indivudal <see cref="ReactiveCollectionChangeType"/> notifications.
-        /// </summary>
-        /// <value>
-        /// The minimum items changed to be considered reset.
-        /// </value>
-        public int MinimumItemsChangedToBeConsideredReset
+        public int ThresholdOfItemChangesToNotifyAsReset
         {
             get
             {
-                return _minimumItemsChangedToBeConsideredReset;
+                return _thresholdOfItemChangesToNotifyAsReset;
             }
             set
             {
-                _minimumItemsChangedToBeConsideredReset = value;
+                _thresholdOfItemChangesToNotifyAsReset = value;
 
                 RaisePropertyChanged();
             }
@@ -1100,8 +1088,8 @@ namespace JB.Collections
             CheckForAndThrowIfDisposed();
 
             // go ahead and check whether a Reset or item add, -change, -move or -remove shall be signaled
-            // .. based on the MinimumItemsChangedToBeConsideredReset and ItemChangesToResetThreshold values.
-            var actualReactiveCollectionChange = (reactiveCollectionChange.ChangeType == ReactiveCollectionChangeType.Reset || IsItemsChangedAmountGreaterThanResetThreshold(1, Count, MinimumItemsChangedToBeConsideredReset, ItemChangesToResetThreshold))
+            // .. based on the ThresholdOfItemChangesToNotifyAsReset value
+            var actualReactiveCollectionChange = (reactiveCollectionChange.ChangeType == ReactiveCollectionChangeType.Reset || IsItemsChangedAmountGreaterThanResetThreshold(1, ThresholdOfItemChangesToNotifyAsReset))
                 ? ReactiveCollectionChange<T>.Reset
                 : reactiveCollectionChange;
 
@@ -1160,31 +1148,19 @@ namespace JB.Collections
         /// <summary>
         /// Determines whether the amount of changed items is greater than the reset threshold and / or the minimum amount of items to be considered as a reset.
         /// </summary>
-        /// <param name="itemsCount">The items changed.</param>
-        /// <param name="totalCount">The total count.</param>
-        /// <param name="minimumItemsChangedCountToBeConsideredReset">The minimum changed items count to be considered a reset.</param>
-        /// <param name="resetThreshold">The reset threshold.</param>
+        /// <param name="affectedItemsCount">The items changed / affected.</param>
+        /// <param name="maximumAmountOfItemsChangedToBeConsideredResetThreshold">The maximum amount of changed items count to consider a change or a range of changes a reset.</param>
         /// <returns></returns>
-        private bool IsItemsChangedAmountGreaterThanResetThreshold(int itemsCount, int totalCount, int minimumItemsChangedCountToBeConsideredReset, double resetThreshold)
+        private bool IsItemsChangedAmountGreaterThanResetThreshold(int affectedItemsCount, int maximumAmountOfItemsChangedToBeConsideredResetThreshold)
         {
-            if (itemsCount <= 0) throw new ArgumentOutOfRangeException(nameof(itemsCount));
-            if (totalCount < 0) throw new ArgumentOutOfRangeException(nameof(totalCount));
-            if (minimumItemsChangedCountToBeConsideredReset < 0) throw new ArgumentOutOfRangeException(nameof(minimumItemsChangedCountToBeConsideredReset));
+            if (affectedItemsCount <= 0) throw new ArgumentOutOfRangeException(nameof(affectedItemsCount));
+            if (maximumAmountOfItemsChangedToBeConsideredResetThreshold < 0) throw new ArgumentOutOfRangeException(nameof(maximumAmountOfItemsChangedToBeConsideredResetThreshold));
 
             // check for '0' thresholds
-            if (minimumItemsChangedCountToBeConsideredReset == 0 || Equals(resetThreshold, 0D))
+            if (maximumAmountOfItemsChangedToBeConsideredResetThreshold == 0)
                 return true;
-
-            // first check for fixed size minimum reset threshold
-            if (itemsCount < minimumItemsChangedCountToBeConsideredReset)
-                return false;
-
-            if (totalCount == 0)
-            {
-                return itemsCount >= minimumItemsChangedCountToBeConsideredReset;
-            }
-
-            return (((double)itemsCount) / totalCount) > resetThreshold;
+            
+            return affectedItemsCount >= maximumAmountOfItemsChangedToBeConsideredResetThreshold;
         }
         
         #region Implementation of INotifyPropertyChanged
@@ -1231,7 +1207,7 @@ namespace JB.Collections
         private long _isDisposed = 0;
 
         private readonly object _isDisposedLocker = new object();
-        private volatile int _minimumItemsChangedToBeConsideredReset;
+        private volatile int _thresholdOfItemChangesToNotifyAsReset;
 
         /// <summary>
         /// Gets or sets a value indicating whether this instance has been disposed.
