@@ -48,28 +48,21 @@ namespace JB.Collections
         /// and therefore a <see cref="ListChangedType.Reset" /> will be sent via the <see cref="IBindingList.ListChanged" /> event.
         /// </summary>
         /// <param name="items">The items.</param>
-        /// <param name="raiseListChangedEventsWhileAdding">if set to <c>true</c> [raise list changed events while adding].</param>
-        public void AddRange(IEnumerable<T> items, bool raiseListChangedEventsWhileAdding = false)
+        /// <param name="signalResetWhenFinished">if set to <c>true</c> a <see cref="ListChangedType.Reset"/> will be signaled when finished.
+        /// This and <see cref="BindingList{T}.RaiseListChangedEvents"/> control if and what <see cref="IBindingList.ListChanged" /> event will be raised while / after adding the <paramref name="items"/>.</param>
+        public void AddRange(IEnumerable<T> items, bool signalResetWhenFinished = false)
 		{
 			if (items == null)
 				return;
 
-			var originalRaiseListChangedEvents = RaiseListChangedEvents;
-			RaiseListChangedEvents = raiseListChangedEventsWhileAdding;
-			try
-			{
-				foreach (var item in items)
-				{
-					Add(item);
-				}
-			}
-			finally
-			{
-				RaiseListChangedEvents = originalRaiseListChangedEvents;
-				if (originalRaiseListChangedEvents)
-					ResetBindings();
-			}
-		}
+            foreach (var item in items)
+            {
+                Add(item);
+            }
+
+            if (signalResetWhenFinished)
+                ResetBindings();
+        }
 
 		/// <summary>
 		/// Moves the item at the specified index to a new position in the list.

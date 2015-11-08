@@ -87,7 +87,8 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="ReactiveListAddItemsTests.cs" />
+    <Compile Include="ReactiveListAddMultipleItemsTests.cs" />
+    <Compile Include="ReactiveListAddSingleItemsTests.cs" />
     <Compile Include="ReactiveListInitializationTests.cs" />
   </ItemGroup>
   <ItemGroup>

@@ -495,14 +495,23 @@ namespace JB.Collections
                 return;
 
             // only use the Suppress & Reset mechanism if possible
-            var useCollectionChangeSuppression = 
+            var suppressionItemChangesWhileAdding = 
                 IsItemsChangedAmountGreaterThanResetThreshold(itemsAsList.Count, Count, MinimumItemsChangedToBeConsideredReset, ItemChangesToResetThreshold)
                 && IsTrackingCollectionChanges;
 
             // we use an IDisposable either way, but in case of not sending a reset, an empty Disposable will be used to simplify the logic here
-            using (useCollectionChangeSuppression ? SuppressCollectionChangedNotifications(true) : Disposable.Empty)
+            using (suppressionItemChangesWhileAdding ? SuppressCollectionChangedNotifications(true) : Disposable.Empty)
             {
-                InnerList.AddRange(itemsAsList, !useCollectionChangeSuppression);
+                var originalRaiseListChangedEvents = InnerList.RaiseListChangedEvents;
+                try
+                {
+                    InnerList.RaiseListChangedEvents = !suppressionItemChangesWhileAdding;
+                    InnerList.AddRange(itemsAsList);
+                }
+                finally
+                {
+                    InnerList.RaiseListChangedEvents = originalRaiseListChangedEvents;
+                }
             }
         }
 

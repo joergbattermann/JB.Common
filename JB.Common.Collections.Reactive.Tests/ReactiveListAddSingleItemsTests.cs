@@ -8,7 +8,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reactive.Concurrency;
 using System.Threading.Tasks;
 using FluentAssertions;
@@ -17,32 +16,8 @@ using Xunit;
 
 namespace JB.Collections.Tests
 {
-    public class ReactiveListAddItemsTests
+    public class ReactiveListAddSingleItemsTests
     {
-        [Theory]
-        [InlineData(0, 10)]
-        [InlineData(99, 999)]
-        [InlineData(42, 42)]
-        public void AddRangeIncreasesCountOneByOneTest(int lowerLimit, int upperLimit)
-        {
-            // given
-            var rangeToAdd = Enumerable.Range(lowerLimit, upperLimit - lowerLimit + 1).ToList();
-            var receivedCountChanges = new List<int>();
-            var reactiveList = new ReactiveList<int>(itemChangesToResetThreshold: 1D);
-            reactiveList.MinimumItemsChangedToBeConsideredReset = rangeToAdd.Count + 1;
-            reactiveList.CountChanges.Subscribe(c =>
-            {
-                receivedCountChanges.Add(c);
-            });
-
-            // when
-            reactiveList.AddRange(rangeToAdd);
-
-            // then
-            receivedCountChanges.Count.Should().Be(rangeToAdd.Count);
-            reactiveList.Count.Should().Be(rangeToAdd.Count);
-        }
-
         [Theory]
         [InlineData(1, 1)]
         [InlineData(10, 100)]
