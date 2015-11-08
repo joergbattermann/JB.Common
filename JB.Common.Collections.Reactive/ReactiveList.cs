@@ -527,9 +527,12 @@ namespace JB.Collections
         /// Depending on whether the caller intends to move the item strictly or logically to the <paramref name="newIndex"/> position, correction might be useful.</param>
         public void Move(T item, int newIndex, bool correctNewIndexOnIndexShift = false)
         {
+            if (item == null) throw new ArgumentNullException(nameof(item));
+            if (newIndex < 0 || newIndex >= InnerList.Count) throw new ArgumentOutOfRangeException(nameof(newIndex));
+
             CheckForAndThrowIfDisposed();
 
-            throw new NotImplementedException();
+            InnerList.Move(item, newIndex, correctNewIndexOnIndexShift);
         }
 
         /// <summary>
@@ -537,60 +540,57 @@ namespace JB.Collections
         /// </summary>
         /// <param name="itemIndex">The (starting) index of the item(s) to move.</param>
         /// <param name="newIndex">The new index.</param>
-        /// <param name="count">The amount of items to move, starting at the itemIndex.</param>
         /// <param name="correctNewIndexOnIndexShift">if set to <c>true</c> the <paramref name="newIndex" /> will be adjusted,
-        /// if required, depending on whether an index shift took place during the move due to the original position of the item.
-        /// Basically if you move an item from a lower index position to a higher one, the index positions of all items with higher index positions than <paramref name="itemIndex" />
-        /// will be shifted upwards (logically by -1).
-        /// Depending on whether the caller intends to move the item strictly or logically to the <paramref name="newIndex" /> position, correction might be useful.</param>
-        public void Move(int itemIndex, int newIndex, int count = 1, bool correctNewIndexOnIndexShift = false)
+        ///     if required, depending on whether an index shift took place during the move due to the original position of the item.
+        ///     Basically if you move an item from a lower index position to a higher one, the index positions of all items with higher index positions than <paramref name="itemIndex" />
+        ///     will be shifted upwards (logically by -1).
+        ///     Depending on whether the caller intends to move the item strictly or logically to the <paramref name="newIndex" /> position, correction might be useful.</param>
+        public void Move(int itemIndex, int newIndex, bool correctNewIndexOnIndexShift = false)
         {
+            if (itemIndex < 0 || itemIndex >= InnerList.Count) throw new ArgumentOutOfRangeException(nameof(newIndex));
+            if (newIndex < 0 || newIndex >= InnerList.Count) throw new ArgumentOutOfRangeException(nameof(newIndex));
+
             CheckForAndThrowIfDisposed();
 
-            throw new NotImplementedException();
+            InnerList.Move(itemIndex, newIndex, correctNewIndexOnIndexShift);
         }
-
-        /// <summary>
-        /// Inserts the range of items at the specified <paramref name="index"/> position.
-        /// </summary>
-        /// <param name="items">The items.</param>
-        /// <param name="index">The index.</param>
-        public void InsertRange(IEnumerable<T> items, int index)
-        {
-            CheckForAndThrowIfDisposed();
-
-            // IsItemsChangedAmountGreaterThanResetThreshold(1, Count, MinimumItemsChangedToBeConsideredReset, ItemChangesToResetThreshold)
-
-            throw new NotImplementedException();
-        }
-
+        
         /// <summary>
         /// Removes the specified items.
         /// </summary>
         /// <param name="items">The items.</param>
         public void RemoveRange(IEnumerable<T> items)
         {
+            if (items == null) throw new ArgumentNullException(nameof(items));
+
             CheckForAndThrowIfDisposed();
 
-            // IsItemsChangedAmountGreaterThanResetThreshold(1, Count, MinimumItemsChangedToBeConsideredReset, ItemChangesToResetThreshold)
+            var itemsAsList = items.ToList();
 
-            throw new NotImplementedException();
+            if (itemsAsList.Count == 0)
+                return;
+
+            // only use the Suppress & Reset mechanism if possible
+            var suppressionItemChanges =
+                IsItemsChangedAmountGreaterThanResetThreshold(itemsAsList.Count, Count, MinimumItemsChangedToBeConsideredReset, ItemChangesToResetThreshold)
+                && IsTrackingCollectionChanges;
+
+            // we use an IDisposable either way, but in case of not sending a reset, an empty Disposable will be used to simplify the logic here
+            using (suppressionItemChanges ? SuppressCollectionChangedNotifications(true) : Disposable.Empty)
+            {
+                var originalRaiseListChangedEvents = InnerList.RaiseListChangedEvents;
+                try
+                {
+                    InnerList.RaiseListChangedEvents = !suppressionItemChanges;
+                    InnerList.RemoveRange(itemsAsList);
+                }
+                finally
+                {
+                    InnerList.RaiseListChangedEvents = originalRaiseListChangedEvents;
+                }
+            }
         }
-
-        /// <summary>
-        /// Removes the amount of items starting at the specified index.
-        /// </summary>
-        /// <param name="index">The index.</param>
-        /// <param name="count">The count.</param>
-        public void RemoveRange(int index, int count)
-        {
-            CheckForAndThrowIfDisposed();
-
-            // IsItemsChangedAmountGreaterThanResetThreshold(1, Count, MinimumItemsChangedToBeConsideredReset, ItemChangesToResetThreshold)
-
-            throw new NotImplementedException();
-        }
-
+        
         /// <summary>
         /// Resets this instance.
         /// </summary>

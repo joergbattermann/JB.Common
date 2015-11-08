@@ -43,9 +43,8 @@ namespace JB.Collections
 		}
 
         /// <summary>
-        /// Adds the range of items. If <see cref="BindingList{T}.RaiseListChangedEvents" /> is set to [true],
-        /// the range addition will be communicated via an impliciit <see cref="BindingList{T}.ResetBindings" /> call
-        /// and therefore a <see cref="ListChangedType.Reset" /> will be sent via the <see cref="IBindingList.ListChanged" /> event.
+        /// Adds the range of items. Use <see cref="BindingList{T}.RaiseListChangedEvents" /> to control whether the range addition will
+        /// be communicated via an implicit and per-item <see cref="ListChangedType.ItemAdded"/> event.
         /// </summary>
         /// <param name="items">The items.</param>
         /// <param name="signalResetWhenFinished">if set to <c>true</c> a <see cref="ListChangedType.Reset"/> will be signaled when finished.
@@ -64,18 +63,39 @@ namespace JB.Collections
                 ResetBindings();
         }
 
-		/// <summary>
-		/// Moves the item at the specified index to a new position in the list.
-		/// </summary>
-		/// <param name="itemIndex">The index of the item to move.</param>
-		/// <param name="newIndex">The new index.</param>
-		/// <param name="correctNewIndexOnIndexShift">if set to <c>true</c> the <paramref name="newIndex" /> will be adjusted,
-		/// if required, depending on whether an index shift took place during the move due to the original position of the item.
-		/// Basically if you move an item from a lower index position to a higher one, the index positions of all items with higher index positions than <paramref name="itemIndex" />
-		/// will be shifted upwards (logically by -1).
-		/// Depending on whether the caller intends to move the item strictly or logically to the <paramref name="newIndex"/> position, correction might be useful.</param>
-		/// <exception cref="ArgumentOutOfRangeException">item</exception>
-		public void Move(int itemIndex, int newIndex, bool correctNewIndexOnIndexShift = false)
+        /// <summary>
+        /// Removes the range of items. Use <see cref="BindingList{T}.RaiseListChangedEvents" /> to control whether the range addition will
+        /// be communicated via an implicit and per-item <see cref="ListChangedType.ItemDeleted"/> event.
+        /// </summary>
+        /// <param name="items">The items.</param>
+        /// <param name="signalResetWhenFinished">if set to <c>true</c> a <see cref="ListChangedType.Reset"/> will be signaled when finished.
+        /// This and <see cref="BindingList{T}.RaiseListChangedEvents"/> control if and what <see cref="IBindingList.ListChanged" /> event will be raised while / after adding the <paramref name="items"/>.</param>
+        public void RemoveRange(IEnumerable<T> items, bool signalResetWhenFinished = false)
+        {
+            if (items == null)
+                return;
+
+            foreach (var item in items)
+            {
+                Remove(item);
+            }
+
+            if (signalResetWhenFinished)
+                ResetBindings();
+        }
+
+        /// <summary>
+        /// Moves the item at the specified index to a new position in the list.
+        /// </summary>
+        /// <param name="itemIndex">The index of the item to move.</param>
+        /// <param name="newIndex">The new index.</param>
+        /// <param name="correctNewIndexOnIndexShift">if set to <c>true</c> the <paramref name="newIndex" /> will be adjusted,
+        /// if required, depending on whether an index shift took place during the move due to the original position of the item.
+        /// Basically if you move an item from a lower index position to a higher one, the index positions of all items with higher index positions than <paramref name="itemIndex" />
+        /// will be shifted upwards (logically by -1).
+        /// Depending on whether the caller intends to move the item strictly or logically to the <paramref name="newIndex"/> position, correction might be useful.</param>
+        /// <exception cref="ArgumentOutOfRangeException">item</exception>
+        public void Move(int itemIndex, int newIndex, bool correctNewIndexOnIndexShift = false)
 		{
 			Move(this[itemIndex], newIndex, correctNewIndexOnIndexShift);
 		}
