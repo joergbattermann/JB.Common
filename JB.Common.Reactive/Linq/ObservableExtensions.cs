@@ -59,6 +59,9 @@ namespace JB.Reactive.Linq
                         lock (bufferLocker)
                         {
                             var result = currentBuffer.ToList();
+                            if (!doBuffer) // adding value in case it wasn't added to buffer above due to the predicate
+                                result.Add(value);
+
                             currentBuffer.Clear();
                             observer.OnNext(result);
                         }
@@ -112,6 +115,9 @@ namespace JB.Reactive.Linq
                         lock (bufferLocker)
                         {
                             var result = currentBuffer.ToList();
+                            if (!doBuffer) // adding value in case it wasn't added to buffer above due to the predicate
+                                result.Add(value);
+
                             currentBuffer.Clear();
                             observer.OnNext(result);
                         }
@@ -162,6 +168,8 @@ namespace JB.Reactive.Linq
                             lock (bufferLocker)
                             {
                                 var result = currentBuffer.ToList();
+                                result.Add(value); // adding value in case it wasn't added to buffer above due to the predicate
+
                                 currentBuffer.Clear();
                                 observer.OnNext(result);
                             }
@@ -213,6 +221,8 @@ namespace JB.Reactive.Linq
                             lock (bufferLocker)
                             {
                                 var result = currentBuffer.ToList();
+                                result.Add(value); // adding value in case it wasn't added to buffer above due to the predicate
+
                                 currentBuffer.Clear();
                                 observer.OnNext(result);
                             }
