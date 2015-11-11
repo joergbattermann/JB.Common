@@ -67,8 +67,37 @@ namespace JB.Reactive.Linq
                         }
                     }
                 },
-                ex => observer.OnError(ex),
-                () => observer.OnCompleted());
+                ex =>
+                {
+                    // release current buffer
+                    if (currentBuffer.Count > 0)
+                    {
+                        lock (bufferLocker)
+                        {
+                            var result = currentBuffer.ToList();
+                            currentBuffer.Clear();
+                            observer.OnNext(result);
+                        }
+                    }
+                    // then signal actual OnError event
+                    observer.OnError(ex);
+
+                },
+                () =>
+                {
+                    // release current buffer
+                    if (currentBuffer.Count > 0)
+                    {
+                        lock (bufferLocker)
+                        {
+                            var result = currentBuffer.ToList();
+                            currentBuffer.Clear();
+                            observer.OnNext(result);
+                        }
+                    }
+                    // then signal actual OnCompleted event
+                    observer.OnCompleted();
+                });
 
                 return () => subscription.Dispose();
             });
@@ -123,8 +152,37 @@ namespace JB.Reactive.Linq
                         }
                     }
                 },
-                ex => observer.OnError(ex),
-                () => observer.OnCompleted());
+                ex =>
+                {
+                    // release current buffer
+                    if (currentBuffer.Count > 0)
+                    {
+                        lock (bufferLocker)
+                        {
+                            var result = currentBuffer.ToList();
+                            currentBuffer.Clear();
+                            observer.OnNext(result);
+                        }
+                    }
+                    // then signal actual OnError event
+                    observer.OnError(ex);
+
+                },
+                () =>
+                {
+                    // release current buffer
+                    if (currentBuffer.Count > 0)
+                    {
+                        lock (bufferLocker)
+                        {
+                            var result = currentBuffer.ToList();
+                            currentBuffer.Clear();
+                            observer.OnNext(result);
+                        }
+                    }
+                    // then signal actual OnCompleted event
+                    observer.OnCompleted();
+                });
 
                 return () => subscription.Dispose();
             });
@@ -176,8 +234,37 @@ namespace JB.Reactive.Linq
                         }
                     }
                 },
-                ex => observer.OnError(ex),
-                () => observer.OnCompleted());
+                ex =>
+                {
+                    // release current buffer
+                    if (currentBuffer.Count > 0)
+                    {
+                        lock (bufferLocker)
+                        {
+                            var result = currentBuffer.ToList();
+                            currentBuffer.Clear();
+                            observer.OnNext(result);
+                        }
+                    }
+                    // then signal actual OnError event
+                    observer.OnError(ex);
+
+                },
+                () =>
+                {
+                    // release current buffer
+                    if (currentBuffer.Count > 0)
+                    {
+                        lock (bufferLocker)
+                        {
+                            var result = currentBuffer.ToList();
+                            currentBuffer.Clear();
+                            observer.OnNext(result);
+                        }
+                    }
+                    // then signal actual OnCompleted event
+                    observer.OnCompleted();
+                });
 
                 return () => subscription.Dispose();
             });
@@ -229,8 +316,37 @@ namespace JB.Reactive.Linq
                         }
                     }
                 },
-                ex => observer.OnError(ex),
-                () => observer.OnCompleted());
+                ex =>
+                {
+                    // release current buffer
+                    if (currentBuffer.Count > 0)
+                    {
+                        lock (bufferLocker)
+                        {
+                            var result = currentBuffer.ToList();
+                            currentBuffer.Clear();
+                            observer.OnNext(result);
+                        }
+                    }
+                    // then signal actual OnError event
+                    observer.OnError(ex);
+
+                },
+                () =>
+                {
+                    // release current buffer
+                    if (currentBuffer.Count > 0)
+                    {
+                        lock (bufferLocker)
+                        {
+                            var result = currentBuffer.ToList();
+                            currentBuffer.Clear();
+                            observer.OnNext(result);
+                        }
+                    }
+                    // then signal actual OnCompleted event
+                    observer.OnCompleted();
+                });
 
                 return () => subscription.Dispose();
             });
