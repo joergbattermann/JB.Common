@@ -11,7 +11,6 @@
 
 using System;
 using System.Reactive;
-using System.Reactive.Concurrency;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
@@ -186,6 +185,10 @@ namespace JB.Reactive.Threading
 
 				// once the asyncSubject's ticket has been disposed, this gate gets unlocked, too
 				await gate;
+
+                // cleanup
+                gate.Dispose();
+			    gate = null;
 			});
 
 			return asyncSubject;

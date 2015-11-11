@@ -213,18 +213,7 @@ namespace JB.Collections
             CheckForAndThrowIfDisposed();
             return ((IList)InnerList).Contains(value);
         }
-
-        /// <summary>
-        /// Removes all items from the <see cref="T:System.Collections.IList"/>.
-        /// </summary>
-        /// <exception cref="T:System.NotSupportedException">The <see cref="T:System.Collections.IList"/> is read-only. </exception>
-        void IList.Clear()
-        {
-            CheckForAndThrowIfDisposed();
-
-            InnerList.Clear();
-        }
-
+        
         /// <summary>
         /// Determines the index of a specific item in the <see cref="T:System.Collections.IList"/>.
         /// </summary>
@@ -296,22 +285,7 @@ namespace JB.Collections
                 InnerList[index] = (T) value;
             }
         }
-
-        /// <summary>
-        /// Gets a value indicating whether the <see cref="T:System.Collections.IList"/> is read-only.
-        /// </summary>
-        /// <returns>
-        /// true if the <see cref="T:System.Collections.IList"/> is read-only; otherwise, false.
-        /// </returns>
-        bool IList.IsReadOnly
-        {
-            get
-            {
-                CheckForAndThrowIfDisposed();
-                return IsReadOnly;
-            }
-        }
-
+        
         /// <summary>
         /// Gets a value indicating whether the <see cref="T:System.Collections.IList"/> has a fixed size.
         /// </summary>
@@ -331,7 +305,7 @@ namespace JB.Collections
         /// Removes all items from the <see cref="T:System.Collections.Generic.ICollection`1"/>.
         /// </summary>
         /// <exception cref="T:System.NotSupportedException">The <see cref="T:System.Collections.Generic.ICollection`1"/> is read-only. </exception>
-        void ICollection<T>.Clear()
+        public void Clear()
         {
             CheckForAndThrowIfDisposed();
 
@@ -388,22 +362,6 @@ namespace JB.Collections
         }
 
         /// <summary>
-        /// Gets the number of elements contained in the <see cref="T:System.Collections.ICollection"/>.
-        /// </summary>
-        /// <returns>
-        /// The number of elements contained in the <see cref="T:System.Collections.ICollection"/>.
-        /// </returns>
-        int ICollection.Count
-        {
-            get
-            {
-                CheckForAndThrowIfDisposed();
-
-                return Count;
-            }
-        }
-
-        /// <summary>
         /// Gets an object that can be used to synchronize access to the <see cref="T:System.Collections.ICollection"/>.
         /// </summary>
         /// <returns>
@@ -425,52 +383,7 @@ namespace JB.Collections
                 return ((IList)InnerList).IsSynchronized;
             }
         }
-
-        /// <summary>
-        /// Gets the number of elements contained in the <see cref="T:System.Collections.Generic.ICollection`1"/>.
-        /// </summary>
-        /// <returns>
-        /// The number of elements contained in the <see cref="T:System.Collections.Generic.ICollection`1"/>.
-        /// </returns>
-        int ICollection<T>.Count
-        {
-            get
-            {
-                CheckForAndThrowIfDisposed();
-                return Count;
-            }
-        }
-
-        /// <summary>
-        /// Gets a value indicating whether the <see cref="T:System.Collections.Generic.ICollection`1"/> is read-only.
-        /// </summary>
-        /// <returns>
-        /// true if the <see cref="T:System.Collections.Generic.ICollection`1"/> is read-only; otherwise, false.
-        /// </returns>
-        bool ICollection<T>.IsReadOnly
-        {
-            get
-            {
-                CheckForAndThrowIfDisposed();
-                return IsReadOnly;
-            }
-        }
-
-        /// <summary>
-        /// Gets the number of elements in the collection.
-        /// </summary>
-        /// <returns>
-        /// The number of elements in the collection. 
-        /// </returns>
-        int IReadOnlyCollection<T>.Count
-        {
-            get
-            {
-                CheckForAndThrowIfDisposed();
-                return Count;
-            }
-        }
-
+     
         #endregion
 
         #region Implementation of IReactiveCollection<T>
@@ -521,9 +434,9 @@ namespace JB.Collections
         /// Basically if you move an item from a lower index position to a higher one, the index positions of all items with higher index positions than the <paramref name="item" /> ones
         /// will be shifted upwards (logically by -1).
         /// Depending on whether the caller intends to move the item strictly or logically to the <paramref name="newIndex"/> position, correction might be useful.</param>
-        public void Move(T item, int newIndex, bool correctNewIndexOnIndexShift = false)
+        public void Move(T item, int newIndex, bool correctNewIndexOnIndexShift = true)
         {
-            if (item == null) throw new ArgumentNullException(nameof(item));
+            if (object.Equals(item, default(T))) throw new ArgumentOutOfRangeException(nameof(item));
             if (newIndex < 0 || newIndex >= InnerList.Count) throw new ArgumentOutOfRangeException(nameof(newIndex));
 
             CheckForAndThrowIfDisposed();
@@ -541,7 +454,7 @@ namespace JB.Collections
         ///     Basically if you move an item from a lower index position to a higher one, the index positions of all items with higher index positions than <paramref name="itemIndex" />
         ///     will be shifted upwards (logically by -1).
         ///     Depending on whether the caller intends to move the item strictly or logically to the <paramref name="newIndex" /> position, correction might be useful.</param>
-        public void Move(int itemIndex, int newIndex, bool correctNewIndexOnIndexShift = false)
+        public void Move(int itemIndex, int newIndex, bool correctNewIndexOnIndexShift = true)
         {
             if (itemIndex < 0 || itemIndex >= InnerList.Count) throw new ArgumentOutOfRangeException(nameof(newIndex));
             if (newIndex < 0 || newIndex >= InnerList.Count) throw new ArgumentOutOfRangeException(nameof(newIndex));
@@ -1041,9 +954,11 @@ namespace JB.Collections
 
         #endregion
 
+#pragma warning disable S2930 // "IDisposables" Disposed in Dispose(bool disposeManagedResources)
         Subject<Exception> _thrownExceptions;
         Subject<IReactiveCollectionChange<T>> _changes;
         Subject<int> _countChanges;
+#pragma warning restore S2930 // "IDisposables" Disposed in Dispose(bool disposeManagedResources)
 
         IDisposable _countChangesPropertyChangeForwarder = null;
         IDisposable _collectionChangesAndResetsPropertyChangeForwarder = null;
@@ -1070,10 +985,14 @@ namespace JB.Collections
                 .Select(eventPattern => eventPattern.EventArgs.ToReactiveCollectionChange(this))
                 .Subscribe(NotifySubscribersAndRaiseListAndCollectionChangedEvents);
 
+
             // 'Count' and 'Item[]' PropertyChanged events are used by WPF typically via / for ObservableCollections, see
             // http://referencesource.microsoft.com/#System/compmod/system/collections/objectmodel/observablecollection.cs,421
+
+            #pragma warning disable S3236 // These two explicit RaisePropertyChanged parameters are used as intended
             _countChangesPropertyChangeForwarder = CountChanges.Subscribe(_ => RaisePropertyChanged("Count"));
             _collectionChangesAndResetsPropertyChangeForwarder = CollectionChanges.Subscribe(_ => RaisePropertyChanged("Item[]"));
+#pragma warning restore S3236 // These two explicit RaisePropertyChanged parameters are used as intended
         }
 
         /// <summary>

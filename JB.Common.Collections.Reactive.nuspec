@@ -16,8 +16,7 @@
       <dependency id="JB.Common" version="[$version$,]" />
       <dependency id="JB.Common.Reactive" version="[$version$,]" />
       <dependency id="JB.Common.Collections" version="[$version$,]" />
-      <dependency id="Splat" version="[1.6.2,]" /> <!-- Workaround for Rxui 6.5 / see https://github.com/reactiveui/ReactiveUI/issues/928 -->
-      <dependency id="reactiveui-core" version="[6.5.0,]" />
+      <dependency id="Rx-Main" version="[2.2.5,]" />
     </dependencies>
     <tags>Collections Collection List BindingList Enumerable ReactiveUI Reactive rxnet</tags>
   </metadata>

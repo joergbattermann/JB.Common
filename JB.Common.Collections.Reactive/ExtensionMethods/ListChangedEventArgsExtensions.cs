@@ -43,17 +43,9 @@ namespace JB.Collections.ExtensionMethods
                 case ListChangedType.ItemDeleted:
                     {
                         var itemDeletedListChangedEventArgs = (listChangedEventArgs as ItemDeletedListChangedEventArgs<T>);
-                        if (itemDeletedListChangedEventArgs != null)
-                        {
-                            reactiveCollectionChange = new ReactiveCollectionChange<T>(ReactiveCollectionChangeType.ItemRemoved, itemDeletedListChangedEventArgs.Item, listChangedEventArgs.NewIndex, listChangedEventArgs.OldIndex);
-                        }
-                        else
-                        {
-                            // this is a bit odd, but looking at the http://referencesource.microsoft.com/#System/compmod/system/componentmodel/BindingList.cs,235 sources
-                            // reveals that BindingList<T> notifies ListChanged subscribers about deletions using the .NewIndex value
-                            // (instead of the logically maybe more logical .OldIndex one)
-                            reactiveCollectionChange = new ReactiveCollectionChange<T>(ReactiveCollectionChangeType.ItemRemoved, default(T), -1, listChangedEventArgs.NewIndex);
-                        }
+                        reactiveCollectionChange = itemDeletedListChangedEventArgs != null
+                            ? new ReactiveCollectionChange<T>(ReactiveCollectionChangeType.ItemRemoved, itemDeletedListChangedEventArgs.Item, listChangedEventArgs.NewIndex, listChangedEventArgs.OldIndex)
+                            : new ReactiveCollectionChange<T>(ReactiveCollectionChangeType.ItemRemoved, default(T), -1, listChangedEventArgs.NewIndex);
 
                         break;
                     }

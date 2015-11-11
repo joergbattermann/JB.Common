@@ -95,7 +95,7 @@ namespace JB.Collections
         /// will be shifted upwards (logically by -1).
         /// Depending on whether the caller intends to move the item strictly or logically to the <paramref name="newIndex"/> position, correction might be useful.</param>
         /// <exception cref="ArgumentOutOfRangeException">item</exception>
-        public void Move(int itemIndex, int newIndex, bool correctNewIndexOnIndexShift = false)
+        public void Move(int itemIndex, int newIndex, bool correctNewIndexOnIndexShift = true)
 		{
 			Move(this[itemIndex], newIndex, correctNewIndexOnIndexShift);
 		}
@@ -111,7 +111,7 @@ namespace JB.Collections
 		/// will be shifted upwards (logically by -1).
 		/// Depending on whether the caller intends to move the item strictly or logically to the <paramref name="newIndex"/> position, correction might be useful.</param>
 		/// <exception cref="ArgumentOutOfRangeException">item</exception>
-		public void Move(T item, int newIndex, bool correctNewIndexOnIndexShift = false)
+		public void Move(T item, int newIndex, bool correctNewIndexOnIndexShift = true)
 		{
 			// temporarily disabling event notifications to prevent a second, duplicate ListChanged event by the underlying bindinglist itself
 			var originalRaiseListChangedEventsValue = RaiseListChangedEvents;
