@@ -9,6 +9,13 @@ The first package and assembly contains core types, helpers and Extension Method
 
 `PM> Install-Package JB.Common`
 
+## JB.Common.Reactive [![NuGet Version](http://img.shields.io/nuget/v/JB.Common.Reactive.svg?style=flat)](https://www.nuget.org/packages/JB.Common.Reactive/) 
+
+The package contains helpers and Extension Methods specific to [Reactive Extensions](https://github.com/Reactive-Extensions/Rx.NET) (for .Net). Start by installing the [JB.Common.Reactive](https://www.nuget.org/packages/JB.Common.Reactive/) NuGet package:
+
+`PM> Install-Package JB.Common.Reactive`
+
+
 ## JB.Common.Collections [![NuGet Version](http://img.shields.io/nuget/v/JB.Common.Collections.svg?style=flat)](https://www.nuget.org/packages/JB.Common.Collections/) 
 
 The second package and assembly contains custom collection and list types. Start by installing the [JB.Common.Collections](https://www.nuget.org/packages/JB.Common.Collections/) NuGet package:
