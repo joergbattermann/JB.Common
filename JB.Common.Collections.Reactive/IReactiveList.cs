@@ -9,7 +9,7 @@
 using System.Collections;
 using System.Collections.Generic;
 
-namespace JB.Collections
+namespace JB.Collections.Reactive
 {
 	public interface IReactiveList<T> : IReactiveCollection<T>, IList<T>, ICollection<T>, IEnumerable<T>,
 		ICollection, IEnumerable, IList

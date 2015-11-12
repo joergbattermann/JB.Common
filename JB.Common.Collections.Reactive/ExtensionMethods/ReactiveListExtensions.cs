@@ -13,7 +13,7 @@ using System.Reactive.Concurrency;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 
-namespace JB.Collections.ExtensionMethods
+namespace JB.Collections.Reactive.ExtensionMethods
 {
     /// <summary>
     ///     Provides Extension Method(s) for <see cref="ReactiveList{T}" /> instances.

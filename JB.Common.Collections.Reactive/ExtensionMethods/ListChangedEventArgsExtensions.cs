@@ -10,7 +10,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 
-namespace JB.Collections.ExtensionMethods
+namespace JB.Collections.Reactive.ExtensionMethods
 {
     public static class ListChangedEventArgsExtensions
     {

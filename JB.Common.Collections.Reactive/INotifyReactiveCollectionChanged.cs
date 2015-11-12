@@ -4,7 +4,7 @@ using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Reactive;
 
-namespace JB.Collections
+namespace JB.Collections.Reactive
 {
     public interface INotifyReactiveCollectionChanged<T> : INotifyCollectionChanged
 	{

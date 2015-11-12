@@ -10,7 +10,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Reactive.Concurrency;
 
-namespace JB.Collections
+namespace JB.Collections.Reactive
 {
 	/// <summary>
 	///     An <see cref="IBindingList" /> implementation that's raising its <see cref="BindingList{T}.AddingNew"/> and <see cref="BindingList{T}.ListChanged"/> events

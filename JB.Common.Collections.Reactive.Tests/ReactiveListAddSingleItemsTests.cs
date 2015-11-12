@@ -8,13 +8,11 @@
 
 using System;
 using System.Collections.Generic;
-using System.Reactive.Concurrency;
-using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.Reactive.Testing;
 using Xunit;
 
-namespace JB.Collections.Tests
+namespace JB.Collections.Reactive.Tests
 {
     public class ReactiveListAddSingleItemsTests
     {

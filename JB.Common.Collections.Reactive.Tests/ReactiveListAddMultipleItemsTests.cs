@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Reactive;
 using System.Reactive.Concurrency;
@@ -7,7 +6,7 @@ using FluentAssertions;
 using Microsoft.Reactive.Testing;
 using Xunit;
 
-namespace JB.Collections.Tests
+namespace JB.Collections.Reactive.Tests
 {
     public class ReactiveListAddMultipleItemsTests
     {

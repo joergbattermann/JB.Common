@@ -1,4 +1,4 @@
-namespace JB.Collections
+namespace JB.Collections.Reactive
 {
 	public enum ReactiveCollectionChangeType
 	{

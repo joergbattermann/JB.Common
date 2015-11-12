@@ -1,7 +1,7 @@
 ﻿using System.Collections.Specialized;
 using System.ComponentModel;
 
-namespace JB.Collections
+namespace JB.Collections.Reactive
 {
 	public interface IReactiveBindingList<T> : IReactiveList<T>, IBindingList, ICancelAddNew, IRaiseItemChangedEvents
     {

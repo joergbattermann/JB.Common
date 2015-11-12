@@ -14,7 +14,7 @@ using System.Reactive;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 
-namespace JB.Collections.ExtensionMethods
+namespace JB.Collections.Reactive.ExtensionMethods
 {
 	/// <summary>
 	///     Provides Extension Method(s) for <see cref="EnhancedBindingList{T}" /> instances.

@@ -1,7 +1,6 @@
 using System;
-using System.ComponentModel;
 
-namespace JB.Collections
+namespace JB.Collections.Reactive
 {
     public class ReactiveCollectionChangedEventArgs<T> : EventArgs
     {

@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace JB.Collections
+namespace JB.Collections.Reactive
 {
 	public interface IReactiveDictionary<TKey, TValue> : IDictionary<TKey, TValue>
 	{

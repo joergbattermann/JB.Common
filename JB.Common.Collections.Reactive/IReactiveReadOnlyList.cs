@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace JB.Collections
+namespace JB.Collections.Reactive
 {
 	public interface IReactiveReadOnlyList<T> : IReactiveReadOnlyCollection<T>, IReadOnlyList<T>
 	{

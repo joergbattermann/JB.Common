@@ -8,7 +8,7 @@
 
 using System;
 
-namespace JB.Collections
+namespace JB.Collections.Reactive
 {
     public class ReactiveCollectionChange<T> : IReactiveCollectionChange<T>
     {

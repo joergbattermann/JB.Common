@@ -19,10 +19,10 @@ using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Runtime.CompilerServices;
 using System.Threading;
-using JB.Collections.ExtensionMethods;
+using JB.Collections.Reactive.ExtensionMethods;
 using JB.ExtensionMethods;
 
-namespace JB.Collections
+namespace JB.Collections.Reactive
 {
     public class ReactiveList<T> : IReactiveBindingList<T>, IDisposable
     {

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.ComponentModel;
 
-namespace JB.Collections
+namespace JB.Collections.Reactive
 {
 	public interface IReactiveCollection<T> : INotifyReactiveCollectionChanged<T>, IReadOnlyCollection<T>, ICollection<T>, IEnumerable<T>, IEnumerable, INotifyCollectionChanged, INotifyPropertyChanged
 	{

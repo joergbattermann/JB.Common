@@ -10,7 +10,7 @@ using System;
 using System.Collections.Specialized;
 using System.ComponentModel;
 
-namespace JB.Collections.ExtensionMethods
+namespace JB.Collections.Reactive.ExtensionMethods
 {
     /// <summary>
     /// Extension methods for <see cref="IReactiveCollectionChange{T}"/> instances.

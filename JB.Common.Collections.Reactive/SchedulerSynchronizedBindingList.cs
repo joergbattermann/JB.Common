@@ -2,7 +2,7 @@
 using System.ComponentModel;
 using System.Reactive.Concurrency;
 
-namespace JB.Collections
+namespace JB.Collections.Reactive
 {
 	/// <summary>
 	///     An <see cref="IBindingList" /> implementation that's synchronized via an underlying lock-based

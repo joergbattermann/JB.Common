@@ -9,7 +9,7 @@
 using System;
 using System.ComponentModel;
 
-namespace JB.Collections.ExtensionMethods
+namespace JB.Collections.Reactive.ExtensionMethods
 {
     /// <summary>
     /// Extension methods for <see cref="ListChangedType"/>.

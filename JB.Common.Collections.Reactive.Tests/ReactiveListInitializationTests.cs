@@ -3,7 +3,7 @@ using FluentAssertions;
 using Microsoft.Reactive.Testing;
 using Xunit;
 
-namespace JB.Collections.Tests
+namespace JB.Collections.Reactive.Tests
 {
     public class ReactiveListInitializationTests
     {
