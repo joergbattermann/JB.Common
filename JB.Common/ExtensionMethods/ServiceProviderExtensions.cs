@@ -36,13 +36,12 @@ namespace JB.ExtensionMethods
         /// <typeparam name="TKnownServiceImplementation">The known type of the service implementation.</typeparam>
         /// <returns></returns>
         [Pure]
-        public static TService GetService<TService, TKnownServiceImplementation>(this IServiceProvider serviceProvider)
-            where TService : class
-            where TKnownServiceImplementation : TService
+        public static TKnownServiceImplementation GetService<TService, TKnownServiceImplementation>(this IServiceProvider serviceProvider)
+            where TKnownServiceImplementation : class, TService
 		{
 			if (serviceProvider == null) throw new ArgumentNullException(nameof(serviceProvider));
 
-            return serviceProvider.GetService(typeof(TKnownServiceImplementation)) as TService;
+            return serviceProvider.GetService(typeof(TService)) as TKnownServiceImplementation;
         }
 	}
 }
