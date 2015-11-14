@@ -39,7 +39,7 @@ namespace JB.ExtensionMethods
         {
             if (value == null) throw new ArgumentNullException(nameof(value));
 
-            return value.GetType().ImplementsInterface<TInterface>();
+            return value is TInterface;
         }
     }
 }

@@ -75,9 +75,11 @@
     <Compile Include="IReactiveList.cs" />
     <Compile Include="IReactivePropertyChangedEventArgs.cs" />
     <Compile Include="IReactiveReadOnlyCollection.cs" />
+    <Compile Include="IReactiveReadOnlyDictionary.cs" />
     <Compile Include="IReactiveReadOnlyList.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ExtensionMethods\ReactiveListExtensions.cs" />
+    <Compile Include="ReactiveBindingList.cs" />
     <Compile Include="ReactiveCollectionChange.cs" />
     <Compile Include="ReactiveCollectionChangedEventArgs.cs" />
     <Compile Include="ReactiveCollectionChangeType.cs" />

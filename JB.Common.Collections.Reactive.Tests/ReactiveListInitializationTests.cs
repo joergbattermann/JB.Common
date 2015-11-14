@@ -24,20 +24,6 @@ namespace JB.Collections.Reactive.Tests
         }
         
         [Fact]
-        public void ShouldUseProvidedScheduler()
-        {
-            // given
-            var testScheduler = new TestScheduler();
-
-            // when
-            using (var reactiveList = new ReactiveList<int>(scheduler: testScheduler))
-            {
-                // then
-                reactiveList.Scheduler.Should().BeSameAs(testScheduler);
-            }
-        }
-
-        [Fact]
         public void ShouldUseProvidedSyncRoot()
         {
             // given

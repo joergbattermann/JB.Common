@@ -18,7 +18,7 @@ namespace JB.Collections
         ///     An <see cref="T:System.Collections.Generic.IList`1" /> of items to be contained in the
         ///     <see cref="T:System.ComponentModel.BindingList`1" />.
         /// </param>
-        /// <param name="syncRoot">The object used to synchronize access the thread-safe collection.</param>
+        /// <param name="syncRoot">The object used to synchronize access to the thread-safe collection.</param>
         public SynchronizedBindingList(IList<T> list = null, object syncRoot = null)
             : base(syncRoot == null ? new SynchronizedCollection<T>(list ?? new List<T>()) : new SynchronizedCollection<T>(syncRoot, list ?? new List<T>()))
         {
