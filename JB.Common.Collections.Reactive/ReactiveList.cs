@@ -102,7 +102,6 @@ namespace JB.Collections.Reactive
         /// <summary>
         /// The actual <see cref="CollectionChanged"/> event.
         /// </summary>
-        [NonSerialized()]
         private NotifyCollectionChangedEventHandler _collectionChanged;
 
 
@@ -131,7 +130,8 @@ namespace JB.Collections.Reactive
         {
             if (notifyCollectionChangedEventArgs == null) throw new ArgumentNullException(nameof(notifyCollectionChangedEventArgs));
 
-            CheckForAndThrowIfDisposed();
+            if (IsDisposed || IsDisposing)
+                return;
 
             Scheduler.Schedule(() => _collectionChanged?.Invoke(this, notifyCollectionChangedEventArgs));
         }
@@ -942,28 +942,27 @@ namespace JB.Collections.Reactive
         /// <summary>
         /// Raises the <see cref="E:ReactiveCollectionChanged" /> event.
         /// </summary>
-        /// <param name="reactiveCollectionChangedEventArgs">The <see cref="JB.Collections.ReactiveCollectionChangedEventArgs" /> instance containing the event data.</param>
+        /// <param name="reactiveCollectionChangedEventArgs">The <see cref="ReactiveCollectionChangedEventArgs{T}" /> instance containing the event data.</param>
         protected virtual void RaiseReactiveCollectionChanged(ReactiveCollectionChangedEventArgs<T> reactiveCollectionChangedEventArgs)
         {
             if (reactiveCollectionChangedEventArgs == null) throw new ArgumentNullException(nameof(reactiveCollectionChangedEventArgs));
 
-            CheckForAndThrowIfDisposed();
+            if (IsDisposed || IsDisposing)
+                return;
 
             Scheduler.Schedule(() => _reactiveCollectionChanged?.Invoke(this, reactiveCollectionChangedEventArgs));
         }
 
         #endregion
 
-#pragma warning disable S2930 // "IDisposables" Disposed in Dispose(bool disposeManagedResources)
-        Subject<Exception> _thrownExceptions;
-        Subject<IReactiveCollectionChange<T>> _changes;
-        Subject<int> _countChanges;
-#pragma warning restore S2930 // "IDisposables" Disposed in Dispose(bool disposeManagedResources)
+        private Subject<Exception> _thrownExceptions = null;
+        private Subject<IReactiveCollectionChange<T>> _changes = null;
+        private Subject<int> _countChanges = null;
 
-        IDisposable _countChangesPropertyChangeForwarder = null;
-        IDisposable _collectionChangesAndResetsPropertyChangeForwarder = null;
+        private IDisposable _countChangesPropertyChangeForwarder = null;
+        private IDisposable _collectionChangesAndResetsPropertyChangeForwarder = null;
 
-        IDisposable _innerListChangedForwader = null;
+        private IDisposable _innerListChangedForwader = null;
 
         /// <summary>
 		/// Setups the observables.
@@ -1113,7 +1112,8 @@ namespace JB.Collections.Reactive
         /// <param name="propertyName">Name of the property.</param>
         protected virtual void RaisePropertyChanged([CallerMemberName] string propertyName = null)
         {
-            CheckForAndThrowIfDisposed();
+            if (IsDisposed || IsDisposing)
+                return;
 
             Scheduler.Schedule(() => _propertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName)));
         }
@@ -1200,14 +1200,42 @@ namespace JB.Collections.Reactive
 
                 if (disposeManagedResources)
                 {
-                    _collectionChangesAndResetsPropertyChangeForwarder.CheckAndDispose();
-                    _countChangesPropertyChangeForwarder.CheckAndDispose();
+                    if (_collectionChangesAndResetsPropertyChangeForwarder != null)
+                    {
+                        _collectionChangesAndResetsPropertyChangeForwarder.Dispose();
+                        _collectionChangesAndResetsPropertyChangeForwarder = null;
+                    }
 
-                    _countChanges.CheckAndDispose();
-                    _changes.CheckAndDispose();
-                    
-                    _innerListChangedForwader.CheckAndDispose();
-                    _thrownExceptions.CheckAndDispose();
+                    if (_countChangesPropertyChangeForwarder != null)
+                    {
+                        _countChangesPropertyChangeForwarder.Dispose();
+                        _countChangesPropertyChangeForwarder = null;
+                    }
+
+                    if (_countChanges != null)
+                    {
+                        _countChanges.Dispose();
+                        _countChanges = null;
+                    }
+
+                    if (_changes != null)
+                    {
+                        _changes.Dispose();
+                        _changes = null;
+                    }
+
+
+                    if (_innerListChangedForwader != null)
+                    {
+                        _innerListChangedForwader.Dispose();
+                        _innerListChangedForwader = null;
+                    }
+
+                    if (_thrownExceptions != null)
+                    {
+                        _thrownExceptions.Dispose();
+                        _thrownExceptions = null;
+                    }
                 }
             }
             finally
@@ -1232,7 +1260,7 @@ namespace JB.Collections.Reactive
                 throw new ObjectDisposedException("This instance has been disposed.");
             }
         }
-
+        
         #endregion
 
         #region Implementation of IBindingList
@@ -1472,7 +1500,10 @@ namespace JB.Collections.Reactive
         /// <param name="listChangedEventArgs">The <see cref="System.ComponentModel.ListChangedEventArgs" /> instance containing the event data.</param>
         protected virtual void RaiseListChanged(ListChangedEventArgs listChangedEventArgs)
         {
-            CheckForAndThrowIfDisposed();
+            if (listChangedEventArgs == null) throw new ArgumentNullException(nameof(listChangedEventArgs));
+
+            if (IsDisposed || IsDisposing)
+                return;
 
             Scheduler.Schedule(() => _listChanged?.Invoke(this, listChangedEventArgs));
         }

@@ -25,7 +25,7 @@ namespace JB.ExtensionMethods
         [Pure]
         public static bool IsObjectOfType<TObject>(this object value)
         {
-            return ((value is TObject) || ((value == null) && (default(TObject) == null)));
+            return value is TObject;
         }
 
         /// <summary>

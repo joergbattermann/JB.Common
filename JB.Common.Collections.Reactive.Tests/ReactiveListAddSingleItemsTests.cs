@@ -26,25 +26,28 @@ namespace JB.Collections.Reactive.Tests
             var testScheduler = new TestScheduler();
             int observableReportedCount = -1;
             int countChangesCalled = 0;
-            var reactiveList = new ReactiveList<int>();
-            reactiveList.CountChanges.Subscribe(i =>
-            {
-                observableReportedCount = i;
-                countChangesCalled++;
-            });
 
-            // when
-            for (int i = lowerLimit; i <= upperLimit; i++)
+            using (var reactiveList = new ReactiveList<int>())
             {
-                testScheduler.Start();
-                reactiveList.Add(i);
-                testScheduler.Stop();
+                // when
+                reactiveList.CountChanges.Subscribe(i =>
+                {
+                    observableReportedCount = i;
+                    countChangesCalled++;
+                });
+
+                for (int i = lowerLimit; i <= upperLimit; i++)
+                {
+                    testScheduler.Start();
+                    reactiveList.Add(i);
+                    testScheduler.Stop();
+                }
+
+                // then check whether all items have been accounted for
+                observableReportedCount.Should().Be((upperLimit == lowerLimit) ? upperLimit : (upperLimit - lowerLimit + 1)); // +1 because the upper for loop goes up to & inclusive the upperLimit
+                observableReportedCount.Should().Be(reactiveList.Count);
+                countChangesCalled.Should().Be(reactiveList.Count);
             }
-
-            // then check whether all items have been accounted for
-            observableReportedCount.Should().Be((upperLimit == lowerLimit) ? upperLimit : (upperLimit - lowerLimit + 1)); // +1 because the upper for loop goes up to & inclusive the upperLimit
-            observableReportedCount.Should().Be(reactiveList.Count);
-            countChangesCalled.Should().Be(reactiveList.Count);
         }
         
         [Theory]
@@ -59,29 +62,30 @@ namespace JB.Collections.Reactive.Tests
             int observableReportedCount = initialList.Count;
             int countChangesCalled = 0;
 
-            var reactiveList = new ReactiveList<int>(initialList, scheduler: testScheduler);
-            reactiveList.ThresholdOfItemChangesToNotifyAsReset = int.MaxValue;
-
-            reactiveList.CountChanges.Subscribe(i =>
+            using (var reactiveList = new ReactiveList<int>(initialList, scheduler: testScheduler))
             {
-                observableReportedCount = i;
-                countChangesCalled++;
-            });
+                // when
+                reactiveList.ThresholdOfItemChangesToNotifyAsReset = int.MaxValue;
+                reactiveList.CountChanges.Subscribe(i =>
+                {
+                    observableReportedCount = i;
+                    countChangesCalled++;
+                });
 
-            // when
-            for (int i = lowerLimit; i <= upperLimit; i++)
-            {
-                testScheduler.Start();
-                reactiveList.Add(i);
-                testScheduler.Stop();
+                for (int i = lowerLimit; i <= upperLimit; i++)
+                {
+                    testScheduler.Start();
+                    reactiveList.Add(i);
+                    testScheduler.Stop();
+                }
+
+                // then check whether all items have been accounted for
+                var expectedCountChangesCalls = ((upperLimit == lowerLimit) ? upperLimit : (upperLimit - lowerLimit + 1));
+                var expectedCount = expectedCountChangesCalls + initialList.Count;
+                observableReportedCount.Should().Be(expectedCount); // +1 because the upper for loop goes up to & inclusive the upperLimit
+                observableReportedCount.Should().Be(reactiveList.Count);
+                countChangesCalled.Should().Be(expectedCountChangesCalls);
             }
-            
-            // then check whether all items have been accounted for
-            var expectedCountChangesCalls = ((upperLimit == lowerLimit) ? upperLimit : (upperLimit - lowerLimit + 1));
-            var expectedCount = expectedCountChangesCalls + initialList.Count;
-            observableReportedCount.Should().Be(expectedCount); // +1 because the upper for loop goes up to & inclusive the upperLimit
-            observableReportedCount.Should().Be(reactiveList.Count);
-            countChangesCalled.Should().Be(expectedCountChangesCalls);
         }
     }
 }

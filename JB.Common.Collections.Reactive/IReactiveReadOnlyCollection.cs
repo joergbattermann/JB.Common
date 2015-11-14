@@ -1,6 +1,11 @@
+using System.Collections;
+using System.Collections.Generic;
+using System.Collections.Specialized;
+using System.ComponentModel;
+
 namespace JB.Collections.Reactive
 {
-	public interface IReactiveReadOnlyCollection<T> : IReactiveCollection<T>
-	{
+	public interface IReactiveReadOnlyCollection<T> : INotifyReactiveCollectionChanged<T>, IReadOnlyCollection<T>, IEnumerable<T>, IEnumerable, INotifyCollectionChanged, INotifyPropertyChanged
+    {
 	}
 }
