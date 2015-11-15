@@ -24,7 +24,7 @@ namespace JB.Collections.Reactive.Tests
             using (var reactiveList = new ReactiveList<int>())
             {
                 // when
-                reactiveList.ThresholdOfItemChangesToNotifyAsReset = rangeToAdd.Count + 1;
+                reactiveList.ThresholdAmountWhenItemChangesAreNotifiedAsReset = rangeToAdd.Count + 1;
                 reactiveList.CountChanges.Subscribe(testObserver);
 
                 testScheduler.Schedule(TimeSpan.FromTicks(100), () => { reactiveList.AddRange(rangeToAdd); });
@@ -50,7 +50,7 @@ namespace JB.Collections.Reactive.Tests
             using (var reactiveList = new ReactiveList<int>())
             {
                 // when
-                reactiveList.ThresholdOfItemChangesToNotifyAsReset = rangeToAdd.Count + 1;
+                reactiveList.ThresholdAmountWhenItemChangesAreNotifiedAsReset = rangeToAdd.Count + 1;
                 reactiveList.CollectionChanges.Subscribe(testObserver);
 
                 testScheduler.Schedule(TimeSpan.FromTicks(100), () => { reactiveList.AddRange(rangeToAdd); });
@@ -78,7 +78,7 @@ namespace JB.Collections.Reactive.Tests
             using (var reactiveList = new ReactiveList<int>())
             {
                 // when
-                reactiveList.ThresholdOfItemChangesToNotifyAsReset = 0;
+                reactiveList.ThresholdAmountWhenItemChangesAreNotifiedAsReset = 0;
 
                 reactiveList.CollectionChanges.Subscribe(testObserverCollectionChanges);
                 reactiveList.Resets.Subscribe(testObserverResets);
@@ -87,7 +87,7 @@ namespace JB.Collections.Reactive.Tests
                 testScheduler.Start();
 
                 // then
-                var shouldBeReset = rangeToAdd.Count >= reactiveList.ThresholdOfItemChangesToNotifyAsReset;
+                var shouldBeReset = rangeToAdd.Count >= reactiveList.ThresholdAmountWhenItemChangesAreNotifiedAsReset;
                 testObserverCollectionChanges.Messages.Count.Should().Be(shouldBeReset ? 1 : rangeToAdd.Count);
                 testObserverCollectionChanges.Messages.Should()
                     .Match(recordedMessages =>
@@ -111,7 +111,7 @@ namespace JB.Collections.Reactive.Tests
             using (var reactiveList = new ReactiveList<int>())
             {
                 // when
-                reactiveList.ThresholdOfItemChangesToNotifyAsReset = 0;
+                reactiveList.ThresholdAmountWhenItemChangesAreNotifiedAsReset = 0;
                 reactiveList.CountChanges.Subscribe(testObserver);
 
                 testScheduler.Schedule(TimeSpan.FromTicks(100), () => { reactiveList.AddRange(rangeToAdd); });

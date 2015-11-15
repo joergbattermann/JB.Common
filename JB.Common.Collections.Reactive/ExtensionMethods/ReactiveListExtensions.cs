@@ -76,8 +76,8 @@ namespace JB.Collections.Reactive.ExtensionMethods
             }
 
             IObservable<IReactiveCollectionChange<T>> sourceObservable = scheduler != null
-                ? sourceReactiveList.ItemChanges.ObserveOn(scheduler)
-                : sourceReactiveList.ItemChanges;
+                ? sourceReactiveList.CollectionItemChanges.ObserveOn(scheduler)
+                : sourceReactiveList.CollectionItemChanges;
 
             return sourceObservable.Subscribe(reactiveCollectionChange =>
             {

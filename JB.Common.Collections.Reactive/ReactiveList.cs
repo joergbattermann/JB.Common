@@ -65,12 +65,12 @@ namespace JB.Collections.Reactive
 
             InnerList = new SynchronizedBindingList<T>(list, SyncRoot);
 
-            ThresholdOfItemChangesToNotifyAsReset = 100;
+            ThresholdAmountWhenItemChangesAreNotifiedAsReset = 100;
 
             IsTrackingCollectionChanges = true;
 
-            IsTrackingItemChanges = true;
-            IsTrackingCountChanges = true;
+            IsNotifyingAboutItemChanges = true;
+            IsNotifyingAboutCountChanges = true;
             IsTrackingResets = true;
 
             SetupObservablesAndSubjects();
@@ -164,8 +164,8 @@ namespace JB.Collections.Reactive
             CheckForAndThrowIfDisposed();
 
             // go ahead and check whether a Reset or item add, -change, -move or -remove shall be signaled
-            // .. based on the ThresholdOfItemChangesToNotifyAsReset value
-            var actualReactiveCollectionChange = (reactiveCollectionChange.ChangeType == ReactiveCollectionChangeType.Reset || IsItemsChangedAmountGreaterThanResetThreshold(1, ThresholdOfItemChangesToNotifyAsReset))
+            // .. based on the ThresholdAmountWhenItemChangesAreNotifiedAsReset value
+            var actualReactiveCollectionChange = (reactiveCollectionChange.ChangeType == ReactiveCollectionChangeType.Reset || IsItemsChangedAmountGreaterThanResetThreshold(1, ThresholdAmountWhenItemChangesAreNotifiedAsReset))
                 ? ReactiveCollectionChange<T>.Reset
                 : reactiveCollectionChange;
 
@@ -637,7 +637,7 @@ namespace JB.Collections.Reactive
 
             // only use the Suppress & Reset mechanism if possible
             var suppressItemChangesWhileAdding =
-                IsItemsChangedAmountGreaterThanResetThreshold(itemsAsList.Count, ThresholdOfItemChangesToNotifyAsReset)
+                IsItemsChangedAmountGreaterThanResetThreshold(itemsAsList.Count, ThresholdAmountWhenItemChangesAreNotifiedAsReset)
                 && IsTrackingCollectionChanges;
 
             // we use an IDisposable either way, but in case of not sending a reset, an empty Disposable will be used to simplify the logic here
@@ -723,7 +723,7 @@ namespace JB.Collections.Reactive
 
             // only use the Suppress & Reset mechanism if possible
             var suppressionItemChanges =
-                IsItemsChangedAmountGreaterThanResetThreshold(itemsAsList.Count, ThresholdOfItemChangesToNotifyAsReset)
+                IsItemsChangedAmountGreaterThanResetThreshold(itemsAsList.Count, ThresholdAmountWhenItemChangesAreNotifiedAsReset)
                 && IsTrackingCollectionChanges;
 
             // we use an IDisposable either way, but in case of not sending a reset, an empty Disposable will be used to simplify the logic here
@@ -878,11 +878,11 @@ namespace JB.Collections.Reactive
         {
             CheckForAndThrowIfDisposed();
 
-            IsTrackingItemChanges = false;
+            IsNotifyingAboutItemChanges = false;
 
             return Disposable.Create(() =>
             {
-                IsTrackingItemChanges = true;
+                IsNotifyingAboutItemChanges = true;
 
                 if (signalResetWhenFinished)
                 {
@@ -902,7 +902,7 @@ namespace JB.Collections.Reactive
         /// <value>
         ///     <c>true</c> if this instance has item change tracking enabled; otherwise, <c>false</c>.
         /// </value>
-        public bool IsTrackingItemChanges
+        public bool IsNotifyingAboutItemChanges
         {
             get { return Interlocked.Read(ref _isItemChangeTrackingEnabled) == 1; }
             protected set
@@ -911,7 +911,7 @@ namespace JB.Collections.Reactive
 
                 lock (_isItemChangeTrackingEnabledLocker)
                 {
-                    if (value == false && IsTrackingItemChanges == false)
+                    if (value == false && IsNotifyingAboutItemChanges == false)
                         throw new InvalidOperationException("An Item Change Notification Suppression is currently already ongoing, multiple concurrent suppressions are not supported.");
 
                     // First set marker here to prevent re-entry
@@ -1007,7 +1007,7 @@ namespace JB.Collections.Reactive
         /// <value>
         ///     <c>true</c> if this instance is tracking resets; otherwise, <c>false</c>.
         /// </value>
-        public bool IsTrackingCountChanges
+        public bool IsNotifyingAboutCountChanges
         {
             get { return Interlocked.Read(ref _isTrackingCountChanges) == 1; }
             protected set
@@ -1016,7 +1016,7 @@ namespace JB.Collections.Reactive
 
                 lock (_isTrackingCountChangesLocker)
                 {
-                    if (value == false && IsTrackingCountChanges == false)
+                    if (value == false && IsNotifyingAboutCountChanges == false)
                         throw new InvalidOperationException("A Count Change(s) Notification Suppression is currently already ongoing, multiple concurrent suppressions are not supported.");
 
                     // First set marker here to prevent re-entry
@@ -1031,22 +1031,22 @@ namespace JB.Collections.Reactive
         ///     (Temporarily) suppresses item count change notification until the returned <see cref="IDisposable" />
         ///     has been Disposed.
         /// </summary>
-        /// <param name="signalCountWhenFinished">
+        /// <param name="signalCurrentCountWhenFinished">
         ///     if set to <c>true</c> signals a the <see cref="IReadOnlyCollection{T}.Count" />
         ///     when finished.
         /// </param>
         /// <returns></returns>
-        public IDisposable SuppressCountChangeNotifications(bool signalCountWhenFinished = true)
+        public IDisposable SuppressCountChangedNotifications(bool signalCurrentCountWhenFinished = true)
         {
             CheckForAndThrowIfDisposed();
 
-            IsTrackingCountChanges = false;
+            IsNotifyingAboutCountChanges = false;
 
             return Disposable.Create(() =>
             {
-                IsTrackingCountChanges = true;
+                IsNotifyingAboutCountChanges = true;
 
-                if (signalCountWhenFinished)
+                if (signalCurrentCountWhenFinished)
                 {
                     CountChangesSubject.OnNext(Count);
                 }
@@ -1061,12 +1061,12 @@ namespace JB.Collections.Reactive
         /// <value>
         ///     The threshold amount of item changes to be signal a reset rather than item change(s).
         /// </value>
-        public int ThresholdOfItemChangesToNotifyAsReset
+        public int ThresholdAmountWhenItemChangesAreNotifiedAsReset
         {
-            get { return _thresholdOfItemChangesToNotifyAsReset; }
+            get { return _thresholdAmountWhenItemChangesAreNotifiedAsReset; }
             set
             {
-                _thresholdOfItemChangesToNotifyAsReset = value;
+                _thresholdAmountWhenItemChangesAreNotifiedAsReset = value;
 
                 RaisePropertyChanged();
             }
@@ -1087,7 +1087,7 @@ namespace JB.Collections.Reactive
                 return ChangesSubject
                     .TakeWhile(_ => !IsDisposing && !IsDisposed)
                     .SkipWhile(change => IsTrackingCollectionChanges == false)
-                    .SkipWhile(change => change.ChangeType == ReactiveCollectionChangeType.ItemChanged && IsTrackingItemChanges == false)
+                    .SkipWhile(change => change.ChangeType == ReactiveCollectionChangeType.ItemChanged && IsNotifyingAboutItemChanges == false)
                     .SkipWhile(change => change.ChangeType == ReactiveCollectionChangeType.Reset && IsTrackingResets == false);
             }
         }
@@ -1099,7 +1099,7 @@ namespace JB.Collections.Reactive
         /// <value>
         ///     The item changes.
         /// </value>
-        public IObservable<IReactiveCollectionChange<T>> ItemChanges
+        public IObservable<IReactiveCollectionChange<T>> CollectionItemChanges
         {
             get
             {
@@ -1107,7 +1107,7 @@ namespace JB.Collections.Reactive
 
                 return CollectionChanges
                     .Where(change => change.ChangeType == ReactiveCollectionChangeType.ItemChanged)
-                    .SkipWhile(_ => IsTrackingItemChanges == false);
+                    .SkipWhile(_ => IsNotifyingAboutItemChanges == false);
             }
         }
 
@@ -1125,7 +1125,7 @@ namespace JB.Collections.Reactive
 
                 return CountChangesSubject
                     .TakeWhile(_ => !IsDisposing && !IsDisposed)
-                    .SkipWhile(_ => IsTrackingCountChanges == false)
+                    .SkipWhile(_ => IsNotifyingAboutCountChanges == false)
                     .DistinctUntilChanged();
             }
         }
@@ -1253,7 +1253,7 @@ namespace JB.Collections.Reactive
         private long _isDisposed = 0;
 
         private readonly object _isDisposedLocker = new object();
-        private volatile int _thresholdOfItemChangesToNotifyAsReset;
+        private volatile int _thresholdAmountWhenItemChangesAreNotifiedAsReset;
 
         /// <summary>
         ///     Gets or sets a value indicating whether this instance has been disposed.

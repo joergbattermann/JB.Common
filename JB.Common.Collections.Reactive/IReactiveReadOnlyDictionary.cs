@@ -1,8 +1,9 @@
+using System.Collections;
 using System.Collections.Generic;
 
 namespace JB.Collections.Reactive
 {
-    public interface IReactiveReadOnlyDictionary<TKey, TValue> : IReactiveReadOnlyCollection<KeyValuePair<TKey, TValue>>, IReadOnlyDictionary<TKey, TValue>
+    public interface IReactiveReadOnlyDictionary<TKey, TValue> : IReactiveReadOnlyCollection<KeyValuePair<TKey, TValue>>, IReadOnlyDictionary<TKey, TValue>, IEnumerable, ICollection
     {
         
     }

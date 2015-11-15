@@ -72,10 +72,10 @@ namespace JB.Collections.Reactive
                 throw new ArgumentOutOfRangeException(nameof(oldIndex), $"Item adds must have an {nameof(oldIndex)} of -1.");
 
             if (changeType == ReactiveCollectionChangeType.ItemRemoved && index != -1)
-                throw new ArgumentOutOfRangeException(nameof(index), $"Item adds must have an {nameof(index)} of -1.");
+                throw new ArgumentOutOfRangeException(nameof(index), $"Item removals must have an {nameof(index)} of -1.");
 
             if (changeType == ReactiveCollectionChangeType.ItemRemoved && oldIndex == -1)
-                throw new ArgumentOutOfRangeException(nameof(oldIndex), $"Item adds must nothave an {nameof(oldIndex)} of -1.");
+                throw new ArgumentOutOfRangeException(nameof(oldIndex), $"Item removals must nothave an {nameof(oldIndex)} of -1.");
 
             if (changeType == ReactiveCollectionChangeType.ItemMoved && index == -1)
                 throw new ArgumentOutOfRangeException(nameof(index), $"Item moves must not have an {nameof(index)} of -1.");
@@ -102,7 +102,7 @@ namespace JB.Collections.Reactive
                 || changeType == ReactiveCollectionChangeType.ItemChanged
                 || changeType == ReactiveCollectionChangeType.ItemMoved
                 || changeType == ReactiveCollectionChangeType.ItemRemoved)
-                && (TypeIsValueType.Value == false && Equals(item, default(T))))
+                && Equals(item, default(T)))
                 throw new ArgumentOutOfRangeException(nameof(item), $"Item Adds, Changes, Moves and Removes must have an {nameof(item)}");
 
             ChangeType = changeType;

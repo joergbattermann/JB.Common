@@ -65,7 +65,7 @@ namespace JB.Collections.Reactive.Tests
             using (var reactiveList = new ReactiveList<int>(initialList, scheduler: testScheduler))
             {
                 // when
-                reactiveList.ThresholdOfItemChangesToNotifyAsReset = int.MaxValue;
+                reactiveList.ThresholdAmountWhenItemChangesAreNotifiedAsReset = int.MaxValue;
                 reactiveList.CountChanges.Subscribe(i =>
                 {
                     observableReportedCount = i;
