@@ -9,3 +9,5 @@ using System.Reflection;
 
 [assembly: AssemblyVersion("0.1.9.0")]
 [assembly: AssemblyFileVersion("0.1.9.0")]
+
+[assembly: System.Diagnostics.CodeAnalysis.SuppressMessage("SonarLint", "S2360:Optional parameters should not be used", Justification = "I really don't care.")]

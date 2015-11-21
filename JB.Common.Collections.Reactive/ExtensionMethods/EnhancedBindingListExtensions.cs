@@ -27,14 +27,18 @@ namespace JB.Collections.Reactive.ExtensionMethods
         /// <typeparam name="T"></typeparam>
         /// <param name="sourceBindingList">The source binding list.</param>
         /// <param name="targetReactiveLists">The target reactive lists.</param>
-        /// <param name="includeItemChanges">if set to <c>true</c> individual items' changes will be propagated to the <paramref name="targetReactiveLists" /> via replacing the item completely.</param>
+        /// <param name="includeItemChanges">if set to <c>true</c> individual items' changes will be propagated to the <paramref name="targetReactiveLists" />
+        /// via replacing the item completely.</param>
         /// <param name="includeMoves">if set to <c>true</c> move operations will be replicated to the <paramref name="targetReactiveLists"/>.</param>
         /// <exception cref="System.ArgumentNullException">sourceReactiveList
         /// or
         /// targetBindingList</exception>
         /// <exception cref="System.InvalidOperationException">Source and Target Lists must contain exactly the same element(s) at
         /// the exact same index position(s)</exception>
-        public static IDisposable ForwardListChangesTo<T>(this EnhancedBindingList<T> sourceBindingList, bool includeItemChanges = false, bool includeMoves = false, params ReactiveList<T>[] targetReactiveLists)
+        public static IDisposable ForwardListChangesTo<T>(this EnhancedBindingList<T> sourceBindingList,
+            bool includeItemChanges = false,
+            bool includeMoves = false,
+            params ReactiveList<T>[] targetReactiveLists)
 		{
 			if (sourceBindingList == null) throw new ArgumentNullException(nameof(sourceBindingList));
 			if (targetReactiveLists == null) throw new ArgumentNullException(nameof(targetReactiveLists));

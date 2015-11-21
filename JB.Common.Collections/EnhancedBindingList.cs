@@ -48,7 +48,8 @@ namespace JB.Collections
         /// </summary>
         /// <param name="items">The items.</param>
         /// <param name="signalResetWhenFinished">if set to <c>true</c> a <see cref="ListChangedType.Reset"/> will be signaled when finished.
-        /// This and <see cref="BindingList{T}.RaiseListChangedEvents"/> control if and what <see cref="IBindingList.ListChanged" /> event will be raised while / after adding the <paramref name="items"/>.</param>
+        /// This and <see cref="BindingList{T}.RaiseListChangedEvents"/> control if and what <see cref="IBindingList.ListChanged" />
+        /// event will be raised while / after adding the <paramref name="items"/>.</param>
         public void AddRange(IEnumerable<T> items, bool signalResetWhenFinished = false)
 		{
 			if (items == null)
@@ -69,7 +70,8 @@ namespace JB.Collections
         /// </summary>
         /// <param name="items">The items.</param>
         /// <param name="signalResetWhenFinished">if set to <c>true</c> a <see cref="ListChangedType.Reset"/> will be signaled when finished.
-        /// This and <see cref="BindingList{T}.RaiseListChangedEvents"/> control if and what <see cref="IBindingList.ListChanged" /> event will be raised while / after adding the <paramref name="items"/>.</param>
+        /// This and <see cref="BindingList{T}.RaiseListChangedEvents"/> control if and what <see cref="IBindingList.ListChanged" />
+        /// event will be raised while / after adding the <paramref name="items"/>.</param>
         public void RemoveRange(IEnumerable<T> items, bool signalResetWhenFinished = false)
         {
             if (items == null)
