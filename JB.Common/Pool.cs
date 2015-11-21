@@ -15,8 +15,15 @@ using System.Threading.Tasks;
 
 namespace JB
 {
-    public class Pool<TValue> : IPool<TValue>, IDisposable
+    /// <summary>
+    /// A managed pool for shared, re-usable <typeparam name="TValue">instances</typeparam>.
+    /// </summary>
+    /// <typeparam name="TValue">The type of the value.</typeparam>
+    public class Pool<TValue> : IDisposable
     {
+        private long _isDisposed = 0;
+        private long _isDisposing = 0;
+
         /// <summary>
         /// Gets the instance builder.
         /// </summary>
@@ -39,7 +46,34 @@ namespace JB
         /// <value>
         /// <c>true</c> if this instance has been disposed; otherwise, <c>false</c>.
         /// </value>
-        public bool IsDisposed { get; private set; }
+        public bool IsDisposed
+        {
+            get
+            {
+                return Interlocked.Read(ref _isDisposed) == 1;
+            }
+            private set
+            {
+                Interlocked.Exchange(ref _isDisposed, value ? 1 : 0);
+            }
+        }
+
+        /// <summary>
+        /// Gets the count of available, ready-to-be-acquired instances in the pool.
+        /// </summary>
+        /// <value>
+        /// The available instances count.
+        /// </value>
+        public int AvailableInstancesCount
+        {
+            get
+            {
+                if (IsDisposed || IsDisposing)
+                    throw new ObjectDisposedException(nameof(Pool<TValue>));
+
+                return PooledInstances?.Count ?? 0;
+            }
+        }
 
         /// <summary>
         /// Gets or sets a value indicating whether this instance is being disposing.
@@ -47,7 +81,17 @@ namespace JB
         /// <value>
         /// <c>true</c> if this instance is disposing; otherwise, <c>false</c>.
         /// </value>
-        private bool IsDisposing { get; set; }
+        private bool IsDisposing
+        {
+            get
+            {
+                return Interlocked.Read(ref _isDisposing) == 1;
+            }
+            set
+            {
+                Interlocked.Exchange(ref _isDisposing, value ? 1 : 0);
+            }
+        }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Pool{TValue}"/> class.
@@ -78,7 +122,7 @@ namespace JB
         {
             if (instanceBuilder == null)
                 throw new ArgumentNullException(nameof(instanceBuilder));
-            
+
             InstanceBuilder = instanceBuilder;
             PooledInstances = initialInstances != null
                 ? new ConcurrentQueue<TValue>(initialInstances)
@@ -95,6 +139,9 @@ namespace JB
         /// <returns></returns>
         public async Task IncreasePoolSizeAsync(int increaseBy = 1, CancellationToken cancellationToken = default(CancellationToken))
         {
+            if (IsDisposed || IsDisposing)
+                throw new ObjectDisposedException(nameof(Pool<TValue>));
+
             if (increaseBy < 0)
                 throw new ArgumentOutOfRangeException(nameof(increaseBy));
 
@@ -123,33 +170,32 @@ namespace JB
         /// or
         /// Cannot decrease the amount of (available) pooled items by more than what's available.
         /// </exception>
-        /// <exception cref="System.NotImplementedException"></exception>
-        public Task DecreaseAvailablePoolSizeAsync(int decreaseBy = 1, CancellationToken cancellationToken = default(CancellationToken))
+        public async Task DecreaseAvailablePoolSizeAsync(int decreaseBy = 1, CancellationToken cancellationToken = default(CancellationToken))
         {
+            if (IsDisposed || IsDisposing)
+                throw new ObjectDisposedException(nameof(Pool<TValue>));
+
             if (decreaseBy < 0)
                 throw new ArgumentOutOfRangeException(nameof(decreaseBy), "Cannot decrease the amount of (available) pooled items by less than 0");
 
-            if(decreaseBy > PooledInstances.Count)
+            if (decreaseBy > PooledInstances.Count)
                 throw new ArgumentOutOfRangeException(nameof(decreaseBy), "Cannot decrease the amount of (available) pooled items by more than what's available.");
 
-            return Task.Run(() =>
+            for (int i = 0; i < decreaseBy; i++)
             {
-                for (int i = 0; i < decreaseBy; i++)
+                cancellationToken.ThrowIfCancellationRequested();
+
+                if (PooledInstances.IsEmpty)
+                    return; // nothing more to do - the queue is empty
+
+                TValue dequeuedValue;
+                while (PooledInstances.IsEmpty == false && PooledInstances.TryDequeue(out dequeuedValue) == false)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
 
-                    if (PooledInstances.IsEmpty)
-                        return; // nothing more to do - the queue is empty
-
-                    TValue dequeuedValue;
-                    while (PooledInstances.IsEmpty == false && PooledInstances.TryDequeue(out dequeuedValue) == false)
-                    {
-                        cancellationToken.ThrowIfCancellationRequested();
-                    }
-
-                    dequeuedValue = default(TValue); // ToDo: this might not be needed
+                    await Task.Yield();
                 }
-            }, cancellationToken);
+            }
         }
 
         /// <summary>
@@ -158,10 +204,13 @@ namespace JB
         /// <param name="pooledValueAcquisitionMode">The pooled value acquisition mode.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        public async Task<IPooled<TValue>> AcquirePooledValueAsync(
+        public async Task<Pooled<TValue>> AcquirePooledValueAsync(
             PooledValueAcquisitionMode pooledValueAcquisitionMode = PooledValueAcquisitionMode.WaitForNextAvailableInstance,
             CancellationToken cancellationToken = default(CancellationToken))
         {
+            if (IsDisposed || IsDisposing)
+                throw new ObjectDisposedException(nameof(Pool<TValue>));
+
             TValue value = default(TValue);
 
             // check whether we actually currently have any instances left
@@ -175,7 +224,9 @@ namespace JB
                 {
                     while (PooledInstances.IsEmpty && PooledInstances.TryDequeue(out value) == false)
                     {
-                        await Task.Delay(TimeSpan.MinValue, cancellationToken).ConfigureAwait(false);
+                        cancellationToken.ThrowIfCancellationRequested();
+
+                        await Task.Yield();
                     }
                 }
             }
@@ -194,7 +245,9 @@ namespace JB
                         // keep trying
                         while (PooledInstances.TryDequeue(out value) == false)
                         {
-                            await Task.Delay(TimeSpan.MinValue, cancellationToken).ConfigureAwait(false);
+                            cancellationToken.ThrowIfCancellationRequested();
+
+                            await Task.Yield();
                         }
                     }
                 }
@@ -203,29 +256,22 @@ namespace JB
             cancellationToken.ThrowIfCancellationRequested();
             return new Pooled<TValue>(value, this);
         }
-        
-        /// <summary>
-        /// Gets the count of available, ready-to-be-acquired instances in the pool.
-        /// </summary>
-        /// <param name="cancellationToken">The cancellation token.</param>
-        /// <returns></returns>
-        public Task<int> GetAvailableCountAsync(CancellationToken cancellationToken = new CancellationToken())
-        {
-            return Task.FromResult(PooledInstances.Count);
-        }
-        
+
         /// <summary>
         /// Releases a <paramref name="pooledValue"/> back into the pool.
         /// </summary>
         /// <param name="pooledValue">The pooled value.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        public Task ReleasePooledValueAsync(IPooled<TValue> pooledValue, CancellationToken cancellationToken = new CancellationToken())
+        public void ReleasePooledValue(Pooled<TValue> pooledValue, CancellationToken cancellationToken = new CancellationToken())
         {
+            if (IsDisposed || IsDisposing)
+                throw new ObjectDisposedException(nameof(Pool<TValue>));
+
             if (pooledValue == null)
                 throw new ArgumentNullException(nameof(pooledValue));
 
-            if(pooledValue.OwningPool != this)
+            if (pooledValue.OwningPool != this)
                 throw new ArgumentOutOfRangeException(nameof(pooledValue), "Only pooled values managed by this pool can be released back into the pool.");
 
             if (pooledValue.HasBeenReleasedBackToPool)
@@ -235,7 +281,10 @@ namespace JB
                 throw new ArgumentOutOfRangeException(nameof(pooledValue), "Detached pooled values can no longer be released and returned back into the pool.");
 
             // else
-            throw new System.NotImplementedException();
+            cancellationToken.ThrowIfCancellationRequested();
+
+            PooledInstances.Enqueue(pooledValue.PooledValue);
+            pooledValue.HasBeenReleasedBackToPool = true;
         }
 
         /// <summary>
@@ -244,12 +293,30 @@ namespace JB
         /// <param name="pooledValue">The pooled value.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        public Task<TValue> DetachPooledValueAsync(IPooled<TValue> pooledValue, CancellationToken cancellationToken = new CancellationToken())
+        public TValue DetachPooledValue(Pooled<TValue> pooledValue, CancellationToken cancellationToken = new CancellationToken())
         {
+            if (IsDisposed || IsDisposing)
+                throw new ObjectDisposedException(nameof(Pool<TValue>));
+
             if (pooledValue == null)
                 throw new ArgumentNullException(nameof(pooledValue));
 
-            throw new System.NotImplementedException();
+            if (pooledValue.OwningPool != this)
+                throw new ArgumentOutOfRangeException(nameof(pooledValue), "Only pooled values managed by this pool can be detached from it.");
+
+            if (pooledValue.HasBeenReleasedBackToPool)
+                throw new ArgumentOutOfRangeException(nameof(pooledValue), "Pooled values that have already been released back and returned to the pool can no longer be detached from the pool.");
+
+            if (pooledValue.HasBeenDetachedFromPool)
+                throw new ArgumentOutOfRangeException(nameof(pooledValue), "Detached pooled values cannot be detached a second time from the pool.");
+
+            // else
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var result = pooledValue.PooledValue;
+            pooledValue.HasBeenDetachedFromPool = true;
+
+            return result;
         }
 
         #endregion
@@ -280,15 +347,7 @@ namespace JB
                     }
 
                     var disposableValue = value as IDisposable;
-                    if (disposableValue != null)
-                    {
-                        disposableValue.Dispose();
-                        disposableValue = null;
-                    }
-                    else
-                    {
-                        value = default(TValue);
-                    }
+                    disposableValue?.Dispose();
                 }
             }
             finally
@@ -302,7 +361,7 @@ namespace JB
                 GC.SuppressFinalize(this);
             }
         }
-        
+
         #endregion
     }
 }
