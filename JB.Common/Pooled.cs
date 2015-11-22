@@ -180,7 +180,7 @@ namespace JB
         /// <summary>
         /// Releases the <see cref="Value"/> back to the <see cref="Pooled{TValue}.OwningPool"/> pool.
         /// Further calls to <see cref="Value"/>, <see cref="ReleaseBackToPool"/> and
-        /// <see cref="DetachFromPool"/> are prevented, but locally kept & copied direct
+        /// <see cref="DetachFromPool"/> are prevented, but locally kept and copied direct
         /// references to the <see cref="Value"/> should no longer be used, also.
         /// </summary>
         /// <param name="cancellationToken">The cancellation token.</param>

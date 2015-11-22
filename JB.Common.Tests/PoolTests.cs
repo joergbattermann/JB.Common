@@ -300,7 +300,7 @@ namespace JB.Tests
         }
 
         [Fact]
-        public async Task PoolCurrentlyEmptyWaitsForNextAvailableReturnedValueOnAcquisitionWhenRequestedTest()
+        public void PoolCurrentlyEmptyWaitsForNextAvailableReturnedValueOnAcquisitionWhenRequestedTest()
         {
             // given
             var pool = new Pool<string>(() => Guid.NewGuid().ToString(), 1);
