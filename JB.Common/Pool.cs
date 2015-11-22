@@ -94,6 +94,29 @@ namespace JB
         }
 
         /// <summary>
+        /// Initializes a new instance of the <see cref="Pool{TValue}" /> class.
+        /// </summary>
+        /// <param name="instanceBuilder">The instance builder.</param>
+        public Pool(Func<TValue> instanceBuilder)
+                    : this(instanceBuilder, 0)
+        {
+            if (instanceBuilder == null)
+                throw new ArgumentNullException(nameof(instanceBuilder));
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Pool{TValue}" /> class.
+        /// </summary>
+        /// <param name="instanceBuilder">The instance builder.</param>
+        /// <param name="initialInstances">The initial instances.</param>
+        public Pool(Func<TValue> instanceBuilder, params TValue[] initialInstances)
+                            : this(instanceBuilder, initialInstances ?? Enumerable.Empty<TValue>())
+        {
+            if (instanceBuilder == null)
+                throw new ArgumentNullException(nameof(instanceBuilder));
+        }
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="Pool{TValue}"/> class.
         /// </summary>
         /// <param name="instanceBuilder">The instance builder.</param>
@@ -118,7 +141,7 @@ namespace JB
         /// <param name="instanceBuilder">The instance builder.</param>
         /// <param name="initialInstances">The initial instances.</param>
         /// <exception cref="System.ArgumentNullException"></exception>
-        public Pool(Func<TValue> instanceBuilder, IEnumerable<TValue> initialInstances = null)
+        public Pool(Func<TValue> instanceBuilder, IEnumerable<TValue> initialInstances)
         {
             if (instanceBuilder == null)
                 throw new ArgumentNullException(nameof(instanceBuilder));
@@ -205,7 +228,7 @@ namespace JB
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
         public async Task<Pooled<TValue>> AcquirePooledValueAsync(
-            PooledValueAcquisitionMode pooledValueAcquisitionMode = PooledValueAcquisitionMode.WaitForNextAvailableInstance,
+            PooledValueAcquisitionMode pooledValueAcquisitionMode = PooledValueAcquisitionMode.AvailableInstanceOrDefaultValue,
             CancellationToken cancellationToken = default(CancellationToken))
         {
             if (IsDisposed || IsDisposing)
@@ -216,13 +239,17 @@ namespace JB
             // check whether we actually currently have any instances left
             if (PooledInstances.IsEmpty)
             {
-                if (pooledValueAcquisitionMode == PooledValueAcquisitionMode.CreateNewInstanceIfNoneIsAvailable)
+                if (pooledValueAcquisitionMode == PooledValueAcquisitionMode.AvailableInstanceOrDefaultValue)
+                {
+                    return default(Pooled<TValue>);
+                }
+                else if (pooledValueAcquisitionMode == PooledValueAcquisitionMode.AvailableInstanceOrCreateNewOne)
                 {
                     value = InstanceBuilder.Invoke();
                 }
                 else
                 {
-                    while (PooledInstances.IsEmpty && PooledInstances.TryDequeue(out value) == false)
+                    while (PooledInstances.IsEmpty || PooledInstances.TryDequeue(out value) == false)
                     {
                         cancellationToken.ThrowIfCancellationRequested();
 
@@ -235,8 +262,11 @@ namespace JB
                 // try to retrieve the next available / queued value
                 if (PooledInstances.TryDequeue(out value) == false)
                 {
-                    // build a new one
-                    if (pooledValueAcquisitionMode == PooledValueAcquisitionMode.CreateNewInstanceIfNoneIsAvailable)
+                    if (pooledValueAcquisitionMode == PooledValueAcquisitionMode.AvailableInstanceOrDefaultValue)
+                    {
+                        return default(Pooled<TValue>);
+                    }
+                    else if (pooledValueAcquisitionMode == PooledValueAcquisitionMode.AvailableInstanceOrCreateNewOne) // build a new one
                     {
                         value = InstanceBuilder.Invoke();
                     }
@@ -283,7 +313,7 @@ namespace JB
             // else
             cancellationToken.ThrowIfCancellationRequested();
 
-            PooledInstances.Enqueue(pooledValue.PooledValue);
+            PooledInstances.Enqueue(pooledValue.Value);
             pooledValue.HasBeenReleasedBackToPool = true;
         }
 
@@ -313,7 +343,7 @@ namespace JB
             // else
             cancellationToken.ThrowIfCancellationRequested();
 
-            var result = pooledValue.PooledValue;
+            var result = pooledValue.Value;
             pooledValue.HasBeenDetachedFromPool = true;
 
             return result;

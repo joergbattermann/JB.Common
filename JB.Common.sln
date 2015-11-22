@@ -34,6 +34,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{26BE593D
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JB.Common.Reactive.Tests", "JB.Common.Reactive.Tests\JB.Common.Reactive.Tests.csproj", "{98EC53DF-00F5-4FB8-BE75-C1B530B418BF}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JB.Common.Tests", "JB.Common.Tests\JB.Common.Tests.csproj", "{5215AC7E-41FF-4A49-8EEB-F3515D813EF5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -72,6 +74,10 @@ Global
 		{98EC53DF-00F5-4FB8-BE75-C1B530B418BF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{98EC53DF-00F5-4FB8-BE75-C1B530B418BF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{98EC53DF-00F5-4FB8-BE75-C1B530B418BF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5215AC7E-41FF-4A49-8EEB-F3515D813EF5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5215AC7E-41FF-4A49-8EEB-F3515D813EF5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5215AC7E-41FF-4A49-8EEB-F3515D813EF5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5215AC7E-41FF-4A49-8EEB-F3515D813EF5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -79,5 +85,6 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{067E492E-F300-4DC5-89C1-1AEF9C061C01} = {26BE593D-322B-408F-BFC7-3F2B3273DE21}
 		{98EC53DF-00F5-4FB8-BE75-C1B530B418BF} = {26BE593D-322B-408F-BFC7-3F2B3273DE21}
+		{5215AC7E-41FF-4A49-8EEB-F3515D813EF5} = {26BE593D-322B-408F-BFC7-3F2B3273DE21}
 	EndGlobalSection
 EndGlobal

@@ -15,7 +15,7 @@ namespace JB
         private long _hasBeenReleasedBackToPool = 0;
         private long _hasBeenDetachedFromPool = 0;
 
-        private TValue _pooledValue;
+        private TValue _value;
         private Pool<TValue> _owningPool;
 
         /// <summary>
@@ -29,7 +29,7 @@ namespace JB
             if (owningPool == null)
                 throw new ArgumentNullException(nameof(owningPool));
 
-            PooledValue = pooledValue;
+            Value = pooledValue;
             OwningPool = owningPool;
         }
 
@@ -93,7 +93,7 @@ namespace JB
                 IsDisposed = true;
                 IsDisposing = false;
 
-                PooledValue = default(TValue);
+                Value = default(TValue);
                 OwningPool = null;
 
                 GC.SuppressFinalize(this);
@@ -110,7 +110,7 @@ namespace JB
         /// <value>
         /// The pooled value.
         /// </value>
-        public TValue PooledValue
+        public TValue Value
         {
             get
             {
@@ -120,11 +120,11 @@ namespace JB
                 if (HasBeenDetachedFromPool)
                     throw new InvalidOperationException("Value has already been detached from the owning pool and handed over to the caller at that point. This instance can no longer be used.");
 
-                return _pooledValue;
+                return _value;
             }
             private set
             {
-                _pooledValue = value;
+                _value = value;
             }
         }
 
@@ -153,7 +153,7 @@ namespace JB
         }
 
         /// <summary>
-        /// Detaches the <see cref="Pooled{TValue}.PooledValue"/> from the pool and hands it over to the caller.
+        /// Detaches the <see cref="Value"/> from the pool and hands it over to the caller.
         /// Once a value has been detached from its pool, this <see cref="Pooled{TValue}"/> allows
         /// no further calls to <see cref="Pooled{TValue}.ReleaseBackToPoolAsync"/> and <see cref="Pooled{TValue}.DetachFromPoolAsync"/>,
         /// indicating this via <see cref="Pooled{TValue}.HasBeenDetachedFromPool"/>.
@@ -169,10 +169,10 @@ namespace JB
         }
 
         /// <summary>
-        /// Releases the <see cref="Pooled{TValue}.PooledValue"/> back to the <see cref="Pooled{TValue}.OwningPool"/> pool.
-        /// Further calls to <see cref="Pooled{TValue}.PooledValue"/>, <see cref="Pooled{TValue}.ReleaseBackToPoolAsync"/> and
+        /// Releases the <see cref="Value"/> back to the <see cref="Pooled{TValue}.OwningPool"/> pool.
+        /// Further calls to <see cref="Value"/>, <see cref="Pooled{TValue}.ReleaseBackToPoolAsync"/> and
         /// <see cref="Pooled{TValue}.DetachFromPoolAsync"/> are prevented, but locally kept & copied direct
-        /// references to the <see cref="Pooled{TValue}.PooledValue"/> should no longer be used, also.
+        /// references to the <see cref="Value"/> should no longer be used, also.
         /// </summary>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
@@ -185,7 +185,7 @@ namespace JB
         }
 
         /// <summary>
-        /// Gets a value indicating whether the <see cref="Pooled{TValue}.PooledValue"/> has been released back to pool
+        /// Gets a value indicating whether the <see cref="Value"/> has been released back to pool
         /// and cannot / should no longer be used.
         /// </summary>
         /// <value>
@@ -207,7 +207,7 @@ namespace JB
         }
 
         /// <summary>
-        /// Gets a value indicating whether the <see cref="Pooled{TValue}.PooledValue"/> has been detached from pool.
+        /// Gets a value indicating whether the <see cref="Value"/> has been detached from pool.
         /// And is no longer owned by the <see cref="Pooled{TValue}.OwningPool"/>, nor can it be
         /// <see cref="Pooled{TValue}.ReleaseBackToPoolAsync">released back</see>to it.
         /// </summary>
