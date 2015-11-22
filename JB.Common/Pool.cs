@@ -69,7 +69,7 @@ namespace JB
             get
             {
                 if (IsDisposed || IsDisposing)
-                    throw new ObjectDisposedException(nameof(Pool<TValue>));
+                    throw new ObjectDisposedException(this.GetType().Name);
 
                 return PooledInstances?.Count ?? 0;
             }
@@ -163,7 +163,7 @@ namespace JB
         public async Task IncreasePoolSizeAsync(int increaseBy = 1, CancellationToken cancellationToken = default(CancellationToken))
         {
             if (IsDisposed || IsDisposing)
-                throw new ObjectDisposedException(nameof(Pool<TValue>));
+                throw new ObjectDisposedException(this.GetType().Name);
 
             if (increaseBy < 0)
                 throw new ArgumentOutOfRangeException(nameof(increaseBy));
@@ -196,7 +196,7 @@ namespace JB
         public async Task DecreaseAvailablePoolSizeAsync(int decreaseBy = 1, CancellationToken cancellationToken = default(CancellationToken))
         {
             if (IsDisposed || IsDisposing)
-                throw new ObjectDisposedException(nameof(Pool<TValue>));
+                throw new ObjectDisposedException(this.GetType().Name);
 
             if (decreaseBy < 0)
                 throw new ArgumentOutOfRangeException(nameof(decreaseBy), "Cannot decrease the amount of (available) pooled items by less than 0");
@@ -232,7 +232,7 @@ namespace JB
             CancellationToken cancellationToken = default(CancellationToken))
         {
             if (IsDisposed || IsDisposing)
-                throw new ObjectDisposedException(nameof(Pool<TValue>));
+                throw new ObjectDisposedException(this.GetType().Name);
 
             TValue value = default(TValue);
 
@@ -296,7 +296,7 @@ namespace JB
         public void ReleasePooledValue(Pooled<TValue> pooledValue, CancellationToken cancellationToken = new CancellationToken())
         {
             if (IsDisposed || IsDisposing)
-                throw new ObjectDisposedException(nameof(Pool<TValue>));
+                throw new ObjectDisposedException(this.GetType().Name);
 
             if (pooledValue == null)
                 throw new ArgumentNullException(nameof(pooledValue));
@@ -326,7 +326,7 @@ namespace JB
         public TValue DetachPooledValue(Pooled<TValue> pooledValue, CancellationToken cancellationToken = new CancellationToken())
         {
             if (IsDisposed || IsDisposing)
-                throw new ObjectDisposedException(nameof(Pool<TValue>));
+                throw new ObjectDisposedException(this.GetType().Name);
 
             if (pooledValue == null)
                 throw new ArgumentNullException(nameof(pooledValue));

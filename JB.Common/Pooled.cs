@@ -114,7 +114,10 @@ namespace JB
         {
             get
             {
-                if(HasBeenReleasedBackToPool)
+                if (IsDisposed) // only check for Disposed as the value IS being returned to pool during disposal, if applicable
+                    throw new ObjectDisposedException(this.GetType().Name);
+
+                if (HasBeenReleasedBackToPool)
                     throw new InvalidOperationException("Value has already been released back into the owning pool. This instance can no longer be used.");
 
                 if (HasBeenDetachedFromPool)
@@ -139,7 +142,7 @@ namespace JB
             get
             {
                 if (IsDisposed) // only check for Disposed as the value IS being returned to pool during disposal, if applicable
-                    throw new ObjectDisposedException(nameof(Pooled<TValue>));
+                    throw new ObjectDisposedException(this.GetType().Name);
 
                 if(_owningPool != null && _owningPool.IsDisposed)
                     throw new ObjectDisposedException(nameof(OwningPool));
@@ -155,23 +158,29 @@ namespace JB
         /// <summary>
         /// Detaches the <see cref="Value"/> from the pool and hands it over to the caller.
         /// Once a value has been detached from its pool, this <see cref="Pooled{TValue}"/> allows
-        /// no further calls to <see cref="Pooled{TValue}.ReleaseBackToPoolAsync"/> and <see cref="Pooled{TValue}.DetachFromPoolAsync"/>,
-        /// indicating this via <see cref="Pooled{TValue}.HasBeenDetachedFromPool"/>.
+        /// no further calls to <see cref="ReleaseBackToPool"/> and <see cref="HasBeenDetachedFromPool"/>,
+        /// indicating this via <see cref="HasBeenDetachedFromPool"/>.
         /// </summary>
         /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
         public TValue DetachFromPool(CancellationToken cancellationToken = new CancellationToken())
         {
             if (IsDisposed || IsDisposing)
-                throw new ObjectDisposedException(nameof(Pooled<TValue>));
+                throw new ObjectDisposedException(this.GetType().Name);
+
+            if (HasBeenReleasedBackToPool)
+                throw new InvalidOperationException("Pooled values that have already been released back and returned to the pool can no longer be detached from the pool.");
+
+            if (HasBeenDetachedFromPool)
+                throw new InvalidOperationException("Detached pooled values cannot be detached a second time from the pool.");
 
             return OwningPool.DetachPooledValue(this, cancellationToken);
         }
 
         /// <summary>
         /// Releases the <see cref="Value"/> back to the <see cref="Pooled{TValue}.OwningPool"/> pool.
-        /// Further calls to <see cref="Value"/>, <see cref="Pooled{TValue}.ReleaseBackToPoolAsync"/> and
-        /// <see cref="Pooled{TValue}.DetachFromPoolAsync"/> are prevented, but locally kept & copied direct
+        /// Further calls to <see cref="Value"/>, <see cref="ReleaseBackToPool"/> and
+        /// <see cref="DetachFromPool"/> are prevented, but locally kept & copied direct
         /// references to the <see cref="Value"/> should no longer be used, also.
         /// </summary>
         /// <param name="cancellationToken">The cancellation token.</param>
@@ -179,7 +188,13 @@ namespace JB
         public void ReleaseBackToPool(CancellationToken cancellationToken = new CancellationToken())
         {
             if (IsDisposed) // only check for Disposed as the value IS being returned to pool during disposal, if applicable
-                throw new ObjectDisposedException(nameof(Pooled<TValue>));
+                throw new ObjectDisposedException(this.GetType().Name);
+
+            if (HasBeenReleasedBackToPool)
+                throw new InvalidOperationException("Pooled values that have already been released back and returned to the pool cannot be released a second time.");
+
+            if (HasBeenDetachedFromPool)
+                throw new InvalidOperationException("Detached pooled values can no longer be released and returned back into the pool.");
 
             OwningPool.ReleasePooledValue(this, cancellationToken);
         }
@@ -196,7 +211,7 @@ namespace JB
             get
             {
                 if (IsDisposed) // only check for Disposed as the value IS being returned to pool during disposal, if applicable
-                    throw new ObjectDisposedException(nameof(Pooled<TValue>));
+                    throw new ObjectDisposedException(this.GetType().Name);
 
                 return Interlocked.Read(ref _hasBeenReleasedBackToPool) == 1;
             }
@@ -208,8 +223,8 @@ namespace JB
 
         /// <summary>
         /// Gets a value indicating whether the <see cref="Value"/> has been detached from pool.
-        /// And is no longer owned by the <see cref="Pooled{TValue}.OwningPool"/>, nor can it be
-        /// <see cref="Pooled{TValue}.ReleaseBackToPoolAsync">released back</see>to it.
+        /// And is no longer owned by the <see cref="OwningPool"/>, nor can it be
+        /// <see cref="ReleaseBackToPool">released back</see>to it.
         /// </summary>
         /// <value>
         /// <c>true</c> if this instance has been detached from pool; otherwise, <c>false</c>.
@@ -219,7 +234,7 @@ namespace JB
             get
             {
                 if (IsDisposed) // only check for Disposed as the value IS being returned to pool during disposal, if applicable
-                    throw new ObjectDisposedException(nameof(Pooled<TValue>));
+                    throw new ObjectDisposedException(this.GetType().Name);
 
                 return Interlocked.Read(ref _hasBeenDetachedFromPool) == 1;
             }

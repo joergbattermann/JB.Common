@@ -14,6 +14,9 @@ using Xunit;
 
 namespace JB.Tests
 {
+    /// <summary>
+    /// Tests for <see cref="Pool{TValue}"/> instances.
+    /// </summary>
     public class PoolTests
     {
         [Fact]
@@ -169,6 +172,63 @@ namespace JB.Tests
             pool.AvailableInstancesCount.Should().Be(0);
         }
 
+        [Fact]
+        public async Task AcquiredInstancesCannotBeDetachedMultipleTimesTest()
+        {
+            // given
+            var pool = new Pool<string>(() => Guid.NewGuid().ToString(), 1);
+            var acquiredPooledItem = await pool.AcquirePooledValueAsync();
+
+            // when
+            Action detachFromPoolAction = () => pool.DetachPooledValue(acquiredPooledItem);
+
+            // then
+            // prior to returning poolsize should be down by one
+            detachFromPoolAction.ShouldNotThrow();
+
+            // however a second (or more) time(s) should not be allowed
+            detachFromPoolAction.ShouldThrow<ArgumentOutOfRangeException>();
+        }
+
+        [Fact]
+        public async Task AcquiredInstancesCannotBeReturnedMultipleTimesTest()
+        {
+            // given
+            var pool = new Pool<string>(() => Guid.NewGuid().ToString(), 1);
+            var acquiredPooledItem = await pool.AcquirePooledValueAsync();
+
+            // when
+            Action returningToPoolAction = () => pool.ReleasePooledValue(acquiredPooledItem);
+
+            // then
+            // prior to returning poolsize should be down by one
+            returningToPoolAction.ShouldNotThrow();
+            
+            // however a second (or more) time(s) should not be allowed
+            returningToPoolAction.ShouldThrow<ArgumentOutOfRangeException>();
+        }
+
+        [Theory]
+        [InlineData(1)]
+        [InlineData(100)]
+        public async Task AcquiredInstancesCanBeDetachedFromOwningPoolTest(int poolSize)
+        {
+            // given
+            var pool = new Pool<string>(() => Guid.NewGuid().ToString(), poolSize);
+            var acquiredPooledItem = await pool.AcquirePooledValueAsync();
+            var acquiredPooledItemValue = acquiredPooledItem.Value;
+
+            // when
+            var detachedValue = pool.DetachPooledValue(acquiredPooledItem);
+
+            // then
+            pool.AvailableInstancesCount.Should().Be(poolSize - 1);
+            detachedValue.Should().Be(acquiredPooledItemValue);
+
+            acquiredPooledItem.HasBeenReleasedBackToPool.Should().Be(false);
+            acquiredPooledItem.HasBeenDetachedFromPool.Should().Be(true);
+        }
+
         [Theory]
         [InlineData(1)]
         [InlineData(100)]
@@ -194,6 +254,26 @@ namespace JB.Tests
             acquiredPooledItem.HasBeenDetachedFromPool.Should().Be(false);
 
             accessingPoolValueAfterReturningToPoolAction.ShouldThrow<InvalidOperationException>();
+        }
+
+        [Fact]
+        public async Task AcquiredInstancesCannotBeDetachedFromDifferentPoolTest()
+        {
+            // given
+            var owningPool = new Pool<string>(() => Guid.NewGuid().ToString(), 1);
+            var secondPool = new Pool<string>(() => Guid.NewGuid().ToString());
+
+            var acquiredPooledItem = await owningPool.AcquirePooledValueAsync();
+
+            // when
+            Action detachFromPoolAction = () => secondPool.DetachPooledValue(acquiredPooledItem);
+
+            // then
+            detachFromPoolAction.ShouldThrow<ArgumentOutOfRangeException>().And.ParamName.Should().Be("pooledValue");
+
+            owningPool.AvailableInstancesCount.Should().Be(0);
+            acquiredPooledItem.HasBeenReleasedBackToPool.Should().Be(false);
+            acquiredPooledItem.HasBeenDetachedFromPool.Should().Be(false);
         }
 
         [Fact]
