@@ -102,7 +102,7 @@ namespace JB.Collections.Reactive
                 || changeType == ReactiveCollectionChangeType.ItemChanged
                 || changeType == ReactiveCollectionChangeType.ItemMoved
                 || changeType == ReactiveCollectionChangeType.ItemRemoved)
-                && Equals(item, default(T)))
+                && (TypeIsValueType.Value == false && Equals(item, default(T))))
                 throw new ArgumentOutOfRangeException(nameof(item), $"Item Adds, Changes, Moves and Removes must have an {nameof(item)}");
 
             ChangeType = changeType;
