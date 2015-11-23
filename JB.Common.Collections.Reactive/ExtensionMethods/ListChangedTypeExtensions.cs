@@ -17,24 +17,24 @@ namespace JB.Collections.Reactive.ExtensionMethods
     public static class ListChangedTypeExtensions
     {
         /// <summary>
-        /// Converts the <see cref="ListChangedType"/> to its <see cref="ReactiveCollectionChangeType"/> counterpart.
+        /// Converts the <see cref="ListChangedType"/> to its <see cref="ObservableCollectionChangeType"/> counterpart.
         /// </summary>
         /// <param name="listChangedType">Type of the list changed.</param>
         /// <returns></returns>
-        public static ReactiveCollectionChangeType ToReactiveCollectionChangeType(this ListChangedType listChangedType)
+        public static ObservableCollectionChangeType ToObservableCollectionChangeType(this ListChangedType listChangedType)
         {
             switch (listChangedType)
             {
                 case ListChangedType.ItemAdded:
-                    return ReactiveCollectionChangeType.ItemAdded;
+                    return ObservableCollectionChangeType.ItemAdded;
                 case ListChangedType.ItemChanged:
-                    return ReactiveCollectionChangeType.ItemChanged;
+                    return ObservableCollectionChangeType.ItemChanged;
                 case ListChangedType.ItemMoved:
-                    return ReactiveCollectionChangeType.ItemMoved;
+                    return ObservableCollectionChangeType.ItemMoved;
                 case ListChangedType.ItemDeleted:
-                    return ReactiveCollectionChangeType.ItemRemoved;
+                    return ObservableCollectionChangeType.ItemRemoved;
                 case ListChangedType.Reset:
-                    return ReactiveCollectionChangeType.Reset;
+                    return ObservableCollectionChangeType.Reset;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(listChangedType), $"Only {nameof(ListChangedType.ItemAdded)}, {nameof(ListChangedType.ItemChanged)}, {nameof(ListChangedType.ItemMoved)}, {nameof(ListChangedType.ItemDeleted)} and finally {nameof(ListChangedType.Reset)} are supported.");
             }

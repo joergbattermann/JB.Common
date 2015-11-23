@@ -7,32 +7,30 @@ using JB.Collections.Reactive.ExtensionMethods;
 
 namespace JB.Collections.Reactive
 {
-    public class ReactiveBindingList<T> : ReactiveList<T>, IReactiveBindingList<T>
+    public class ObservableBindingList<T> : ObservableList<T>, IObservableBindingList<T>
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="ReactiveBindingList{T}" /> class.
+        /// Initializes a new instance of the <see cref="ObservableBindingList{T}" /> class.
         /// </summary>
         /// <param name="list">The initial list, if any.</param>
         /// <param name="syncRoot">The object used to synchronize access to the thread-safe collection.</param>
         /// <param name="scheduler">The scheduler to raise events on.</param>
-        public ReactiveBindingList(IList<T> list = null, object syncRoot = null, IScheduler scheduler = null)
+        public ObservableBindingList(IList<T> list = null, object syncRoot = null, IScheduler scheduler = null)
             : base(list, syncRoot, scheduler)
         {
-            ReactiveCollectionChanged += ReactiveCollectionChangedAsListChangedForwarder;
+            ObservableCollectionChanged += ObservableCollectionChangedAsListChangedForwarder;
         }
 
         /// <summary>
-        /// Handles the ReactiveCollectionChanged event of the underlying <see cref="ReactiveList{T}"/>.
+        /// Handles the ObservableCollectionChanged event of the underlying <see cref="ObservableList{T}"/>.
         /// </summary>
         /// <param name="sender">The source of the event.</param>
-        /// <param name="reactiveCollectionChangedEventArgs">The <see cref="ReactiveCollectionChangedEventArgs{T}"/> instance containing the event data.</param>
-#pragma warning disable S1172 // sender is required for Event Handler Signature
-        private void ReactiveCollectionChangedAsListChangedForwarder(object sender, ReactiveCollectionChangedEventArgs<T> reactiveCollectionChangedEventArgs)
-#pragma warning restore S1172 // sender is required for Event Handler Signature
+        /// <param name="observableCollectionChangedEventArgs">The <see cref="ObservableCollectionChangedEventArgs{T}"/> instance containing the event data.</param>
+        private void ObservableCollectionChangedAsListChangedForwarder(object sender, ObservableCollectionChangedEventArgs<T> observableCollectionChangedEventArgs)
         {
             try
             {
-                RaiseListChanged(reactiveCollectionChangedEventArgs.ReactiveCollectionChange.ToListChangedEventArgs());
+                RaiseListChanged(observableCollectionChangedEventArgs.ObservableCollectionChange.ToListChangedEventArgs());
             }
             catch (Exception exception)
             {
@@ -40,7 +38,7 @@ namespace JB.Collections.Reactive
             }
         }
 
-        #region Overrides of ReactiveList<T>
+        #region Overrides of ObservableList<T>
 
         /// <summary>
         ///     Releases unmanaged and - optionally - managed resources.
@@ -50,7 +48,7 @@ namespace JB.Collections.Reactive
         /// </param>
         protected override void Dispose(bool disposeManagedResources)
         {
-            ReactiveCollectionChanged -= ReactiveCollectionChangedAsListChangedForwarder;
+            ObservableCollectionChanged -= ObservableCollectionChangedAsListChangedForwarder;
 
             base.Dispose(disposeManagedResources);
         }
@@ -341,7 +339,8 @@ namespace JB.Collections.Reactive
         /// </param>
         protected virtual void RaiseListChanged(ListChangedEventArgs listChangedEventArgs)
         {
-            if (listChangedEventArgs == null) throw new ArgumentNullException(nameof(listChangedEventArgs));
+            if (listChangedEventArgs == null)
+                throw new ArgumentNullException(nameof(listChangedEventArgs));
 
             if (IsDisposed || IsDisposing)
                 return;
@@ -377,7 +376,7 @@ namespace JB.Collections.Reactive
 
         #endregion
 
-        #region Implementation of IReactiveBindingList<T>
+        #region Implementation of IObservableBindingList<T>
 
         /// <summary>
         ///     Gets a value indicating whether this instance is currently notifying event and observable subscribers about
@@ -397,11 +396,11 @@ namespace JB.Collections.Reactive
         }
 
         /// <summary>
-        ///     Raises <see cref="INotifyReactiveCollectionChanged{T}.ReactiveCollectionChanged" />,
+        ///     Raises <see cref="INotifyObservableCollectionChanged{T}.ObservableCollectionChanged" />,
         ///     <see cref="INotifyCollectionChanged.CollectionChanged" />
         ///     and <see cref="IBindingList.ListChanged" /> event(s) as well as notifies the
-        ///     <see cref="INotifyReactiveCollectionChanged{T}.CollectionChanges" />
-        ///     and <see cref="INotifyReactiveCollectionChanged{T}.Resets" /> subscribers signalling an entire List / Collection
+        ///     <see cref="INotifyObservableCollectionChanged{T}.CollectionChanges" />
+        ///     and <see cref="INotifyObservableCollectionChanged{T}.Resets" /> subscribers signalling an entire List / Collection
         ///     Reset.
         /// </summary>
         public void ResetBindings()
@@ -412,10 +411,10 @@ namespace JB.Collections.Reactive
         }
 
         /// <summary>
-        ///     Raises <see cref="INotifyReactiveCollectionChanged{T}.ReactiveCollectionChanged" />,
+        ///     Raises <see cref="INotifyObservableCollectionChanged{T}.ObservableCollectionChanged" />,
         ///     <see cref="INotifyCollectionChanged.CollectionChanged" />
         ///     and <see cref="IBindingList.ListChanged" /> event(s) as well as notifies the
-        ///     <see cref="INotifyReactiveCollectionChanged{T}.CollectionChanges" />
+        ///     <see cref="INotifyObservableCollectionChanged{T}.CollectionChanges" />
         ///     subscribers signalling a single item change event.
         /// </summary>
         /// <param name="index">A zero-based index position of the item to be reset.</param>

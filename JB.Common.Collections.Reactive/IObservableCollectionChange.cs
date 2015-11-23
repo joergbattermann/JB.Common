@@ -1,6 +1,6 @@
 namespace JB.Collections.Reactive
 {
-	public interface IReactiveCollectionChange<out T>
+	public interface IObservableCollectionChange<out T>
 	{
 		/// <summary>
 		/// Gets the type of the change.
@@ -8,7 +8,7 @@ namespace JB.Collections.Reactive
 		/// <value>
 		/// The type of the change.
 		/// </value>
-		ReactiveCollectionChangeType ChangeType { get; }
+		ObservableCollectionChangeType ChangeType { get; }
 
 		/// <summary>
 		/// Gets the new, post-change (starting) index for the <see cref="Item"/>.

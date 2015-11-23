@@ -2,7 +2,7 @@ using System;
 
 namespace JB.Collections.Reactive
 {
-    public class ReactiveDictionaryChange<TKey, TValue> : IReactiveDictionaryChange<TKey, TValue>
+    public class ObservableDictionaryChange<TKey, TValue> : IObservableDictionaryChange<TKey, TValue>
     {
         /// <summary>
         /// The <typeparam name="TKey">key type</typeparam> is a value type. or not.
@@ -14,7 +14,7 @@ namespace JB.Collections.Reactive
         /// </summary>
         private static readonly Lazy<bool> ValueIsValueType = new Lazy<bool>(() => typeof(TValue).IsValueType);
 
-        #region Implementation of IReactiveCollectionChange<out T>
+        #region Implementation of IObservableCollectionChange<out T>
 
         /// <summary>
         /// Gets the type of the change.
@@ -22,7 +22,7 @@ namespace JB.Collections.Reactive
         /// <value>
         /// The type of the change.
         /// </value>
-        public ReactiveDictionaryChangeType ChangeType { get; }
+        public ObservableDictionaryChangeType ChangeType { get; }
 
         /// <summary>
         /// Gets the key of the (changed) item.
@@ -43,26 +43,26 @@ namespace JB.Collections.Reactive
         #endregion
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ReactiveDictionaryChange{TKey, TValue}" /> class.
+        /// Initializes a new instance of the <see cref="ObservableDictionaryChange{TKey,TValue}" /> class.
         /// </summary>
         /// <param name="changeType">Type of the change.</param>
         /// <param name="key">The key of the changed value.</param>
         /// <param name="value">The (changed) value.</param>
-        public ReactiveDictionaryChange(ReactiveDictionaryChangeType changeType, TKey key = default(TKey), TValue value = default(TValue))
+        public ObservableDictionaryChange(ObservableDictionaryChangeType changeType, TKey key = default(TKey), TValue value = default(TValue))
         {
-            if ((changeType == ReactiveDictionaryChangeType.ItemAdded
-                 || changeType == ReactiveDictionaryChangeType.ItemChanged
-                 || changeType == ReactiveDictionaryChangeType.ItemRemoved)
+            if ((changeType == ObservableDictionaryChangeType.ItemAdded
+                 || changeType == ObservableDictionaryChangeType.ItemChanged
+                 || changeType == ObservableDictionaryChangeType.ItemRemoved)
                 && (KeyIsValueType.Value == false && Equals(key, default(TKey))))
                 throw new ArgumentOutOfRangeException(nameof(key), $"Item Adds, Changes, Moves and Removes must have a (non-default) {nameof(key)}");
 
-            if ((changeType == ReactiveDictionaryChangeType.ItemAdded
-                 || changeType == ReactiveDictionaryChangeType.ItemChanged
-                 || changeType == ReactiveDictionaryChangeType.ItemRemoved)
+            if ((changeType == ObservableDictionaryChangeType.ItemAdded
+                 || changeType == ObservableDictionaryChangeType.ItemChanged
+                 || changeType == ObservableDictionaryChangeType.ItemRemoved)
                 && (ValueIsValueType.Value == false && Equals(value, default(TValue))))
                 throw new ArgumentOutOfRangeException(nameof(value), $"Item Adds, Changes, Moves and Removes must have a (non-default) {nameof(value)}");
 
-            if (changeType == ReactiveDictionaryChangeType.Reset && (ValueIsValueType.Value == false && !Equals(value, default(TValue))))
+            if (changeType == ObservableDictionaryChangeType.Reset && (ValueIsValueType.Value == false && !Equals(value, default(TValue))))
                 throw new ArgumentOutOfRangeException(nameof(value), $"Resets must not have a {nameof(value)}");
 
             ChangeType = changeType;
@@ -72,11 +72,11 @@ namespace JB.Collections.Reactive
         }
 
         /// <summary>
-        /// Gets a <see cref="IReactiveDictionaryChange{TKey, TValue}"/> representing a <see cref="ReactiveDictionaryChangeType.Reset"/>.
+        /// Gets a <see cref="IObservableDictionaryChangeObservableDictionaryChange{TKey,TValue}"/> representing a <see cref="ObservableDictionaryChangeType.Reset"/>.
         /// </summary>
         /// <value>
-        /// An <see cref="IReactiveDictionaryChange{TKey, TValue}">instance</see> representing a <see cref="ReactiveDictionaryChangeType.Reset"/>.
+        /// An <see cref="IObservableDictionaryChangeObservableDictionaryChange{TKey,TValue}">instance</see> representing a <see cref="ObservableDictionaryChangeType.Reset"/>.
         /// </value>
-        public static IReactiveDictionaryChange<TKey, TValue> Reset => new ReactiveDictionaryChange<TKey, TValue>(ReactiveDictionaryChangeType.Reset);
+        public static IObservableDictionaryChange<TKey, TValue> Reset => new ObservableDictionaryChange<TKey, TValue>(ObservableDictionaryChangeType.Reset);
     }
 }

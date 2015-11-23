@@ -1,11 +1,10 @@
 using System;
-using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Reactive;
 
 namespace JB.Collections.Reactive
 {
-    public interface INotifyReactiveCollectionChanged<T> : INotifyCollectionChanged, IProvideReactiveCollectionItemChangedObservation<T>
+    public interface INotifyObservableCollectionChanged<T> : INotifyCollectionChanged, INotifyObservableCollectionItemChanged<T>
     {
 		/// <summary>
 		/// (Temporarily) suppresses change notifications until the returned <see cref="IDisposable" />
@@ -16,15 +15,15 @@ namespace JB.Collections.Reactive
 		IDisposable SuppressCollectionChangedNotifications(bool signalResetWhenFinished = true);
 
         /// <summary>
-        /// Gets a value indicating whether this instance is currently suppressing reactive collection changed notifications.
+        /// Gets a value indicating whether this instance is currently suppressing observable collection changed notifications.
         /// </summary>
         /// <value>
-        /// <c>true</c> if this instance is suppressing reactive collection changed notifications; otherwise, <c>false</c>.
+        /// <c>true</c> if this instance is suppressing observable collection changed notifications; otherwise, <c>false</c>.
         /// </value>
         bool IsTrackingCollectionChanges { get; }
 
         /// <summary>
-        /// Gets a value indicating whether this instance is tracking <see cref="ReactiveCollectionChangeType.Reset">resets</see>.
+        /// Gets a value indicating whether this instance is tracking <see cref="ObservableCollectionChangeType.Reset">resets</see>.
         /// </summary>
         /// <value>
         /// <c>true</c> if this instance is tracking resets; otherwise, <c>false</c>.
@@ -32,7 +31,7 @@ namespace JB.Collections.Reactive
         bool IsTrackingResets { get; }
 
         /// <summary>
-		/// (Temporarily) suppresses change notifications for <see cref="ReactiveCollectionChangeType.Reset"/> events until the returned <see cref="IDisposable" />
+		/// (Temporarily) suppresses change notifications for <see cref="ObservableCollectionChangeType.Reset"/> events until the returned <see cref="IDisposable" />
 		/// has been Disposed and a Reset will be signaled, if applicable.
 		/// </summary>
 		/// <param name="signalResetWhenFinished">if set to <c>true</c> signals a reset when finished.</param>
@@ -45,7 +44,7 @@ namespace JB.Collections.Reactive
         /// <value>
         /// The collection changes.
         /// </value>
-        IObservable<IReactiveCollectionChange<T>> CollectionChanges { get; }
+        IObservable<IObservableCollectionChange<T>> CollectionChanges { get; }
 
         /// <summary>
 		/// Gets the reset notifications as an observable stream.  Whenever signaled,
@@ -65,8 +64,8 @@ namespace JB.Collections.Reactive
         IObservable<Exception> ThrownExceptions { get; }
 
         /// <summary>
-        /// Occurs when the corresponding <see cref="IReactiveCollection{T}"/> changed.
+        /// Occurs when the corresponding <see cref="IObservableCollection{T}"/> changed.
         /// </summary>
-        event EventHandler<ReactiveCollectionChangedEventArgs<T>> ReactiveCollectionChanged;
+        event EventHandler<ObservableCollectionChangedEventArgs<T>> ObservableCollectionChanged;
 	}
 }

@@ -1,9 +1,9 @@
 namespace JB.Collections.Reactive
 {
-	public interface IReactivePropertyChangedEventArgs<out TSender>
+	public interface IObservablePropertyChangedEventArgs<out TSender>
 	{
 		/// <summary>
-		/// The name of the property that has changed on Sender.
+		/// The name of the property that has changed for the Sender.
 		/// </summary>
 		string PropertyName { get; }
 

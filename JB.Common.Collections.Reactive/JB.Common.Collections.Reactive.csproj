@@ -20,6 +20,8 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <CodeAnalysisRuleSet>
+    </CodeAnalysisRuleSet>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -29,6 +31,8 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <DocumentationFile>bin\Release\JB.Common.Collections.Reactive.XML</DocumentationFile>
+    <CodeAnalysisRuleSet>
+    </CodeAnalysisRuleSet>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -64,32 +68,32 @@
     </Compile>
     <Compile Include="ExtensionMethods\EnhancedBindingListExtensions.cs" />
     <Compile Include="ExtensionMethods\ListChangedEventArgsExtensions.cs" />
-    <Compile Include="ExtensionMethods\ReactiveCollectionChangeExtensions.cs" />
+    <Compile Include="ExtensionMethods\ObservableCollectionChangeExtensions.cs" />
     <Compile Include="ExtensionMethods\ListChangedTypeExtensions.cs" />
     <Compile Include="INotifyItemChanged.cs" />
-    <Compile Include="INotifyReactiveCollectionChanged.cs" />
-    <Compile Include="IProvideCountChangedObservation.cs" />
-    <Compile Include="IProvideReactiveCollectionItemChangedObservation.cs" />
-    <Compile Include="IReactiveBindingDictionary.cs" />
-    <Compile Include="IReactiveBindingList.cs" />
-    <Compile Include="IReactiveCollection.cs" />
-    <Compile Include="IReactiveCollectionChange.cs" />
-    <Compile Include="IReactiveDictionary.cs" />
-    <Compile Include="IReactiveDictionaryChange.cs" />
-    <Compile Include="IReactiveList.cs" />
-    <Compile Include="IReactivePropertyChangedEventArgs.cs" />
-    <Compile Include="IReactiveReadOnlyCollection.cs" />
-    <Compile Include="IReactiveReadOnlyDictionary.cs" />
-    <Compile Include="IReactiveReadOnlyList.cs" />
+    <Compile Include="INotifyObservableCollectionChanged.cs" />
+    <Compile Include="INotifyObservableCountChanged.cs" />
+    <Compile Include="INotifyObservableCollectionItemChanged.cs" />
+    <Compile Include="IObservableBindingDictionary.cs" />
+    <Compile Include="IObservableBindingList.cs" />
+    <Compile Include="IObservableCollection.cs" />
+    <Compile Include="IObservableCollectionChange.cs" />
+    <Compile Include="IObservableDictionary.cs" />
+    <Compile Include="IObservableDictionaryChange.cs" />
+    <Compile Include="IObservableList.cs" />
+    <Compile Include="IObservablePropertyChangedEventArgs.cs" />
+    <Compile Include="IObservableReadOnlyCollection.cs" />
+    <Compile Include="IObservableReadOnlyDictionary.cs" />
+    <Compile Include="IObservableReadOnlyList.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="ExtensionMethods\ReactiveListExtensions.cs" />
-    <Compile Include="ReactiveBindingList.cs" />
-    <Compile Include="ReactiveCollectionChange.cs" />
-    <Compile Include="ReactiveCollectionChangedEventArgs.cs" />
-    <Compile Include="ReactiveCollectionChangeType.cs" />
-    <Compile Include="ReactiveDictionaryChange.cs" />
-    <Compile Include="ReactiveDictionaryChangeType.cs" />
-    <Compile Include="ReactiveList.cs" />
+    <Compile Include="ExtensionMethods\ObservableListExtensions.cs" />
+    <Compile Include="ObservableBindingList.cs" />
+    <Compile Include="ObservableCollectionChange.cs" />
+    <Compile Include="ObservableCollectionChangedEventArgs.cs" />
+    <Compile Include="ObservableCollectionChangeType.cs" />
+    <Compile Include="ObservableDictionaryChange.cs" />
+    <Compile Include="ObservableDictionaryChangeType.cs" />
+    <Compile Include="ObservableList.cs" />
     <Compile Include="SchedulerCoordinatedBindingList.cs" />
     <Compile Include="SchedulerSynchronizedBindingList.cs" />
   </ItemGroup>

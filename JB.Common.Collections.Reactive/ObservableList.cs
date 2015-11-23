@@ -1,5 +1,5 @@
 ﻿// -----------------------------------------------------------------------
-// <copyright file="ReactiveList.cs" company="Joerg Battermann">
+// <copyright file="ObservableList.cs" company="Joerg Battermann">
 //   Copyright (c) 2015 Joerg Battermann. All rights reserved.
 // </copyright>
 // <author>Joerg Battermann</author>
@@ -24,9 +24,9 @@ using JB.ExtensionMethods;
 
 namespace JB.Collections.Reactive
 {
-    public class ReactiveList<T> : IReactiveList<T>, IDisposable
+    public class ObservableList<T> : IObservableList<T>, IDisposable
     {
-        protected Subject<IReactiveCollectionChange<T>> ChangesSubject = null;
+        protected Subject<IObservableCollectionChange<T>> ChangesSubject = null;
         private IDisposable _collectionChangesAndResetsPropertyChangeForwarder = null;
         protected Subject<int> CountChangesSubject = null;
 
@@ -53,12 +53,12 @@ namespace JB.Collections.Reactive
         protected IScheduler Scheduler { get; }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ReactiveList{T}" /> class.
+        /// Initializes a new instance of the <see cref="ObservableList{T}" /> class.
         /// </summary>
         /// <param name="list">The initial list, if any.</param>
         /// <param name="syncRoot">The object used to synchronize access to the thread-safe collection.</param>
         /// <param name="scheduler">The scheduler to raise events on.</param>
-        public ReactiveList(IList<T> list = null, object syncRoot = null, IScheduler scheduler = null)
+        public ObservableList(IList<T> list = null, object syncRoot = null, IScheduler scheduler = null)
         {
             SyncRoot = syncRoot ?? new object();
             Scheduler = scheduler ?? System.Reactive.Concurrency.Scheduler.Default;
@@ -154,34 +154,35 @@ namespace JB.Collections.Reactive
 
         /// <summary>
         ///     Notifies all <see cref="CollectionChanges" /> and <see cref="Resets" /> subscribes and
-        ///     raises the list- and (reactive)collection changed events.
+        ///     raises the list- and (observable)collection changed events.
         /// </summary>
-        /// <param name="reactiveCollectionChange">The reactive collection change.</param>
-        private void NotifySubscribersAndRaiseListAndCollectionChangedEvents(IReactiveCollectionChange<T> reactiveCollectionChange)
+        /// <param name="observableCollectionChange">The observable collection change.</param>
+        private void NotifySubscribersAndRaiseListAndCollectionChangedEvents(IObservableCollectionChange<T> observableCollectionChange)
         {
-            if (reactiveCollectionChange == null) throw new ArgumentNullException(nameof(reactiveCollectionChange));
+            if (observableCollectionChange == null)
+                throw new ArgumentNullException(nameof(observableCollectionChange));
 
             CheckForAndThrowIfDisposed();
 
             // go ahead and check whether a Reset or item add, -change, -move or -remove shall be signaled
             // .. based on the ThresholdAmountWhenItemChangesAreNotifiedAsReset value
-            var actualReactiveCollectionChange = (reactiveCollectionChange.ChangeType == ReactiveCollectionChangeType.Reset || IsItemsChangedAmountGreaterThanResetThreshold(1, ThresholdAmountWhenItemChangesAreNotifiedAsReset))
-                ? ReactiveCollectionChange<T>.Reset
-                : reactiveCollectionChange;
+            var actualObservableCollectionChange = (observableCollectionChange.ChangeType == ObservableCollectionChangeType.Reset || IsItemsChangedAmountGreaterThanResetThreshold(1, ThresholdAmountWhenItemChangesAreNotifiedAsReset))
+                ? ObservableCollectionChange<T>.Reset
+                : observableCollectionChange;
 
-            // raise events and notifiy about collection/list changes
+            // raise events and notify about collection/list changes
             try
             {
-                ChangesSubject.OnNext(actualReactiveCollectionChange);
+                ChangesSubject.OnNext(actualObservableCollectionChange);
             }
             catch (Exception exception)
             {
                 ThrownExceptionsSubject.OnNext(exception);
             }
 
-            if (actualReactiveCollectionChange.ChangeType == ReactiveCollectionChangeType.ItemAdded
-                || actualReactiveCollectionChange.ChangeType == ReactiveCollectionChangeType.ItemRemoved
-                || actualReactiveCollectionChange.ChangeType == ReactiveCollectionChangeType.Reset)
+            if (actualObservableCollectionChange.ChangeType == ObservableCollectionChangeType.ItemAdded
+                || actualObservableCollectionChange.ChangeType == ObservableCollectionChangeType.ItemRemoved
+                || actualObservableCollectionChange.ChangeType == ObservableCollectionChangeType.Reset)
             {
                 try
                 {
@@ -195,7 +196,7 @@ namespace JB.Collections.Reactive
 
             try
             {
-                RaiseCollectionChanged(actualReactiveCollectionChange.ToNotifyCollectionChangedEventArgs());
+                RaiseCollectionChanged(actualObservableCollectionChange.ToNotifyCollectionChangedEventArgs());
             }
             catch (Exception exception)
             {
@@ -204,7 +205,7 @@ namespace JB.Collections.Reactive
 
             try
             {
-                RaiseReactiveCollectionChanged(new ReactiveCollectionChangedEventArgs<T>(actualReactiveCollectionChange));
+                RaiseObservableCollectionChanged(new ObservableCollectionChangedEventArgs<T>(actualObservableCollectionChange));
             }
             catch (Exception exception)
             {
@@ -219,7 +220,7 @@ namespace JB.Collections.Reactive
         {
             // prepare subjects for RX
             ThrownExceptionsSubject = new Subject<Exception>();
-            ChangesSubject = new Subject<IReactiveCollectionChange<T>>();
+            ChangesSubject = new Subject<IObservableCollectionChange<T>>();
             CountChangesSubject = new Subject<int>();
 
             // then connect to InnerList's ListChanged Event
@@ -229,7 +230,7 @@ namespace JB.Collections.Reactive
                 .TakeWhile(_ => !IsDisposing && !IsDisposed)
                 .SkipWhile(_ => !IsTrackingCollectionChanges)
                 .Where(eventPattern => eventPattern != null && eventPattern.EventArgs != null)
-                .Select(eventPattern => eventPattern.EventArgs.ToReactiveCollectionChange(this))
+                .Select(eventPattern => eventPattern.EventArgs.ToObservableCollectionChange(this))
                 .Subscribe(NotifySubscribersAndRaiseListAndCollectionChangedEvents);
 
 
@@ -618,7 +619,7 @@ namespace JB.Collections.Reactive
 
         #endregion
 
-        #region Implementation of IReactiveCollection<T>
+        #region Implementation of IObservableCollection<T>
 
         /// <summary>
         ///     Adds a range of items.
@@ -836,7 +837,7 @@ namespace JB.Collections.Reactive
 
         #endregion
 
-        #region Implementation of INotifyReactiveCollectionChanged<out T>
+        #region Implementation of INotifyObservableCollectionChanged<out T>
 
         private readonly object _isTrackingCollectionChangesLocker = new object();
         private long _isTrackingCollectionChanges = 0;
@@ -975,7 +976,7 @@ namespace JB.Collections.Reactive
         }
 
         /// <summary>
-        ///     (Temporarily) suppresses change notifications for <see cref="ReactiveCollectionChangeType.Reset" /> events until
+        ///     (Temporarily) suppresses change notifications for <see cref="ObservableCollectionChangeType.Reset" /> events until
         ///     the returned <see cref="IDisposable" />
         ///     has been Disposed and a Reset will be signaled.
         /// </summary>
@@ -1055,8 +1056,8 @@ namespace JB.Collections.Reactive
 
         /// <summary>
         ///     Gets the threshold amount (inclusive) of item changes to be signaled as a
-        ///     <see cref="ReactiveCollectionChangeType.Reset" />
-        ///     rather than individual <see cref="ReactiveCollectionChangeType" /> notifications.
+        ///     <see cref="ObservableCollectionChangeType.Reset" />
+        ///     rather than individual <see cref="ObservableCollectionChangeType" /> notifications.
         /// </summary>
         /// <value>
         ///     The threshold amount of item changes to be signal a reset rather than item change(s).
@@ -1078,7 +1079,7 @@ namespace JB.Collections.Reactive
         /// <value>
         ///     The collection changes.
         /// </value>
-        public IObservable<IReactiveCollectionChange<T>> CollectionChanges
+        public IObservable<IObservableCollectionChange<T>> CollectionChanges
         {
             get
             {
@@ -1087,8 +1088,8 @@ namespace JB.Collections.Reactive
                 return ChangesSubject
                     .TakeWhile(_ => !IsDisposing && !IsDisposed)
                     .SkipWhile(change => IsTrackingCollectionChanges == false)
-                    .SkipWhile(change => change.ChangeType == ReactiveCollectionChangeType.ItemChanged && IsNotifyingAboutItemChanges == false)
-                    .SkipWhile(change => change.ChangeType == ReactiveCollectionChangeType.Reset && IsTrackingResets == false);
+                    .SkipWhile(change => change.ChangeType == ObservableCollectionChangeType.ItemChanged && IsNotifyingAboutItemChanges == false)
+                    .SkipWhile(change => change.ChangeType == ObservableCollectionChangeType.Reset && IsTrackingResets == false);
             }
         }
 
@@ -1099,14 +1100,14 @@ namespace JB.Collections.Reactive
         /// <value>
         ///     The item changes.
         /// </value>
-        public IObservable<IReactiveCollectionChange<T>> CollectionItemChanges
+        public IObservable<IObservableCollectionChange<T>> CollectionItemChanges
         {
             get
             {
                 CheckForAndThrowIfDisposed();
 
                 return CollectionChanges
-                    .Where(change => change.ChangeType == ReactiveCollectionChangeType.ItemChanged)
+                    .Where(change => change.ChangeType == ObservableCollectionChangeType.ItemChanged)
                     .SkipWhile(_ => IsNotifyingAboutItemChanges == false);
             }
         }
@@ -1144,14 +1145,14 @@ namespace JB.Collections.Reactive
                 CheckForAndThrowIfDisposed();
 
                 return CollectionChanges
-                    .Where(change => change.ChangeType == ReactiveCollectionChangeType.Reset)
+                    .Where(change => change.ChangeType == ObservableCollectionChangeType.Reset)
                     .SkipWhile(_ => IsTrackingResets == false)
                     .Select(_ => Unit.Default);
             }
         }
 
         /// <summary>
-        ///     Gets the thrown exceptions for the <see cref="INotifyReactiveCollectionChanged{T}.CollectionChanges" /> stream.
+        ///     Gets the thrown exceptions for the <see cref="INotifyObservableCollectionChanged{T}.CollectionChanges" /> stream.
         ///     Ugly, but oh well.
         /// </summary>
         /// <value>
@@ -1169,42 +1170,42 @@ namespace JB.Collections.Reactive
         }
 
         /// <summary>
-        ///     The actual <see cref="ReactiveCollectionChanged" /> event.
+        ///     The actual <see cref="ObservableCollectionChanged" /> event.
         /// </summary>
-        private EventHandler<ReactiveCollectionChangedEventArgs<T>> _reactiveCollectionChanged;
+        private EventHandler<ObservableCollectionChangedEventArgs<T>> _observableCollectionChanged;
 
         /// <summary>
-        ///     Occurs when the corresponding <see cref="IReactiveCollection{T}" /> changed.
+        ///     Occurs when the corresponding <see cref="IObservableCollection{T}" /> changed.
         /// </summary>
-        public event EventHandler<ReactiveCollectionChangedEventArgs<T>> ReactiveCollectionChanged
+        public event EventHandler<ObservableCollectionChangedEventArgs<T>> ObservableCollectionChanged
         {
             add
             {
                 CheckForAndThrowIfDisposed();
-                _reactiveCollectionChanged += value;
+                _observableCollectionChanged += value;
             }
             remove
             {
                 CheckForAndThrowIfDisposed();
-                _reactiveCollectionChanged -= value;
+                _observableCollectionChanged -= value;
             }
         }
 
         /// <summary>
-        ///     Raises the <see cref="E:ReactiveCollectionChanged" /> event.
+        ///     Raises the <see cref="E:ObservableCollectionChanged" /> event.
         /// </summary>
-        /// <param name="reactiveCollectionChangedEventArgs">
-        ///     The <see cref="ReactiveCollectionChangedEventArgs{T}" /> instance
+        /// <param name="observableCollectionChangedEventArgs">
+        ///     The <see cref="ObservableCollectionChangedEventArgs{T}" /> instance
         ///     containing the event data.
         /// </param>
-        protected virtual void RaiseReactiveCollectionChanged(ReactiveCollectionChangedEventArgs<T> reactiveCollectionChangedEventArgs)
+        protected virtual void RaiseObservableCollectionChanged(ObservableCollectionChangedEventArgs<T> observableCollectionChangedEventArgs)
         {
-            if (reactiveCollectionChangedEventArgs == null) throw new ArgumentNullException(nameof(reactiveCollectionChangedEventArgs));
+            if (observableCollectionChangedEventArgs == null) throw new ArgumentNullException(nameof(observableCollectionChangedEventArgs));
 
             if (IsDisposed || IsDisposing)
                 return;
 
-            Scheduler.Schedule(() => _reactiveCollectionChanged?.Invoke(this, reactiveCollectionChangedEventArgs));
+            Scheduler.Schedule(() => _observableCollectionChanged?.Invoke(this, observableCollectionChangedEventArgs));
         }
 
         #endregion

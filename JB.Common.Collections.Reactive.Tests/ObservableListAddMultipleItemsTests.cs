@@ -8,7 +8,7 @@ using Xunit;
 
 namespace JB.Collections.Reactive.Tests
 {
-    public class ReactiveListAddMultipleItemsTests
+    public class ObservableListAddMultipleItemsTests
     {
         [Theory]
         [InlineData(0, 10)]
@@ -21,18 +21,18 @@ namespace JB.Collections.Reactive.Tests
             var testScheduler = new TestScheduler();
             var testObserver = testScheduler.CreateObserver<int>();
 
-            using (var reactiveList = new ReactiveList<int>())
+            using (var observableList = new ObservableList<int>())
             {
                 // when
-                reactiveList.ThresholdAmountWhenItemChangesAreNotifiedAsReset = rangeToAdd.Count + 1;
-                reactiveList.CountChanges.Subscribe(testObserver);
+                observableList.ThresholdAmountWhenItemChangesAreNotifiedAsReset = rangeToAdd.Count + 1;
+                observableList.CountChanges.Subscribe(testObserver);
 
-                testScheduler.Schedule(TimeSpan.FromTicks(100), () => { reactiveList.AddRange(rangeToAdd); });
+                testScheduler.Schedule(TimeSpan.FromTicks(100), () => { observableList.AddRange(rangeToAdd); });
                 testScheduler.Start();
 
                 // then
                 testObserver.Messages.Count.Should().Be(rangeToAdd.Count);
-                reactiveList.Count.Should().Be(rangeToAdd.Count);
+                observableList.Count.Should().Be(rangeToAdd.Count);
             }
         }
 
@@ -45,21 +45,21 @@ namespace JB.Collections.Reactive.Tests
             // given
             var rangeToAdd = Enumerable.Range(lowerLimit, upperLimit - lowerLimit + 1).ToList();
             var testScheduler = new TestScheduler();
-            var testObserver = testScheduler.CreateObserver<IReactiveCollectionChange<int>>();
+            var testObserver = testScheduler.CreateObserver<IObservableCollectionChange<int>>();
 
-            using (var reactiveList = new ReactiveList<int>())
+            using (var observableList = new ObservableList<int>())
             {
                 // when
-                reactiveList.ThresholdAmountWhenItemChangesAreNotifiedAsReset = rangeToAdd.Count + 1;
-                reactiveList.CollectionChanges.Subscribe(testObserver);
+                observableList.ThresholdAmountWhenItemChangesAreNotifiedAsReset = rangeToAdd.Count + 1;
+                observableList.CollectionChanges.Subscribe(testObserver);
 
-                testScheduler.Schedule(TimeSpan.FromTicks(100), () => { reactiveList.AddRange(rangeToAdd); });
+                testScheduler.Schedule(TimeSpan.FromTicks(100), () => { observableList.AddRange(rangeToAdd); });
                 testScheduler.Start();
 
                 // then
                 testObserver.Messages.Count.Should().Be(rangeToAdd.Count);
                 testObserver.Messages.Select(message => message.Value.Value.Item).ToList().ShouldAllBeEquivalentTo(rangeToAdd);
-                reactiveList.Count.Should().Be(rangeToAdd.Count);
+                observableList.Count.Should().Be(rangeToAdd.Count);
             }
         }
 
@@ -72,26 +72,26 @@ namespace JB.Collections.Reactive.Tests
             // given
             var rangeToAdd = Enumerable.Range(lowerLimit, upperLimit - lowerLimit + 1).ToList();
             var testScheduler = new TestScheduler();
-            var testObserverCollectionChanges = testScheduler.CreateObserver<IReactiveCollectionChange<int>>();
+            var testObserverCollectionChanges = testScheduler.CreateObserver<IObservableCollectionChange<int>>();
             var testObserverResets = testScheduler.CreateObserver<Unit>();
 
-            using (var reactiveList = new ReactiveList<int>())
+            using (var observableList = new ObservableList<int>())
             {
                 // when
-                reactiveList.ThresholdAmountWhenItemChangesAreNotifiedAsReset = 0;
+                observableList.ThresholdAmountWhenItemChangesAreNotifiedAsReset = 0;
 
-                reactiveList.CollectionChanges.Subscribe(testObserverCollectionChanges);
-                reactiveList.Resets.Subscribe(testObserverResets);
+                observableList.CollectionChanges.Subscribe(testObserverCollectionChanges);
+                observableList.Resets.Subscribe(testObserverResets);
 
-                testScheduler.Schedule(TimeSpan.FromTicks(100), () => { reactiveList.AddRange(rangeToAdd); });
+                testScheduler.Schedule(TimeSpan.FromTicks(100), () => { observableList.AddRange(rangeToAdd); });
                 testScheduler.Start();
 
                 // then
-                var shouldBeReset = rangeToAdd.Count >= reactiveList.ThresholdAmountWhenItemChangesAreNotifiedAsReset;
+                var shouldBeReset = rangeToAdd.Count >= observableList.ThresholdAmountWhenItemChangesAreNotifiedAsReset;
                 testObserverCollectionChanges.Messages.Count.Should().Be(shouldBeReset ? 1 : rangeToAdd.Count);
                 testObserverCollectionChanges.Messages.Should()
                     .Match(recordedMessages =>
-                        recordedMessages.All(message => message.Value.Value.ChangeType == (shouldBeReset ? ReactiveCollectionChangeType.Reset : ReactiveCollectionChangeType.ItemAdded)));
+                        recordedMessages.All(message => message.Value.Value.ChangeType == (shouldBeReset ? ObservableCollectionChangeType.Reset : ObservableCollectionChangeType.ItemAdded)));
 
                 testObserverResets.Messages.Count.Should().Be(shouldBeReset ? 1 : 0);
             } 
@@ -108,19 +108,19 @@ namespace JB.Collections.Reactive.Tests
             var testScheduler = new TestScheduler();
             var testObserver = testScheduler.CreateObserver<int>();
 
-            using (var reactiveList = new ReactiveList<int>())
+            using (var observableList = new ObservableList<int>())
             {
                 // when
-                reactiveList.ThresholdAmountWhenItemChangesAreNotifiedAsReset = 0;
-                reactiveList.CountChanges.Subscribe(testObserver);
+                observableList.ThresholdAmountWhenItemChangesAreNotifiedAsReset = 0;
+                observableList.CountChanges.Subscribe(testObserver);
 
-                testScheduler.Schedule(TimeSpan.FromTicks(100), () => { reactiveList.AddRange(rangeToAdd); });
+                testScheduler.Schedule(TimeSpan.FromTicks(100), () => { observableList.AddRange(rangeToAdd); });
                 testScheduler.Start();
 
                 // then
                 testObserver.Messages.Count.Should().Be(1);
                 testObserver.Messages.Last().Should().NotBeNull();
-                testObserver.Messages.Last().Value.Value.Should().Be(reactiveList.Count);
+                testObserver.Messages.Last().Value.Value.Should().Be(observableList.Count);
             }
         }
     }

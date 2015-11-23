@@ -1,6 +1,6 @@
 namespace JB.Collections.Reactive
 {
-    public interface IReactiveDictionaryChange<out TKey, out TValue>
+    public interface IObservableDictionaryChange<out TKey, out TValue>
     {
         /// <summary>
         /// Gets the type of the change.
@@ -8,7 +8,7 @@ namespace JB.Collections.Reactive
         /// <value>
         /// The type of the change.
         /// </value>
-        ReactiveDictionaryChangeType ChangeType { get; }
+        ObservableDictionaryChangeType ChangeType { get; }
 
         /// <summary>
         /// Gets the key of the (changed) item.

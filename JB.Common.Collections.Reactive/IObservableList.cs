@@ -1,5 +1,5 @@
 ﻿// -----------------------------------------------------------------------
-// <copyright file="IReactiveList.cs" company="Joerg Battermann">
+// <copyright file="IObservableList.cs" company="Joerg Battermann">
 //   Copyright (c) 2015 Joerg Battermann. All rights reserved.
 // </copyright>
 // <author>Joerg Battermann</author>
@@ -11,7 +11,7 @@ using System.Collections.Generic;
 
 namespace JB.Collections.Reactive
 {
-	public interface IReactiveList<T> : IReactiveCollection<T>, IList<T>, ICollection<T>, IEnumerable<T>,
+	public interface IObservableList<T> : IObservableCollection<T>, IList<T>, ICollection<T>, IEnumerable<T>,
 		ICollection, IEnumerable, IList
     {
 		 

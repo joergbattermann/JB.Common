@@ -1,6 +1,6 @@
 namespace JB.Collections.Reactive
 {
-    public enum ReactiveDictionaryChangeType
+    public enum ObservableDictionaryChangeType
     {
         /// <summary>
         /// One Item has been added.

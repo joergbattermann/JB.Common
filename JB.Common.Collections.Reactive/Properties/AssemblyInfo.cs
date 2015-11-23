@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle("JB.Common.Collections.Reactive")]
-[assembly: AssemblyDescription("Contains RX.Net / ReactiveUI helpers related to JB.Common.Collections")]
+[assembly: AssemblyDescription("Contains Reactive- / Observable Collections and related helpers")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyProduct("JB.Common.Collections.Reactive")]
 [assembly: AssemblyCulture("")]

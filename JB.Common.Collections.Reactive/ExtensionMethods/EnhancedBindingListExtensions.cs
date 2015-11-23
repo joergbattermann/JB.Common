@@ -22,53 +22,54 @@ namespace JB.Collections.Reactive.ExtensionMethods
 	public static class EnhancedBindingListExtensions
 	{
         /// <summary>
-        /// Forwards the <paramref name="sourceBindingList" /> changes to the <paramref name="targetReactiveLists" />.
+        /// Forwards the <paramref name="sourceBindingList" /> changes to the <paramref name="targetObservableLists" />.
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="sourceBindingList">The source binding list.</param>
-        /// <param name="targetReactiveLists">The target reactive lists.</param>
-        /// <param name="includeItemChanges">if set to <c>true</c> individual items' changes will be propagated to the <paramref name="targetReactiveLists" />
+        /// <param name="targetObservableLists">The target observable lists.</param>
+        /// <param name="includeItemChanges">if set to <c>true</c> individual items' changes will be propagated to the <paramref name="targetObservableLists" />
         /// via replacing the item completely.</param>
-        /// <param name="includeMoves">if set to <c>true</c> move operations will be replicated to the <paramref name="targetReactiveLists"/>.</param>
-        /// <exception cref="System.ArgumentNullException">sourceReactiveList
+        /// <param name="includeMoves">if set to <c>true</c> move operations will be replicated to the <paramref name="targetObservableLists"/>.</param>
+        /// <exception cref="System.ArgumentNullException">sourceBindingList
         /// or
-        /// targetBindingList</exception>
+        /// targetObservableLists</exception>
         /// <exception cref="System.InvalidOperationException">Source and Target Lists must contain exactly the same element(s) at
         /// the exact same index position(s)</exception>
         public static IDisposable ForwardListChangesTo<T>(this EnhancedBindingList<T> sourceBindingList,
             bool includeItemChanges = false,
             bool includeMoves = false,
-            params ReactiveList<T>[] targetReactiveLists)
+            params ObservableList<T>[] targetObservableLists)
 		{
 			if (sourceBindingList == null) throw new ArgumentNullException(nameof(sourceBindingList));
-			if (targetReactiveLists == null) throw new ArgumentNullException(nameof(targetReactiveLists));
+			if (targetObservableLists == null) throw new ArgumentNullException(nameof(targetObservableLists));
 
-			if (targetReactiveLists.Length <= 0) throw new ArgumentOutOfRangeException(nameof(targetReactiveLists));
+			if (targetObservableLists.Length <= 0) throw new ArgumentOutOfRangeException(nameof(targetObservableLists));
 
-			return new CompositeDisposable(targetReactiveLists.Select(targetBindingList => sourceBindingList.ForwardListChangesTo(targetBindingList, includeItemChanges, includeMoves)));
+			return new CompositeDisposable(targetObservableLists.Select(targetBindingList => sourceBindingList.ForwardListChangesTo(targetBindingList, includeItemChanges, includeMoves)));
 		}
 
         /// <summary>
-        /// Forwards the <paramref name="sourceBindingList" /> changes to the <paramref name="targetReactiveList" />.
+        /// Forwards the <paramref name="sourceBindingList" /> changes to the <paramref name="targetObservableList" />.
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="sourceBindingList">The source binding list.</param>
-        /// <param name="targetReactiveList">The target reactive list.</param>
-        /// <param name="includeItemChanges">if set to <c>true</c> individual items' changes will be propagated to the <paramref name="targetReactiveList" /> via replacing the item completely.</param>
-        /// <param name="includeMoves">if set to <c>true</c> move operations will be replicated to the <paramref name="targetReactiveList"/>.</param>
-        /// <exception cref="System.ArgumentNullException">sourceReactiveList
+        /// <param name="targetObservableList">The target observable list.</param>
+        /// <param name="includeItemChanges">if set to <c>true</c> individual items' changes will be propagated to the
+        /// <paramref name="targetObservableList" /> via replacing the item completely.</param>
+        /// <param name="includeMoves">if set to <c>true</c> move operations will be replicated to the <paramref name="targetObservableList"/>.</param>
+        /// <exception cref="System.ArgumentNullException">sourceBindingList
         /// or
-        /// targetBindingList</exception>
+        /// targetObservableList</exception>
         /// <exception cref="System.InvalidOperationException">Source and Target Lists must contain exactly the same element(s) at
         /// the exact same index position(s) when using <paramref name="includeMoves"/>.</exception>
-        public static IDisposable ForwardListChangesTo<T>(this EnhancedBindingList<T> sourceBindingList, ReactiveList<T> targetReactiveList, bool includeItemChanges = false, bool includeMoves = false)
+        public static IDisposable ForwardListChangesTo<T>(this EnhancedBindingList<T> sourceBindingList, ObservableList<T> targetObservableList, bool includeItemChanges = false, bool includeMoves = false)
 		{
 			if (sourceBindingList == null) throw new ArgumentNullException(nameof(sourceBindingList));
-			if (targetReactiveList == null) throw new ArgumentNullException(nameof(targetReactiveList));
+			if (targetObservableList == null) throw new ArgumentNullException(nameof(targetObservableList));
 
-			if (includeMoves && (sourceBindingList.Except(targetReactiveList, EqualityComparer<T>.Default).Any()
-				|| targetReactiveList.Except(sourceBindingList, EqualityComparer<T>.Default).Any()
-				|| sourceBindingList.Any(element => sourceBindingList.IndexOf(element) != targetReactiveList.IndexOf(element))))
+			if (includeMoves && (sourceBindingList.Except(targetObservableList, EqualityComparer<T>.Default).Any()
+				|| targetObservableList.Except(sourceBindingList, EqualityComparer<T>.Default).Any()
+				|| sourceBindingList.Any(element => sourceBindingList.IndexOf(element) != targetObservableList.IndexOf(element))))
 			{
 				throw new InvalidOperationException("Source and Target Lists must contain exactly the same element(s) at the exact same index position(s)");
 			}
@@ -76,7 +77,7 @@ namespace JB.Collections.Reactive.ExtensionMethods
 			return Observable.FromEventPattern<ListChangedEventHandler, ListChangedEventArgs>(
 				handler => sourceBindingList.ListChanged += handler,
 				handler => sourceBindingList.ListChanged -= handler)
-				.Subscribe(eventPattern => OnNextListChanged(eventPattern, targetReactiveList, includeItemChanges, includeMoves));
+				.Subscribe(eventPattern => OnNextListChanged(eventPattern, targetObservableList, includeItemChanges, includeMoves));
 		}
 
         /// <summary>
@@ -84,7 +85,7 @@ namespace JB.Collections.Reactive.ExtensionMethods
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="eventPattern">The event pattern.</param>
-        /// <param name="targetReactiveList">The target reactive list.</param>
+        /// <param name="targetObservableList">The target observable list.</param>
         /// <param name="includeItemChanges">if set to <c>true</c> includes item changes.</param>
         /// <param name="includeMoves">if set to <c>true</c> includes move operations.</param>
         /// <exception cref="System.ArgumentNullException">
@@ -92,10 +93,10 @@ namespace JB.Collections.Reactive.ExtensionMethods
         /// <exception cref="System.ArgumentOutOfRangeException">eventPattern
         /// or
         /// eventPattern</exception>
-        private static void OnNextListChanged<T>(EventPattern<ListChangedEventArgs> eventPattern, ReactiveList<T> targetReactiveList, bool includeItemChanges = false, bool includeMoves = false)
+        private static void OnNextListChanged<T>(EventPattern<ListChangedEventArgs> eventPattern, ObservableList<T> targetObservableList, bool includeItemChanges = false, bool includeMoves = false)
 		{
 			if (eventPattern == null) throw new ArgumentNullException(nameof(eventPattern));
-			if (targetReactiveList == null) throw new ArgumentNullException(nameof(targetReactiveList));
+			if (targetObservableList == null) throw new ArgumentNullException(nameof(targetObservableList));
 
 			var senderAsBindingList = eventPattern.Sender as BindingList<T>;
 
@@ -106,15 +107,15 @@ namespace JB.Collections.Reactive.ExtensionMethods
 			{
 				case ListChangedType.ItemAdded:
 					{
-						targetReactiveList.Add(senderAsBindingList[eventPattern.EventArgs.NewIndex]);
+						targetObservableList.Add(senderAsBindingList[eventPattern.EventArgs.NewIndex]);
 						break;
 					}
 				case ListChangedType.ItemChanged:
 					{
 						if (includeItemChanges)
 						{
-							var itemAtPosition = targetReactiveList[eventPattern.EventArgs.NewIndex];
-							targetReactiveList[eventPattern.EventArgs.NewIndex] = itemAtPosition;
+							var itemAtPosition = targetObservableList[eventPattern.EventArgs.NewIndex];
+							targetObservableList[eventPattern.EventArgs.NewIndex] = itemAtPosition;
 						}
 						// ToDo: .. for now.. do nothing?
 						break;
@@ -123,7 +124,7 @@ namespace JB.Collections.Reactive.ExtensionMethods
 					{
 					    if (includeMoves)
 					    {
-					        targetReactiveList.Move(eventPattern.EventArgs.OldIndex, eventPattern.EventArgs.NewIndex);
+					        targetObservableList.Move(eventPattern.EventArgs.OldIndex, eventPattern.EventArgs.NewIndex);
 					    }
 						break;
 					}
@@ -133,16 +134,16 @@ namespace JB.Collections.Reactive.ExtensionMethods
 						if (itemRemovedListChangedEventArgs == null)
 							throw new ArgumentOutOfRangeException(nameof(eventPattern));
 
-						targetReactiveList.Remove(itemRemovedListChangedEventArgs.Item);
+						targetObservableList.Remove(itemRemovedListChangedEventArgs.Item);
 						break;
 					}
 
 				case ListChangedType.Reset:
 					{
-						using (targetReactiveList.SuppressCollectionChangedNotifications(true))
+						using (targetObservableList.SuppressCollectionChangedNotifications(true))
 						{
-							targetReactiveList.Clear();
-							targetReactiveList.AddRange(senderAsBindingList);
+							targetObservableList.Clear();
+							targetObservableList.AddRange(senderAsBindingList);
 						}
 						break;
 					}

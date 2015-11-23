@@ -5,7 +5,7 @@ namespace JB.Collections.Reactive
     /// <summary>
     /// Classes implementing this interface provide an <see cref="CountChanges">observable stream</see> of changes to the instances .Count value.
     /// </summary>
-    public interface IProvideCountChangedObservation
+    public interface INotifyObservableCountChanged
     {
         /// <summary>
         /// Gets a value indicating whether this instance signals changes to its items' count.

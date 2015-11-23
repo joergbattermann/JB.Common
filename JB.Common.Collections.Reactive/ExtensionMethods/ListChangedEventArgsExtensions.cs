@@ -15,7 +15,7 @@ namespace JB.Collections.Reactive.ExtensionMethods
     public static class ListChangedEventArgsExtensions
     {
         /// <summary>
-        /// Converts the given <paramref name="listChangedEventArgs"/> and converts it to its <see cref="IReactiveCollectionChange{T}"/> counterpart..
+        /// Converts the given <paramref name="listChangedEventArgs"/> and converts it to its <see cref="IObservableCollectionChange{T}"/> counterpart..
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="listChangedEventArgs">The <see cref="ListChangedEventArgs"/> instance containing the event data.</param>
@@ -23,41 +23,41 @@ namespace JB.Collections.Reactive.ExtensionMethods
         /// <returns></returns>
         /// <exception cref="System.ArgumentNullException">
         /// </exception>
-        public static IReactiveCollectionChange<T> ToReactiveCollectionChange<T>(this ListChangedEventArgs listChangedEventArgs, IList<T> sender)
+        public static IObservableCollectionChange<T> ToObservableCollectionChange<T>(this ListChangedEventArgs listChangedEventArgs, IList<T> sender)
         {
             if (listChangedEventArgs == null) throw new ArgumentNullException(nameof(listChangedEventArgs));
             if (sender == null) throw new ArgumentNullException(nameof(sender));
 
-            IReactiveCollectionChange<T> reactiveCollectionChange;
+            IObservableCollectionChange<T> observableCollectionChange;
             switch (listChangedEventArgs.ListChangedType)
             {
                 case ListChangedType.ItemAdded:
-                    reactiveCollectionChange = new ReactiveCollectionChange<T>(ReactiveCollectionChangeType.ItemAdded, sender[listChangedEventArgs.NewIndex], listChangedEventArgs.NewIndex);
+                    observableCollectionChange = new ObservableCollectionChange<T>(ObservableCollectionChangeType.ItemAdded, sender[listChangedEventArgs.NewIndex], listChangedEventArgs.NewIndex);
                     break;
                 case ListChangedType.ItemChanged:
-                    reactiveCollectionChange = new ReactiveCollectionChange<T>(ReactiveCollectionChangeType.ItemChanged, sender[listChangedEventArgs.NewIndex], listChangedEventArgs.NewIndex, listChangedEventArgs.OldIndex);
+                    observableCollectionChange = new ObservableCollectionChange<T>(ObservableCollectionChangeType.ItemChanged, sender[listChangedEventArgs.NewIndex], listChangedEventArgs.NewIndex, listChangedEventArgs.OldIndex);
                     break;
                 case ListChangedType.ItemMoved:
-                    reactiveCollectionChange = new ReactiveCollectionChange<T>(ReactiveCollectionChangeType.ItemMoved, sender[listChangedEventArgs.NewIndex], listChangedEventArgs.NewIndex, listChangedEventArgs.OldIndex);
+                    observableCollectionChange = new ObservableCollectionChange<T>(ObservableCollectionChangeType.ItemMoved, sender[listChangedEventArgs.NewIndex], listChangedEventArgs.NewIndex, listChangedEventArgs.OldIndex);
                     break;
                 case ListChangedType.ItemDeleted:
                     {
                         var itemDeletedListChangedEventArgs = (listChangedEventArgs as ItemDeletedListChangedEventArgs<T>);
-                        reactiveCollectionChange = itemDeletedListChangedEventArgs != null
-                            ? new ReactiveCollectionChange<T>(ReactiveCollectionChangeType.ItemRemoved, itemDeletedListChangedEventArgs.Item, listChangedEventArgs.NewIndex, listChangedEventArgs.OldIndex)
-                            : new ReactiveCollectionChange<T>(ReactiveCollectionChangeType.ItemRemoved, default(T), -1, listChangedEventArgs.NewIndex);
+                        observableCollectionChange = itemDeletedListChangedEventArgs != null
+                            ? new ObservableCollectionChange<T>(ObservableCollectionChangeType.ItemRemoved, itemDeletedListChangedEventArgs.Item, listChangedEventArgs.NewIndex, listChangedEventArgs.OldIndex)
+                            : new ObservableCollectionChange<T>(ObservableCollectionChangeType.ItemRemoved, default(T), -1, listChangedEventArgs.NewIndex);
 
                         break;
                     }
                 case ListChangedType.Reset:
-                    reactiveCollectionChange = new ReactiveCollectionChange<T>(ReactiveCollectionChangeType.Reset);
+                    observableCollectionChange = new ObservableCollectionChange<T>(ObservableCollectionChangeType.Reset);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(listChangedEventArgs), $"Only {ListChangedType.ItemAdded}, {ListChangedType.ItemChanged}, {ListChangedType.ItemMoved}, {ListChangedType.ItemDeleted} and {ListChangedType.Reset} are supported.");
 
             }
 
-            return reactiveCollectionChange;
+            return observableCollectionChange;
         }
     }
 }
