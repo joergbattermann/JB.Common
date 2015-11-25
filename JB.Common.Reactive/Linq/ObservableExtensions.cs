@@ -9,6 +9,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reactive;
+using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 
 namespace JB.Reactive.Linq
@@ -18,6 +20,335 @@ namespace JB.Reactive.Linq
     /// </summary>
     public static class ObservableExtensions
     {
+        /// <summary>
+        /// Takes a source observable and splits its sequence forwarding into two target observers based on a given <paramref name="predicate"/> condition.
+        /// </summary>
+        /// <typeparam name="TSource">The type of the elements in the source sequence.</typeparam>
+        /// <param name="source">The source sequence.</param>
+        /// <param name="predicate">A function to test each element for a condition whether to pipe the value into <paramref name="targetForTrue"/> or <paramref name="targetForFalse"/>.</param>
+        /// <param name="targetForTrue">The target observer if <paramref name="predicate"/> returned [true].</param>
+        /// <param name="targetForFalse">The target observer if <paramref name="predicate"/> returned [false].</param>
+        /// <param name="scheduler">The scheduler to schedule observer notifications on, if any.</param>
+        /// <returns></returns>
+        public static IDisposable Split<TSource>(this IObservable<TSource> source,
+            Func<TSource, bool> predicate,
+            IObserver<TSource> targetForTrue,
+            IObserver<TSource> targetForFalse,
+            IScheduler scheduler = null)
+        {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            if (predicate == null) throw new ArgumentNullException(nameof(predicate));
+            if (targetForTrue == null) throw new ArgumentNullException(nameof(targetForTrue));
+            if (targetForFalse == null) throw new ArgumentNullException(nameof(targetForFalse));
+
+            var actualTargetForTrue = scheduler != null
+                ? targetForTrue.NotifyOn(scheduler)
+                : targetForTrue;
+
+            var actualTargetForFalse = scheduler != null
+                ? targetForFalse.NotifyOn(scheduler)
+                : targetForFalse;
+
+            return source.Subscribe(value =>
+            {
+                if (predicate.Invoke(value) == true)
+                {
+                    actualTargetForTrue.OnNext(value);
+                }
+                else
+                {
+                    actualTargetForFalse.OnNext(value);
+                }
+            },
+            exception =>
+            {
+                actualTargetForTrue.OnError(exception);
+                actualTargetForFalse.OnError(exception);
+            },
+            () =>
+            {
+                actualTargetForTrue.OnCompleted();
+                actualTargetForFalse.OnCompleted();
+            });
+        }
+
+        /// <summary>
+        /// Takes a source observable and forwards its sequence into target observers.
+        /// </summary>
+        /// <typeparam name="TSource">The type of the elements in the source sequence.</typeparam>
+        /// <param name="source">The source sequence.</param>
+        /// <param name="targetObservers">The target observers to forward the sequence to.</param>
+        /// <returns>An <see cref="IDisposable"/> representing the inner forwarding <paramref name="source"/> subscription.</returns>
+        /// <exception cref="System.ArgumentNullException">
+        /// </exception>
+        public static IDisposable Split<TSource>(this IObservable<TSource> source, params IObserver<TSource>[] targetObservers)
+        {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            if (targetObservers == null) throw new ArgumentNullException(nameof(targetObservers));
+
+            return source.Subscribe(value =>
+            {
+                foreach (var targetObserver in targetObservers)
+                {
+                    targetObserver.OnNext(value);
+                }
+            },
+            exception =>
+            {
+                foreach (var targetObserver in targetObservers)
+                {
+                    targetObserver.OnError(exception);
+                }
+            },
+            () =>
+            {
+                foreach (var targetObserver in targetObservers)
+                {
+                    targetObserver.OnCompleted();
+                }
+            });
+        }
+
+        /// <summary>
+        /// Takes a source observable and forwards its sequence into target observers.
+        /// </summary>
+        /// <typeparam name="TSource">The type of the elements in the source sequence.</typeparam>
+        /// <param name="source">The source sequence.</param>
+        /// <param name="targetObservers">The target observers to forward the sequence to.</param>
+        /// <param name="scheduler">The scheduler to schedule observer notifications on, if any.</param>
+        /// <returns>
+        /// An <see cref="IDisposable" /> representing the inner forwarding <paramref name="source" /> subscription.
+        /// </returns>
+        /// <exception cref="System.ArgumentNullException">
+        /// </exception>
+        public static IDisposable Split<TSource>(this IObservable<TSource> source, IEnumerable<IObserver<TSource>> targetObservers, IScheduler scheduler = null)
+        {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            if (targetObservers == null) throw new ArgumentNullException(nameof(targetObservers));
+
+            var actualTargetObservers = scheduler != null
+                ? targetObservers.Select(targetObserver => targetObserver.NotifyOn(scheduler)).ToList()
+                : targetObservers.ToList();
+
+            return source.Subscribe(value =>
+            {
+                foreach (var targetObserver in actualTargetObservers)
+                {
+                    targetObserver.OnNext(value);
+                }
+            },
+            exception =>
+            {
+                foreach (var targetObserver in actualTargetObservers)
+                {
+                    targetObserver.OnError(exception);
+                }
+            },
+            () =>
+            {
+                foreach (var targetObserver in actualTargetObservers)
+                {
+                    targetObserver.OnCompleted();
+                }
+            });
+        }
+
+        /// <summary>
+        /// Takes a source observable and forwards its sequence into target observers.
+        /// </summary>
+        /// <typeparam name="TSource">The type of the elements in the source sequence.</typeparam>
+        /// <param name="source">The source sequence.</param>
+        /// <param name="scheduler">The scheduler to schedule observer notifications on.</param>
+        /// <param name="targetObservers">The target observers to forward the sequence to.</param>
+        /// <returns>An <see cref="IDisposable"/> representing the inner forwarding <paramref name="source"/> subscription.</returns>
+        /// <exception cref="System.ArgumentNullException">
+        /// </exception>
+        public static IDisposable Split<TSource>(this IObservable<TSource> source, IScheduler scheduler, params IObserver<TSource>[] targetObservers)
+        {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            if (scheduler == null) throw new ArgumentNullException(nameof(scheduler));
+            if (targetObservers == null) throw new ArgumentNullException(nameof(targetObservers));
+
+            var actualTargetObservers = targetObservers.Select(targetObserver => targetObserver.NotifyOn(scheduler)).ToList();
+            return source.Subscribe(value =>
+            {
+                foreach (var targetObserver in actualTargetObservers)
+                {
+                    targetObserver.OnNext(value);
+                }
+            },
+            exception =>
+            {
+                foreach (var targetObserver in actualTargetObservers)
+                {
+                    targetObserver.OnError(exception);
+                }
+            },
+            () =>
+            {
+                foreach (var targetObserver in actualTargetObservers)
+                {
+                    targetObserver.OnCompleted();
+                }
+            });
+        }
+
+        /// <summary>
+        /// Takes a source observable and forwards its sequence into target observers and returns the raw sequence back again.
+        /// </summary>
+        /// <typeparam name="TSource">The type of the elements in the source sequence.</typeparam>
+        /// <param name="source">The source sequence.</param>
+        /// <param name="targetObservers">The target observers to forward the sequence to.</param>
+        /// <returns>A new <see cref="IObservable{TSource}"/> providing the full <paramref name="source"/> sequence</returns>
+        /// <exception cref="System.ArgumentNullException">
+        /// </exception>
+        public static IObservable<TSource> Forward<TSource>(this IObservable<TSource> source, params IObserver<TSource>[] targetObservers)
+        {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            if (targetObservers == null) throw new ArgumentNullException(nameof(targetObservers));
+
+            return Observable.Create<TSource>(observer =>
+            {
+                var subscription = source.Subscribe(value =>
+                {
+                    foreach (var targetObserver in targetObservers)
+                    {
+                        targetObserver.OnNext(value);
+                    }
+
+                    observer.OnNext(value);
+                },
+                exception =>
+                {
+                    foreach (var targetObserver in targetObservers)
+                    {
+                        targetObserver.OnError(exception);
+                    }
+
+                    observer.OnError(exception);
+                },
+                () =>
+                {
+                    foreach (var targetObserver in targetObservers)
+                    {
+                        targetObserver.OnCompleted();
+                    }
+
+                    observer.OnCompleted();
+                });
+
+                return () => subscription.Dispose();
+            });
+        }
+        
+        /// <summary>
+        /// Takes a source observable and forwards its sequence into target observers and returns the raw sequence back again..
+        /// </summary>
+        /// <typeparam name="TSource">The type of the elements in the source sequence.</typeparam>
+        /// <param name="source">The source sequence.</param>
+        /// <param name="scheduler">The scheduler to schedule observer notifications on.</param>
+        /// <param name="targetObservers">The target observers.</param>
+        /// <returns>
+        /// A new <see cref="IObservable{TSource}" /> providing the full <paramref name="source" /> sequence
+        /// </returns>
+        /// <exception cref="System.ArgumentNullException">
+        /// </exception>
+        public static IObservable<TSource> Forward<TSource>(this IObservable<TSource> source, IScheduler scheduler, params IObserver<TSource>[] targetObservers)
+        {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            if (scheduler == null) throw new ArgumentNullException(nameof(scheduler));
+            if (targetObservers == null) throw new ArgumentNullException(nameof(targetObservers));
+
+            return Observable.Create<TSource>(observer =>
+            {
+                var actualTargetObservers = targetObservers.Select(targetObserver => targetObserver.NotifyOn(scheduler)).ToList();
+                var subscription = source.Subscribe(value =>
+                {
+                    foreach (var actualTargetObserver in actualTargetObservers)
+                    {
+                        actualTargetObserver.OnNext(value);
+                    }
+
+                    observer.OnNext(value);
+                },
+                exception =>
+                {
+                    foreach (var actualTargetObserver in actualTargetObservers)
+                    {
+                        actualTargetObserver.OnError(exception);
+                    }
+
+                    observer.OnError(exception);
+                },
+                () =>
+                {
+                    foreach (var actualTargetObserver in actualTargetObservers)
+                    {
+                        actualTargetObserver.OnCompleted();
+                    }
+
+                    observer.OnCompleted();
+                });
+
+                return () => subscription.Dispose();
+            });
+        }
+
+        /// <summary>
+        /// Takes a source observable and forwards its sequence into target observers and returns the raw sequence back again..
+        /// </summary>
+        /// <typeparam name="TSource">The type of the elements in the source sequence.</typeparam>
+        /// <param name="source">The source sequence.</param>
+        /// <param name="scheduler">The scheduler to schedule observer notifications on, if any.</param>
+        /// <param name="targetObservers">The target observers.</param>
+        /// <returns>
+        /// A new <see cref="IObservable{TSource}" /> providing the full <paramref name="source" /> sequence
+        /// </returns>
+        /// <exception cref="System.ArgumentNullException">
+        /// </exception>
+        public static IObservable<TSource> Forward<TSource>(this IObservable<TSource> source, IEnumerable<IObserver<TSource>> targetObservers, IScheduler scheduler = null)
+        {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            if (targetObservers == null) throw new ArgumentNullException(nameof(targetObservers));
+
+            return Observable.Create<TSource>(observer =>
+            {
+                var actualTargetObservers = scheduler != null
+                    ? targetObservers.Select(targetObserver => targetObserver.NotifyOn(scheduler)).ToList()
+                    : targetObservers.ToList();
+
+                var subscription = source.Subscribe(value =>
+                {
+                    foreach (var actualTargetObserver in actualTargetObservers)
+                    {
+                        actualTargetObserver.OnNext(value);
+                    }
+
+                    observer.OnNext(value);
+                },
+                exception =>
+                {
+                    foreach (var actualTargetObserver in actualTargetObservers)
+                    {
+                        actualTargetObserver.OnError(exception);
+                    }
+
+                    observer.OnError(exception);
+                },
+                () =>
+                {
+                    foreach (var actualTargetObserver in actualTargetObservers)
+                    {
+                        actualTargetObserver.OnCompleted();
+                    }
+
+                    observer.OnCompleted();
+                });
+
+                return () => subscription.Dispose();
+            });
+        }
+
         /// <summary>
         /// Projects each element of an observable sequence into consecutive non-overlapping buffers which are produced based a specified condition OR when it is full.
         /// While the test is [true], the buffer will filled until the the source produces an element at the same time the condition is [false], the current buffer will be released.
@@ -67,7 +398,7 @@ namespace JB.Reactive.Linq
                         }
                     }
                 },
-                ex =>
+                exception =>
                 {
                     // release current buffer
                     if (currentBuffer.Count > 0)
@@ -80,7 +411,7 @@ namespace JB.Reactive.Linq
                         }
                     }
                     // then signal actual OnError event
-                    observer.OnError(ex);
+                    observer.OnError(exception);
 
                 },
                 () =>
@@ -152,7 +483,7 @@ namespace JB.Reactive.Linq
                         }
                     }
                 },
-                ex =>
+                exception =>
                 {
                     // release current buffer
                     if (currentBuffer.Count > 0)
@@ -165,7 +496,7 @@ namespace JB.Reactive.Linq
                         }
                     }
                     // then signal actual OnError event
-                    observer.OnError(ex);
+                    observer.OnError(exception);
 
                 },
                 () =>
@@ -234,7 +565,7 @@ namespace JB.Reactive.Linq
                         }
                     }
                 },
-                ex =>
+                exception =>
                 {
                     // release current buffer
                     if (currentBuffer.Count > 0)
@@ -247,7 +578,7 @@ namespace JB.Reactive.Linq
                         }
                     }
                     // then signal actual OnError event
-                    observer.OnError(ex);
+                    observer.OnError(exception);
 
                 },
                 () =>
@@ -316,7 +647,7 @@ namespace JB.Reactive.Linq
                         }
                     }
                 },
-                ex =>
+                exception =>
                 {
                     // release current buffer
                     if (currentBuffer.Count > 0)
@@ -329,7 +660,7 @@ namespace JB.Reactive.Linq
                         }
                     }
                     // then signal actual OnError event
-                    observer.OnError(ex);
+                    observer.OnError(exception);
 
                 },
                 () =>
@@ -375,7 +706,7 @@ namespace JB.Reactive.Linq
                     if (predicate.Invoke(value) == false)
                         observer.OnNext(value);
                 },
-                ex => observer.OnError(ex),
+                exception => observer.OnError(exception),
                 () => observer.OnCompleted());
 
                 return () => subscription.Dispose();
@@ -402,7 +733,7 @@ namespace JB.Reactive.Linq
                     if (predicate.Invoke() == false)
                         observer.OnNext(value);
                 },
-                ex => observer.OnError(ex),
+                exception => observer.OnError(exception),
                 () => observer.OnCompleted());
 
                 return () => subscription.Dispose();
@@ -432,7 +763,7 @@ namespace JB.Reactive.Linq
                     if (predicate.Invoke(value))
                         observer.OnNext(value);
                 },
-                ex => observer.OnError(ex),
+                exception => observer.OnError(exception),
                 () => observer.OnCompleted());
 
                 return () => subscription.Dispose();
@@ -459,7 +790,7 @@ namespace JB.Reactive.Linq
                     if (predicate.Invoke())
                         observer.OnNext(value);
                 },
-                ex => observer.OnError(ex),
+                exception => observer.OnError(exception),
                 () => observer.OnCompleted());
 
                 return () => subscription.Dispose();
