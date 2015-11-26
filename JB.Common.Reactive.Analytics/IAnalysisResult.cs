@@ -1,4 +1,4 @@
-﻿// -----------------------------------------------------------------------
+// -----------------------------------------------------------------------
 // <copyright file="IAnalysisResult.cs" company="Joerg Battermann">
 //   Copyright (c) 2015 Joerg Battermann. All rights reserved.
 // </copyright>
