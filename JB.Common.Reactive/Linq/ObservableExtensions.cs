@@ -30,7 +30,7 @@ namespace JB.Reactive.Linq
         /// <param name="targetForFalse">The target observer if <paramref name="predicate"/> returned [false].</param>
         /// <param name="scheduler">The scheduler to schedule observer notifications on, if any.</param>
         /// <returns></returns>
-        public static IDisposable TwoWaySplit<TSource>(this IObservable<TSource> source,
+        public static IDisposable SplitTwoWays<TSource>(this IObservable<TSource> source,
             Func<TSource, bool> predicate,
             IObserver<TSource> targetForTrue,
             IObserver<TSource> targetForFalse,
