@@ -61,8 +61,10 @@
       <Link>Properties\CommonAssemblyInfo.cs</Link>
     </Compile>
     <Compile Include="IAnalysisResult.cs" />
-    <Compile Include="IAnalytics.cs" />
+    <Compile Include="IAnalyticsProvider.cs" />
+    <Compile Include="IReceivingAnalyticsProvider.cs" />
     <Compile Include="IAnalyzer.cs" />
+    <Compile Include="IForwardingAnalyticsProvider.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
