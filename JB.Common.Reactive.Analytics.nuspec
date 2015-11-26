@@ -17,7 +17,7 @@
       <dependency id="JB.Common.Reactive" version="[$version$,]" />
       <dependency id="Rx-Main" version="[2.2.5,]" />
     </dependencies>
-    <tags>Reactive Extensions RXNet Analytics Insight</tags>
+    <tags>Reactive Extensions RXNet Streaming Analytics Insight</tags>
   </metadata>
   <files>
     <file src="JB.Common.Reactive.Analytics\bin\Release\JB.Common.Reactive.Analytics.dll" target="lib\net45" />
