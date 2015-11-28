@@ -157,7 +157,7 @@ namespace JB.Reactive.Threading
 		{
 			// check for incorrect entry once we have already been disposed
 			if (IsDisposed)
-				return Observable.Throw<ReaderWriterLock>(new ObjectDisposedException(nameof(AsyncReaderWriterLock)));
+				return Observable.Throw<ReaderWriterLock>(new ObjectDisposedException(this.GetType().Name));
 
 			// basically what happens here is we use the (concurrent) reader or (exclusive) handed in
 			// and schedule a new tpl task on it which merely wraps or contains chained IDisposable creation.
@@ -202,10 +202,7 @@ namespace JB.Reactive.Threading
 		public void Dispose()
 		{
 			// prevent re-entry
-			if (IsDisposed)
-				throw new ObjectDisposedException(nameof(AsyncReaderWriterLock));
-
-			if (IsDisposing)
+			if (IsDisposing || IsDisposed)
 				return;
 
 			IsDisposing = true;

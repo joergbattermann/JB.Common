@@ -1373,12 +1373,12 @@ namespace JB.Collections.Reactive
         {
             if (IsDisposing)
             {
-                throw new ObjectDisposedException("This instance is currently being disposed.");
+                throw new ObjectDisposedException(this.GetType().Name, "This instance is currently being disposed.");
             }
 
             if (IsDisposed)
             {
-                throw new ObjectDisposedException("This instance has been disposed.");
+                throw new ObjectDisposedException(this.GetType().Name);
             }
         }
 

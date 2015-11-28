@@ -6,10 +6,14 @@
 // <summary></summary>
 // -----------------------------------------------------------------------
 
-namespace JB.Reactive.Analytics
+namespace JB.Reactive.Analytics.AnalysisResults
 {
-    public interface IAnalysisResult<TSource>
+    /// <summary>
+    /// Represents a anaylsis result. These can be for one or more elements, a time span, date of time,
+    /// count of elements or any other scope the analysis was based on.
+    /// </summary>
+    public interface IAnalysisResult
     {
-         
+        
     }
 }
