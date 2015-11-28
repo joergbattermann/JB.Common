@@ -60,6 +60,8 @@
     <Compile Include="..\CommonAssemblyInfo.cs">
       <Link>Properties\CommonAssemblyInfo.cs</Link>
     </Compile>
+    <Compile Include="Analyzers\Analyzer.cs" />
+    <Compile Include="Analyzers\CountAnalyzer.cs" />
     <Compile Include="Providers\AnalyticsProvider.cs" />
     <Compile Include="AnalysisResults\IAnalysisResult.cs" />
     <Compile Include="Providers\IAnalyticsProvider.cs" />

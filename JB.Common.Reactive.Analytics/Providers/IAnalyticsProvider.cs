@@ -20,18 +20,6 @@ namespace JB.Reactive.Analytics.Providers
         /// The analysis results.
         /// </value>
         IObservable<IAnalysisResult> AnalysisResults { get; }
-
-        /// <summary>
-        /// Registers an analyzer with this instance that will be used in all future instance of the <typeparam name="TSource"/> sequence.
-        /// </summary>
-        /// <param name="analyzer">The analyzer.</param>
-        void RegisterAnalyzer(IAnalyzer<TSource> analyzer);
-
-        /// <summary>
-        /// De-registers the analyzer, does not affect currently ongoing analyses.
-        /// </summary>
-        /// <param name="analyzer">The analyzer.</param>
-        void DeregisterAnalyzer(IAnalyzer<TSource> analyzer);
     }
 
     /// <summary>
@@ -39,7 +27,7 @@ namespace JB.Reactive.Analytics.Providers
     /// </summary>
     /// <typeparam name="TSource">The type of the source.</typeparam>
     /// <typeparam name="TAnalysisResult">The type of the analysis result.</typeparam>
-    public interface IAnalyticsProvider<TSource, TAnalysisResult> : ISubject<TSource>
+    public interface IAnalyticsProvider<TSource, out TAnalysisResult> : ISubject<TSource>
         where TAnalysisResult : IAnalysisResult
     {
         /// <summary>
@@ -49,16 +37,5 @@ namespace JB.Reactive.Analytics.Providers
         /// The analysis results.
         /// </value>
         IObservable<TAnalysisResult> AnalysisResults { get; }
-
-        /// <summary>
-        /// Registers an analyzer with this instance that will be used in all future instance of the <typeparam name="TSource"/> sequence.
-        /// </summary>
-        /// <param name="analyzer">The analyzer.</param>
-        void RegisterAnalyzer(IAnalyzer<TSource, TAnalysisResult> analyzer);
-
-        /// <summary>
-        /// De-registers the analyzer, does not affect currently ongoing analyses.
-        /// </summary>
-        /// <param name="analyzer">The analyzer.</param>
-        void DeregisterAnalyzer(IAnalyzer<TSource, TAnalysisResult> analyzer);
     }
+}

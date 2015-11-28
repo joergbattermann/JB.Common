@@ -8,6 +8,8 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Reactive.Disposables;
 using System.Reactive.Subjects;
 using System.Threading;
 using JB.Reactive.Analytics.AnalysisResults;
@@ -25,11 +27,7 @@ namespace JB.Reactive.Analytics.Providers
         /// Backing field for the <see cref="Analyzers"/> property.
         /// </summary>
         private readonly List<IAnalyzer<TSource>> _analyzers;
-
-        /// <summary>
-        /// The locker object for accessing and modifying the <see cref="_analyzers"/> field.
-        /// </summary>
-        private readonly object _innerAnalyzersLock = new object();
+        private readonly object _analyzersLocker = new object();
 
         /// <summary>
         /// Gets the analyzers.
@@ -41,7 +39,7 @@ namespace JB.Reactive.Analytics.Providers
             {
                 CheckForAndThrowIfDisposed();
 
-                lock (_innerAnalyzersLock)
+                lock (_analyzersLocker)
                 {
                     return _analyzers.ToArray();
                 }
@@ -54,19 +52,19 @@ namespace JB.Reactive.Analytics.Providers
         /// <value>
         /// The source sequence subject.
         /// </value>
-        protected virtual Subject<TSource> SourceSequenceSubject
+        protected virtual Subject<TSource> SourceValuesForwarderSubject
         {
             get
             {
                 CheckForAndThrowIfDisposed();
 
-                return _sourceSequenceSubject;
+                return _sourceValuesForwarderSubject;
             }
             private set
             {
                 CheckForAndThrowIfDisposed();
 
-                _sourceSequenceSubject = value;
+                _sourceValuesForwarderSubject = value;
             }
         }
 
@@ -95,15 +93,64 @@ namespace JB.Reactive.Analytics.Providers
         /// <summary>
         /// Initializes a new instance of the <see cref="AnalyticsProvider{TSource}"/> class.
         /// </summary>
-        /// <param name="analyzers">The initial set of analyzers, if any.</param>
-        protected AnalyticsProvider(IEnumerable<IAnalyzer<TSource>> analyzers = null)
+        /// <param name="analyzers">The analyzers to use.</param>
+        protected AnalyticsProvider(IEnumerable<IAnalyzer<TSource>> analyzers)
         {
-            _analyzers = analyzers != null
-                ? new List<IAnalyzer<TSource>>(analyzers)
-                : new List<IAnalyzer<TSource>>();
+            if (analyzers == null) throw new ArgumentNullException(nameof(analyzers));
 
+            _analyzers = new List<IAnalyzer<TSource>>(analyzers);
+
+            SourceValuesForwarderSubject = new Subject<TSource>();
             AnalysisResultsSubject = new Subject<IAnalysisResult>();
-            SourceSequenceSubject = new Subject<TSource>();
+
+            SetupAnalyzerSubscriptions();
+        }
+
+        /// <summary>
+        /// Makes sure the <see cref="Analyzers"/> result sequence is forwarded.
+        /// </summary>
+        private void SetupAnalyzerSubscriptions()
+        {
+            _analyzersSubscription = new CompositeDisposable(Analyzers.Select(SubscribeToAnalyzer).ToList());
+        }
+
+        /// <summary>
+        /// Subscribes to the given analyzer.
+        /// </summary>
+        /// <param name="analyzer">The analyzer.</param>
+        /// <returns></returns>
+        /// <exception cref="System.ArgumentNullException"></exception>
+        private IDisposable SubscribeToAnalyzer(IAnalyzer<TSource> analyzer)
+        {
+            if (analyzer == null) throw new ArgumentNullException(nameof(analyzer));
+            
+            return analyzer.Subscribe(analysisResult =>
+            {
+                AnalysisResultsSubject.OnNext(analysisResult);
+            },
+            exception =>
+            {
+                AnalysisResultsSubject.OnError(exception);
+            },
+            () =>
+            {
+                // remove completed analyzers from underlying list
+                lock (_analyzersLocker)
+                {
+                    _analyzers.Remove(analyzer);
+                }
+            });
+        }
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="AnalyticsProvider{TSource}"/> class.
+        /// </summary>
+        /// <param name="analyzers">The analyzers to use.</param>
+        /// <exception cref="System.ArgumentNullException"></exception>
+        protected AnalyticsProvider(params IAnalyzer<TSource>[] analyzers)
+            : this(analyzers.ToList())
+        {
+            if (analyzers == null) throw new ArgumentNullException(nameof(analyzers));
         }
 
         #region Implementation of IObserver<in TSource>
@@ -114,7 +161,12 @@ namespace JB.Reactive.Analytics.Providers
         /// <param name="value">The current notification information.</param>
         public virtual void OnNext(TSource value)
         {
-            throw new NotImplementedException();
+            foreach (var analyzer in Analyzers)
+            {
+                analyzer.OnNext(value);
+            }
+
+            SourceValuesForwarderSubject.OnNext(value);
         }
 
         /// <summary>
@@ -123,7 +175,7 @@ namespace JB.Reactive.Analytics.Providers
         /// <param name="error">An object that provides additional information about the error.</param>
         public virtual void OnError(Exception error)
         {
-            throw new NotImplementedException();
+            SourceValuesForwarderSubject.OnError(error);
         }
 
         /// <summary>
@@ -131,7 +183,7 @@ namespace JB.Reactive.Analytics.Providers
         /// </summary>
         public virtual void OnCompleted()
         {
-            throw new NotImplementedException();
+            SourceValuesForwarderSubject.OnCompleted();
         }
 
         #endregion
@@ -153,39 +205,7 @@ namespace JB.Reactive.Analytics.Providers
                 return AnalysisResultsSubject;
             }
         }
-
-        /// <summary>
-        /// Registers an analyzer with this instance that will be used in all future instance of the <typeparam name="TSource"/> sequence.
-        /// </summary>
-        /// <param name="analyzer">The analyzer.</param>
-        public virtual void RegisterAnalyzer(IAnalyzer<TSource> analyzer)
-        {
-            if (analyzer == null) throw new ArgumentNullException(nameof(analyzer));
-
-            CheckForAndThrowIfDisposed();
-
-            lock (_innerAnalyzersLock)
-            {
-                _analyzers.Add(analyzer);
-            }
-        }
-
-        /// <summary>
-        /// De-registers the analyzer, does not affect currently ongoing analyses.
-        /// </summary>
-        /// <param name="analyzer">The analyzer.</param>
-        public virtual void DeregisterAnalyzer(IAnalyzer<TSource> analyzer)
-        {
-            if (analyzer == null) throw new ArgumentNullException(nameof(analyzer));
-
-            CheckForAndThrowIfDisposed();
-
-            lock (_innerAnalyzersLock)
-            {
-                _analyzers.Remove(analyzer);
-            }
-        }
-
+        
         #endregion
         
         #region Implementation of IDisposable
@@ -194,8 +214,9 @@ namespace JB.Reactive.Analytics.Providers
         private long _isDisposed = 0;
 
         private readonly object _isDisposedLocker = new object();
+        private Subject<TSource> _sourceValuesForwarderSubject;
         private Subject<IAnalysisResult> _analysisResultsSubject;
-        private Subject<TSource> _sourceSequenceSubject;
+        private IDisposable _analyzersSubscription;
 
         /// <summary>
         ///     Gets or sets a value indicating whether this instance has been disposed.
@@ -259,10 +280,16 @@ namespace JB.Reactive.Analytics.Providers
 
                 if (disposeManagedResources)
                 {
-                    if (_sourceSequenceSubject != null)
+                    if (_analyzersSubscription != null)
                     {
-                        _sourceSequenceSubject.Dispose();
-                        _sourceSequenceSubject = null;
+                        _analyzersSubscription.Dispose();
+                        _analyzersSubscription = null;
+                    }
+
+                    if (_sourceValuesForwarderSubject != null)
+                    {
+                        _sourceValuesForwarderSubject.Dispose();
+                        _sourceValuesForwarderSubject = null;
                     }
 
                     if (_analysisResultsSubject != null)
@@ -312,7 +339,7 @@ namespace JB.Reactive.Analytics.Providers
 
             CheckForAndThrowIfDisposed();
 
-            return _sourceSequenceSubject.Subscribe(observer);
+            return SourceValuesForwarderSubject.Subscribe(observer);
         }
 
         #endregion
