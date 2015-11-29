@@ -9,7 +9,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reactive;
 using System.Reactive.Disposables;
+using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Threading;
 using JB.Reactive.Analytics.AnalysisResults;
@@ -43,6 +45,26 @@ namespace JB.Reactive.Analytics.Providers
                 {
                     return _analyzers.ToArray();
                 }
+            }
+        }
+
+        protected virtual IObserver<TSource> SourceValuesForwardingNotifier
+        {
+            get
+            {
+                CheckForAndThrowIfDisposed();
+
+                return _sourceValuesForwarderSubject;
+            }
+        }
+
+        protected virtual IObservable<TSource> SourceValuesObservable
+        {
+            get
+            {
+                CheckForAndThrowIfDisposed();
+
+                return _sourceValuesForwarderSubject;
             }
         }
 
@@ -94,7 +116,7 @@ namespace JB.Reactive.Analytics.Providers
         /// Initializes a new instance of the <see cref="AnalyticsProvider{TSource}"/> class.
         /// </summary>
         /// <param name="analyzers">The analyzers to use.</param>
-        protected AnalyticsProvider(IEnumerable<IAnalyzer<TSource>> analyzers)
+        public AnalyticsProvider(IEnumerable<IAnalyzer<TSource>> analyzers)
         {
             if (analyzers == null) throw new ArgumentNullException(nameof(analyzers));
 
@@ -123,7 +145,7 @@ namespace JB.Reactive.Analytics.Providers
         private IDisposable SubscribeToAnalyzer(IAnalyzer<TSource> analyzer)
         {
             if (analyzer == null) throw new ArgumentNullException(nameof(analyzer));
-            
+
             return analyzer.Subscribe(analysisResult =>
             {
                 AnalysisResultsSubject.OnNext(analysisResult);
@@ -147,7 +169,7 @@ namespace JB.Reactive.Analytics.Providers
         /// </summary>
         /// <param name="analyzers">The analyzers to use.</param>
         /// <exception cref="System.ArgumentNullException"></exception>
-        protected AnalyticsProvider(params IAnalyzer<TSource>[] analyzers)
+        public AnalyticsProvider(params IAnalyzer<TSource>[] analyzers)
             : this(analyzers.ToList())
         {
             if (analyzers == null) throw new ArgumentNullException(nameof(analyzers));
@@ -163,10 +185,10 @@ namespace JB.Reactive.Analytics.Providers
         {
             foreach (var analyzer in Analyzers)
             {
-                analyzer.OnNext(value);
+                analyzer.NotifyOadgdagn() .OnNext(value);
             }
 
-            SourceValuesForwarderSubject.OnNext(value);
+            SourceValuesForwardingNotifier.OnNext(value);
         }
 
         /// <summary>
@@ -175,7 +197,7 @@ namespace JB.Reactive.Analytics.Providers
         /// <param name="error">An object that provides additional information about the error.</param>
         public virtual void OnError(Exception error)
         {
-            SourceValuesForwarderSubject.OnError(error);
+            SourceValuesForwardingNotifier.OnError(error);
         }
 
         /// <summary>
@@ -183,7 +205,7 @@ namespace JB.Reactive.Analytics.Providers
         /// </summary>
         public virtual void OnCompleted()
         {
-            SourceValuesForwarderSubject.OnCompleted();
+            SourceValuesForwardingNotifier.OnCompleted();
         }
 
         #endregion
@@ -205,9 +227,9 @@ namespace JB.Reactive.Analytics.Providers
                 return AnalysisResultsSubject;
             }
         }
-        
+
         #endregion
-        
+
         #region Implementation of IDisposable
 
         private long _isDisposing = 0;
@@ -253,7 +275,7 @@ namespace JB.Reactive.Analytics.Providers
                 Interlocked.Exchange(ref _isDisposing, value ? 1 : 0);
             }
         }
-        
+
         /// <summary>
         ///     Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
         /// </summary>

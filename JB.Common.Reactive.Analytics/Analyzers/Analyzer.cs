@@ -1,55 +1,64 @@
 using System;
-using System.Reactive.Linq;
+using System.Reactive;
+using System.Reactive.Concurrency;
 using System.Reactive.Subjects;
 using System.Threading;
 using JB.Reactive.Analytics.AnalysisResults;
 
 namespace JB.Reactive.Analytics.Analyzers
 {
-    public abstract class Analyzer<TSource, TAnalysisResult> : Analyzer<TSource>, IAnalyzer<TSource, TAnalysisResult>, IDisposable
-        where TAnalysisResult : IAnalysisResult
-    {
-        #region Implementation of IObservable<out TAnalysisResult>
-
-        /// <summary>
-        /// Notifies the provider that an observer is to receive notifications.
-        /// </summary>
-        /// <returns>
-        /// A reference to an interface that allows observers to stop receiving notifications before the provider has finished sending them.
-        /// </returns>
-        /// <param name="observer">The object that is to receive notifications.</param>
-        public virtual IDisposable Subscribe(IObserver<TAnalysisResult> observer)
-        {
-            CheckForAndThrowIfDisposed();
-
-            return AnalysisResultSubject.OfType<TAnalysisResult>().Subscribe(observer);
-        }
-
-        #endregion
-    }
-
     /// <summary>
     /// Base class for <see cref="IAnalyzer{TSource}"/> implementations.
     /// </summary>
     /// <typeparam name="TSource">The type of the source.</typeparam>
     public abstract class Analyzer<TSource> : IAnalyzer<TSource>, IDisposable
     {
-        private Subject<IAnalysisResult> _analysisResultSubject = new Subject<IAnalysisResult>();
+        private Subject<IAnalysisResult> _analysisResultSubject;
+        private IObserver<IAnalysisResult> _analysisResultNotifier;
 
         /// <summary>
-        /// Gets the analysis result subject that can be used for reporting
-        /// new <see cref="IAnalysisResult"/> instances.
+        /// Initializes a new instance of the <see cref="Analyzer{TSource}"/> class.
+        /// </summary>
+        /// <param name="scheduler">The scheduler.</param>
+        protected Analyzer(IScheduler scheduler = null)
+        {
+            _analysisResultSubject = new Subject<IAnalysisResult>();
+
+            _analysisResultNotifier = scheduler != null
+                ? _analysisResultSubject.NotifyOn(scheduler)
+                : _analysisResultSubject;
+        }
+        
+        /// <summary>
+        /// Gets the analysis result observable sequence.
         /// </summary>
         /// <value>
-        /// The analysis result subject.
+        /// The analysis result observable sequence.
         /// </value>
-        protected Subject<IAnalysisResult> AnalysisResultSubject
+        protected IObservable<IAnalysisResult> AnalysisResultObservable
         {
             get
             {
                 CheckForAndThrowIfDisposed();
 
                 return _analysisResultSubject;
+            }
+        }
+
+        /// <summary>
+        /// Gets the analysis result observer that can be used for reporting
+        /// new <see cref="IAnalysisResult"/> instances.
+        /// </summary>
+        /// <value>
+        /// The analysis result subject.
+        /// </value>
+        protected IObserver<IAnalysisResult> AnalysisResultNotifier
+        {
+            get
+            {
+                CheckForAndThrowIfDisposed();
+
+                return _analysisResultNotifier;
             }
         }
 
@@ -87,7 +96,7 @@ namespace JB.Reactive.Analytics.Analyzers
         {
             if (observer == null) throw new ArgumentNullException(nameof(observer));
 
-            return AnalysisResultSubject.Subscribe(observer);
+            return AnalysisResultObservable.Subscribe(observer);
         }
 
         #endregion
@@ -166,6 +175,8 @@ namespace JB.Reactive.Analytics.Analyzers
                     {
                         _analysisResultSubject.Dispose();
                         _analysisResultSubject = null;
+
+                        _analysisResultNotifier = null;
                     }
                 }
             }

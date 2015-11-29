@@ -5,9 +5,14 @@
 // <author>Joerg Battermann</author>
 // <summary></summary>
 // -----------------------------------------------------------------------
+
+using System;
+using System.Diagnostics;
+
 namespace JB.Reactive.Analytics.AnalysisResults
 {
-    public class CountAnalysisResult : ICountBasedAnalysisResult
+    [DebuggerDisplay("{Count}")]
+    public class CountAnalysisResult : ICountBasedAnalysisResult, IEquatable<CountAnalysisResult>, IEquatable<ICountBasedAnalysisResult>
     {
         #region Implementation of ICountBasedAnalysisResult
 
@@ -29,5 +34,43 @@ namespace JB.Reactive.Analytics.AnalysisResults
         {
             Count = count;
         }
+
+        #region Implementation of IEquatable<CountAnalysisResult>
+
+        /// <summary>
+        /// Indicates whether the current object is equal to another object of the same type.
+        /// </summary>
+        /// <returns>
+        /// true if the current object is equal to the <paramref name="other"/> parameter; otherwise, false.
+        /// </returns>
+        /// <param name="other">An object to compare with this object.</param>
+        public bool Equals(CountAnalysisResult other)
+        {
+            if (other == null)
+                return false;
+
+            return Equals(Count, other.Count);
+        }
+
+        #endregion
+
+        #region Implementation of IEquatable<ICountBasedAnalysisResult>
+
+        /// <summary>
+        /// Indicates whether the current object is equal to another object of the same type.
+        /// </summary>
+        /// <returns>
+        /// true if the current object is equal to the <paramref name="other"/> parameter; otherwise, false.
+        /// </returns>
+        /// <param name="other">An object to compare with this object.</param>
+        public bool Equals(ICountBasedAnalysisResult other)
+        {
+            if (other == null)
+                return false;
+
+            return Equals(Count, other.Count);
+        }
+
+        #endregion
     }
 }

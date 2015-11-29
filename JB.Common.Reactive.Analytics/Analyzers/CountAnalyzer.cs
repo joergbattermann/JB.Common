@@ -7,14 +7,16 @@
 // -----------------------------------------------------------------------
 
 using System;
+using System.Reactive.Concurrency;
 using System.Threading;
 using JB.Reactive.Analytics.AnalysisResults;
 
 namespace JB.Reactive.Analytics.Analyzers
 {
-    public class CountAnalyzer<TSource> : Analyzer<TSource, ICountBasedAnalysisResult>
+    public class CountAnalyzer<TSource> : Analyzer<TSource>
     {
         private long _currentCount;
+        private readonly Func<TSource, bool> _predicate;
 
         /// <summary>
         /// Gets the current count.
@@ -33,12 +35,17 @@ namespace JB.Reactive.Analytics.Analyzers
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="CountAnalyzer{TSource}"/> class.
+        /// Initializes a new instance of the <see cref="CountAnalyzer{TSource}" /> class.
         /// </summary>
         /// <param name="initialCount">The initial count.</param>
-        public CountAnalyzer(long initialCount = 0)
+        /// <param name="predicate">The test to perform for each received <typeparamref name="TSource" /> instance whether or not to increase the count.
+        /// If none is provided, all instances are counted.</param>
+        /// <param name="scheduler">The scheduler to schedule notifications on, if any.</param>
+        public CountAnalyzer(long initialCount = 0, Func<TSource, bool> predicate = null, IScheduler scheduler = null)
+            : base(scheduler)
         {
             _currentCount = initialCount;
+            _predicate = predicate ?? (source => true);
         }
 
         #region Overrides of Analyzer<TSource>
@@ -49,9 +56,12 @@ namespace JB.Reactive.Analytics.Analyzers
         /// <param name="value">The current notification information.</param>
         public override void OnNext(TSource value)
         {
-            var currentCount = Interlocked.Increment(ref _currentCount);
+            if (_predicate.Invoke(value))
+            {
+                var currentCount = Interlocked.Increment(ref _currentCount);
 
-            AnalysisResultSubject.OnNext(new CountAnalysisResult(currentCount));
+                AnalysisResultNotifier.OnNext(new CountAnalysisResult(currentCount));
+            }
         }
 
         /// <summary>
