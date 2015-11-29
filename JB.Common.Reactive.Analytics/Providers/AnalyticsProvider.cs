@@ -185,6 +185,7 @@ namespace JB.Reactive.Analytics.Providers
         {
             foreach (var analyzer in Analyzers)
             {
+                ToDo - hand over / in Scheduler and make sure all subjects are logically split between observers and observables
                 analyzer.NotifyOadgdagn() .OnNext(value);
             }
 
