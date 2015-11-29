@@ -11,6 +11,6 @@ namespace JB.Reactive.Analytics.AnalysisResults
         /// <value>
         /// The elements count.
         /// </value>
-        long ElementsCount { get; }
+        long Count { get; }
     }
 }
