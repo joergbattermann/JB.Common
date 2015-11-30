@@ -64,23 +64,6 @@ namespace JB.Reactive.Analytics.Analyzers
             }
         }
 
-        /// <summary>
-        /// Notifies the observer that the provider has experienced an error condition.
-        /// </summary>
-        /// <param name="error">An object that provides additional information about the error.</param>
-        public override void OnError(Exception error)
-        {
-            // nothing to do here
-        }
-
-        /// <summary>
-        /// Notifies the observer that the provider has finished sending push-based notifications.
-        /// </summary>
-        public override void OnCompleted()
-        {
-            // nothing to do here
-        }
-
         #endregion
     }
 }

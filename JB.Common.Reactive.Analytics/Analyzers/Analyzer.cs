@@ -23,7 +23,6 @@ namespace JB.Reactive.Analytics.Analyzers
         protected Analyzer(IScheduler scheduler = null)
         {
             _analysisResultSubject = new Subject<IAnalysisResult>();
-
             _analysisResultNotifier = scheduler != null
                 ? _analysisResultSubject.NotifyOn(scheduler)
                 : _analysisResultSubject;
@@ -72,14 +71,22 @@ namespace JB.Reactive.Analytics.Analyzers
 
         /// <summary>
         /// Notifies the observer that the provider has experienced an error condition.
+        /// By default this forwards the <paramref name="error"/> to the <see cref="AnalysisResultNotifier"/>.
         /// </summary>
         /// <param name="error">An object that provides additional information about the error.</param>
-        public abstract void OnError(Exception error);
+        public virtual void OnError(Exception error)
+        {
+            AnalysisResultNotifier.OnError(error);
+        }
 
         /// <summary>
         /// Notifies the observer that the provider has finished sending push-based notifications.
+        /// By default this forwards the completion to the <see cref="AnalysisResultNotifier"/>.
         /// </summary>
-        public abstract void OnCompleted();
+        public virtual void OnCompleted()
+        {
+            AnalysisResultNotifier.OnCompleted();
+        }
 
         #endregion
 

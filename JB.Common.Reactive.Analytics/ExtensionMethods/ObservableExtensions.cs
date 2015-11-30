@@ -58,7 +58,9 @@ namespace JB.Reactive.Analytics.ExtensionMethods
                         : analysisResultsObserver);
 
                 return () => new CompositeDisposable(sourceAnalyticsProviderSubscription, analysisResultsSubscription, sourceSequenceForwardingSubscription).Dispose();
-            });
+            })
+            .Publish()
+            .RefCount();
         }
 
         /// <summary>
@@ -96,7 +98,9 @@ namespace JB.Reactive.Analytics.ExtensionMethods
                 onCompleteOnAnalysisResultSequence?.Invoke();
             });
 
-            return source.AnalyzeWith(analyticsProvider, analysisResultsObserver, scheduler);
+            return source.AnalyzeWith(analyticsProvider, analysisResultsObserver, scheduler)
+                .Publish()
+                .RefCount();
         }
 
         /// <summary>
@@ -138,7 +142,9 @@ namespace JB.Reactive.Analytics.ExtensionMethods
                         : analysisResultsObserver);
 
                 return () => new CompositeDisposable(sourceAnalyticsProviderSubscription, analysisResultsSubscription, sourceSequenceForwardingSubscription).Dispose();
-            });
+            })
+            .Publish()
+            .RefCount();
         }
 
         /// <summary>
@@ -178,7 +184,10 @@ namespace JB.Reactive.Analytics.ExtensionMethods
                 onCompleteOnAnalysisResultSequence?.Invoke();
             });
 
-            return source.AnalyzeWith(analyticsProvider, analysisResultsObserver, scheduler);
+            return source
+                .AnalyzeWith(analyticsProvider, analysisResultsObserver, scheduler)
+                .Publish()
+                .RefCount();
         }
 
         /// <summary>
@@ -202,7 +211,10 @@ namespace JB.Reactive.Analytics.ExtensionMethods
             if (analyzers == null) throw new ArgumentNullException(nameof(analyzers));
             if (analysisResultsObserver == null) throw new ArgumentNullException(nameof(analysisResultsObserver));
 
-            return source.AnalyzeWith(new AnalyticsProvider<TSource>(analyzers), analysisResultsObserver, scheduler);
+            return source
+                .AnalyzeWith(new AnalyticsProvider<TSource>(analyzers, scheduler), analysisResultsObserver, scheduler)
+                .Publish()
+                .RefCount();
         }
 
         /// <summary>
@@ -226,7 +238,10 @@ namespace JB.Reactive.Analytics.ExtensionMethods
             if (source == null) throw new ArgumentNullException(nameof(source));
             if (analyzers == null) throw new ArgumentNullException(nameof(analyzers));
 
-            return source.AnalyzeWith(new AnalyticsProvider<TSource>(analyzers), onNextAnalysisResult, onErrorOnAnalysisResultSequence, onCompleteOnAnalysisResultSequence, scheduler);
+            return source
+                .AnalyzeWith(new AnalyticsProvider<TSource>(analyzers, scheduler), onNextAnalysisResult, onErrorOnAnalysisResultSequence, onCompleteOnAnalysisResultSequence, scheduler)
+                .Publish()
+                .RefCount();
         }
 
         /// <summary>
@@ -253,7 +268,9 @@ namespace JB.Reactive.Analytics.ExtensionMethods
             if (analyzers == null) throw new ArgumentNullException(nameof(analyzers));
             if (analysisResultsObserver == null) throw new ArgumentNullException(nameof(analysisResultsObserver));
 
-            return source.AnalyzeWith(new AnalyticsProvider<TSource>(analyzers), analysisResultsObserver, scheduler);
+            return source.AnalyzeWith(new AnalyticsProvider<TSource>(analyzers, scheduler), analysisResultsObserver, scheduler)
+                .Publish()
+                .RefCount();
         }
 
         /// <summary>
@@ -282,7 +299,10 @@ namespace JB.Reactive.Analytics.ExtensionMethods
             if (source == null) throw new ArgumentNullException(nameof(source));
             if (analyzers == null) throw new ArgumentNullException(nameof(analyzers));
 
-            return source.AnalyzeWith(new AnalyticsProvider<TSource>(analyzers), onNextAnalysisResult, onErrorOnAnalysisResultSequence, onCompleteOnAnalysisResultSequence, scheduler);
+            return source
+                .AnalyzeWith(new AnalyticsProvider<TSource>(analyzers, scheduler), onNextAnalysisResult, onErrorOnAnalysisResultSequence, onCompleteOnAnalysisResultSequence, scheduler)
+                .Publish()
+                .RefCount();
         }
 
         /// <summary>
@@ -309,9 +329,10 @@ namespace JB.Reactive.Analytics.ExtensionMethods
             if (source == null) throw new ArgumentNullException(nameof(source));
             if (analysisResultsObserver == null) throw new ArgumentNullException(nameof(analysisResultsObserver));
 
-            return source.AnalyzeWith(new[] { new CountAnalyzer<TSource>(initialCount, predicate, scheduler) },
-                analysisResultsObserver,
-                scheduler);
+            return source
+                .AnalyzeWith(new[] { new CountAnalyzer<TSource>(initialCount, predicate, scheduler) }, analysisResultsObserver, scheduler)
+                .Publish()
+                .RefCount();
         }
 
         /// <summary>
@@ -344,7 +365,9 @@ namespace JB.Reactive.Analytics.ExtensionMethods
                 onNextAnalysisResult,
                 onErrorOnAnalysisResultSequence,
                 onCompleteOnAnalysisResultSequence,
-                scheduler);
+                scheduler)
+                .Publish()
+                .RefCount();
         }
     }
 }

@@ -22,7 +22,7 @@ namespace JB.Common.Reactive.Analytics.Tests.Analyzers
     {
         [Theory]
         [InlineData(0, 1)]
-        [InlineData(10, 100)]
+        [InlineData(10, 90)]
         [InlineData(0, 1000)]
         public void BufferWhileShouldReleaseBufferOnCompleted(int start, int count)
         {
@@ -31,13 +31,14 @@ namespace JB.Common.Reactive.Analytics.Tests.Analyzers
 
             var sourceSequenceObserver = testScheduler.CreateObserver<int>();
             var analysisResultsObserver = testScheduler.CreateObserver<ICountBasedAnalysisResult>();
-            
+
+            var comparisonList = Observable.Range(start, count).ToEnumerable().ToList();
             var observable = Observable.Range(start, count).AnalyzeCount(analysisResultsObserver, scheduler: testScheduler);
 
             using (observable.Subscribe(sourceSequenceObserver))
             {
                 // when producer ran to completion
-                testScheduler.AdvanceBy(count * 2);
+                testScheduler.AdvanceBy(count * 3);
 
                 // then
                 sourceSequenceObserver.Messages.Count.Should().Be(count + 1);
