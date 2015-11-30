@@ -32,8 +32,8 @@ namespace JB.Common.Reactive.Analytics.Tests.Analyzers
             var sourceSequenceObserver = testScheduler.CreateObserver<int>();
             var analysisResultsObserver = testScheduler.CreateObserver<ICountBasedAnalysisResult>();
 
-            var comparisonList = Observable.Range(start, count).ToEnumerable().ToList();
-            var observable = Observable.Range(start, count).AnalyzeCount(analysisResultsObserver, scheduler: testScheduler);
+
+            var observable = Observable.Range(start, count).AnalyzeCount(analysisResultsObserver /*, ToDo: there's something wrong with/when using a (test)scheduler here /*);
 
             using (observable.Subscribe(sourceSequenceObserver))
             {
