@@ -6,6 +6,7 @@
 // <summary></summary>
 // -----------------------------------------------------------------------
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reactive;
@@ -32,13 +33,13 @@ namespace JB.Common.Reactive.Analytics.Tests.Analyzers
             var sourceSequenceObserver = testScheduler.CreateObserver<int>();
             var analysisResultsObserver = testScheduler.CreateObserver<ICountBasedAnalysisResult>();
 
-
-            var observable = Observable.Range(start, count).AnalyzeCount(analysisResultsObserver /*, ToDo: there's something wrong with/when using a (test)scheduler here /*);
+            var observable = Observable.Range(start, count)
+                .AnalyzeCount(analysisResultsObserver, scheduler: testScheduler);
 
             using (observable.Subscribe(sourceSequenceObserver))
             {
                 // when producer ran to completion
-                testScheduler.AdvanceBy(count * 3);
+                testScheduler.AdvanceBy(count + 1);
 
                 // then
                 sourceSequenceObserver.Messages.Count.Should().Be(count + 1);

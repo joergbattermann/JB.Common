@@ -130,16 +130,16 @@ namespace JB.Reactive.Analytics.ExtensionMethods
             return Observable.Create<TSource>(observer =>
             {
                 // first we wire up the analytics provider with the actual source sequence as input sequence
-                var sourceAnalyticsProviderSubscription = source.Subscribe(analyticsProvider);
+                var sourceAnalyticsProviderSubscription = source
+                    .Subscribe(analyticsProvider);
 
                 // then we wire up our to-be-returned observable with the analytics provider's output sequence
-                var sourceSequenceForwardingSubscription = analyticsProvider.Subscribe(observer);
+                var sourceSequenceForwardingSubscription = analyticsProvider
+                    .Subscribe(observer);
 
                 // and finally we wire up the analytics provider's analysis results with the provided action to perform on every .OnNext() call
-                var analysisResultsSubscription = analyticsProvider.AnalysisResults.OfType<TAnalysisResult>().Subscribe(
-                    scheduler != null
-                        ? analysisResultsObserver.NotifyOn(scheduler)
-                        : analysisResultsObserver);
+                var analysisResultsSubscription = analyticsProvider.AnalysisResults.OfType<TAnalysisResult>()
+                    .Subscribe(analysisResultsObserver);
 
                 return () => new CompositeDisposable(sourceAnalyticsProviderSubscription, analysisResultsSubscription, sourceSequenceForwardingSubscription).Dispose();
             })
@@ -316,7 +316,7 @@ namespace JB.Reactive.Analytics.ExtensionMethods
         /// <param name="initialCount">The initial count.</param>
         /// <param name="predicate">A function to test each element whether or not to increase the count. If none is provided,
         /// the count will be increased with every <typeparamref name="TSource"/> element reported.</param>
-        /// <param name="scheduler">The scheduler to invoke the <see cref="IAnalysisResult"/> notifications on.</param>
+        /// <param name="scheduler">The scheduler to run the <see cref="IAnalyzer{TSource}"/> on.</param>
         /// <returns>
         /// A new <see cref="IObservable{TSource}" /> providing the full <paramref name="source" /> sequence back to the caller.
         /// </returns>
@@ -349,7 +349,7 @@ namespace JB.Reactive.Analytics.ExtensionMethods
         /// <param name="onErrorOnAnalysisResultSequence">The action to invoke if one the analyzer reports an error.</param>
         /// <param name="onCompleteOnAnalysisResultSequence">The action to invoke whenever the internally used <see cref="IAnalyticsProvider{TSource}" /> signaled
         /// completion of its analysis sequence.</param>
-        /// <param name="scheduler">The scheduler to invoke the <see cref="IAnalysisResult"/> notifications on.</param>
+        /// <param name="scheduler">The scheduler to run the <see cref="IAnalyzer{TSource}"/> on.</param>
         /// <returns>
         /// A new <see cref="IObservable{TSource}" /> providing the full <paramref name="source" /> sequence back to the caller.
         /// </returns>

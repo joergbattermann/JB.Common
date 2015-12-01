@@ -1,5 +1,4 @@
 using System;
-using System.Reactive;
 using System.Reactive.Concurrency;
 using System.Reactive.Subjects;
 using System.Threading;
@@ -14,27 +13,23 @@ namespace JB.Reactive.Analytics.Analyzers
     public abstract class Analyzer<TSource> : IAnalyzer<TSource>, IDisposable
     {
         private Subject<IAnalysisResult> _analysisResultSubject;
-        private IObserver<IAnalysisResult> _analysisResultNotifier;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Analyzer{TSource}"/> class.
         /// </summary>
-        /// <param name="scheduler">The scheduler.</param>
+        /// <param name="scheduler">The scheduler to run the analyses on.</param>
         protected Analyzer(IScheduler scheduler = null)
         {
             _analysisResultSubject = new Subject<IAnalysisResult>();
-            _analysisResultNotifier = scheduler != null
-                ? _analysisResultSubject.NotifyOn(scheduler)
-                : _analysisResultSubject;
         }
-        
+
         /// <summary>
-        /// Gets the analysis result observable sequence.
+        /// Gets the analysis results subject.
         /// </summary>
         /// <value>
-        /// The analysis result observable sequence.
+        /// The analysis results subject.
         /// </value>
-        protected IObservable<IAnalysisResult> AnalysisResultObservable
+        protected Subject<IAnalysisResult> AnalysisResultsSubject
         {
             get
             {
@@ -43,24 +38,7 @@ namespace JB.Reactive.Analytics.Analyzers
                 return _analysisResultSubject;
             }
         }
-
-        /// <summary>
-        /// Gets the analysis result observer that can be used for reporting
-        /// new <see cref="IAnalysisResult"/> instances.
-        /// </summary>
-        /// <value>
-        /// The analysis result subject.
-        /// </value>
-        protected IObserver<IAnalysisResult> AnalysisResultNotifier
-        {
-            get
-            {
-                CheckForAndThrowIfDisposed();
-
-                return _analysisResultNotifier;
-            }
-        }
-
+        
         #region Implementation of IObserver<in TSource>
 
         /// <summary>
@@ -71,21 +49,21 @@ namespace JB.Reactive.Analytics.Analyzers
 
         /// <summary>
         /// Notifies the observer that the provider has experienced an error condition.
-        /// By default this forwards the <paramref name="error"/> to the <see cref="AnalysisResultNotifier"/>.
+        /// By default this forwards the <paramref name="error"/> to the <see cref="AnalysisResultsSubject"/>.
         /// </summary>
         /// <param name="error">An object that provides additional information about the error.</param>
         public virtual void OnError(Exception error)
         {
-            AnalysisResultNotifier.OnError(error);
+            AnalysisResultsSubject.OnError(error);
         }
 
         /// <summary>
         /// Notifies the observer that the provider has finished sending push-based notifications.
-        /// By default this forwards the completion to the <see cref="AnalysisResultNotifier"/>.
+        /// By default this forwards the completion to the <see cref="AnalysisResultsSubject"/>.
         /// </summary>
         public virtual void OnCompleted()
         {
-            AnalysisResultNotifier.OnCompleted();
+            AnalysisResultsSubject.OnCompleted();
         }
 
         #endregion
@@ -103,7 +81,7 @@ namespace JB.Reactive.Analytics.Analyzers
         {
             if (observer == null) throw new ArgumentNullException(nameof(observer));
 
-            return AnalysisResultObservable.Subscribe(observer);
+            return AnalysisResultsSubject.Subscribe(observer);
         }
 
         #endregion
@@ -182,8 +160,6 @@ namespace JB.Reactive.Analytics.Analyzers
                     {
                         _analysisResultSubject.Dispose();
                         _analysisResultSubject = null;
-
-                        _analysisResultNotifier = null;
                     }
                 }
             }

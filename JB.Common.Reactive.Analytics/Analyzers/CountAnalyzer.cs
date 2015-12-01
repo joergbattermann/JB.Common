@@ -60,7 +60,7 @@ namespace JB.Reactive.Analytics.Analyzers
             {
                 var currentCount = Interlocked.Increment(ref _currentCount);
 
-                AnalysisResultNotifier.OnNext(new CountAnalysisResult(currentCount));
+                AnalysisResultsSubject.OnNext(new CountAnalysisResult(currentCount));
             }
         }
 

@@ -35,7 +35,7 @@ namespace JB.Reactive.Analytics.Providers
         /// Gets the analyzers.
         /// </summary>
         /// <returns></returns>
-        protected IReadOnlyCollection<IAnalyzer<TSource>> Analyzers
+        protected virtual IReadOnlyCollection<IAnalyzer<TSource>> Analyzers
         {
             get
             {
@@ -54,7 +54,7 @@ namespace JB.Reactive.Analytics.Providers
         /// <value>
         /// The analyzers notifiers.
         /// </value>
-        protected IReadOnlyCollection<IObserver<TSource>> AnalyzersNotifiers
+        protected virtual IReadOnlyCollection<IObserver<TSource>> AnalyzersNotifiers
         {
             get
             {
@@ -68,28 +68,12 @@ namespace JB.Reactive.Analytics.Providers
         }
 
         /// <summary>
-        /// Gets the <typeparamref name="TSource"/> sequence forwarding notifier.
+        /// Gets the <typeparamref name="TSource"/> subject.
         /// </summary>
         /// <value>
-        /// The <typeparamref name="TSource"/> sequence forwarding notifier.
+        /// The <typeparamref name="TSource"/> subject.
         /// </value>
-        protected virtual IObserver<TSource> SourceValuesForwardingNotifier
-        {
-            get
-            {
-                CheckForAndThrowIfDisposed();
-
-                return _sourceValuesForwardingNotifier;
-            }
-        }
-
-        /// <summary>
-        /// Gets the <typeparamref name="TSource"/> sequence observable.
-        /// </summary>
-        /// <value>
-        /// The <typeparamref name="TSource"/> sequence observable.
-        /// </value>
-        protected virtual IObservable<TSource> SourceValuesObservable
+        protected virtual ISubject<TSource> SourceValuesSubject
         {
             get
             {
@@ -98,20 +82,20 @@ namespace JB.Reactive.Analytics.Providers
                 return _sourceValuesForwarderSubject;
             }
         }
-        
+
         /// <summary>
         /// Gets the analysis results subject.
         /// </summary>
         /// <value>
         /// The analysis results subject.
         /// </value>
-        protected virtual IObserver<IAnalysisResult> AnalysisResultsNotifier
+        protected virtual ISubject<IAnalysisResult> AnalysisResultsSubject
         {
             get
             {
                 CheckForAndThrowIfDisposed();
 
-                return _analysisResultsNotifier;
+                return _analysisResultsSubject;
             }
         }
 
@@ -119,27 +103,18 @@ namespace JB.Reactive.Analytics.Providers
         /// Initializes a new instance of the <see cref="AnalyticsProvider{TSource}" /> class.
         /// </summary>
         /// <param name="analyzers">The analyzers to use.</param>
-        /// <param name="scheduler">The scheduler.</param>
+        /// <param name="scheduler">The scheduler to run the <paramref name="analyzers"/> on.</param>
         /// <exception cref="System.ArgumentNullException"></exception>
         public AnalyticsProvider(IEnumerable<IAnalyzer<TSource>> analyzers, IScheduler scheduler = null)
         {
             if (analyzers == null) throw new ArgumentNullException(nameof(analyzers));
 
             _sourceValuesForwarderSubject = new Subject<TSource>();
-            _sourceValuesForwardingNotifier = scheduler != null
-                ? _sourceValuesForwarderSubject.NotifyOn(scheduler)
-                : _sourceValuesForwarderSubject;
 
             _analysisResultsSubject = new Subject<IAnalysisResult>();
-            _analysisResultsNotifier = scheduler != null
-                ? _analysisResultsSubject.NotifyOn(scheduler)
-                : _analysisResultsSubject;
 
-            _analyzersAndNotifiers = scheduler != null
-                ? analyzers.ToDictionary(analyzer => analyzer, analyzer => analyzer.NotifyOn(scheduler))
-                : analyzers.ToDictionary(analyzer => analyzer, analyzer => (IObserver<TSource>)analyzer);
-            
-            _analyzersSubscription = new CompositeDisposable(Analyzers.Select(SubscribeToAnalyzer).ToList());
+            _analyzersAndNotifiers = analyzers.ToDictionary(analyzer => analyzer, analyzer => analyzer.NotifyOn(scheduler ?? Scheduler.Default));
+            _analyzersSubscription = new CompositeDisposable(_analyzersAndNotifiers.Keys.Select(SubscribeToAnalyzer).ToList());
         }
         
         /// <summary>
@@ -154,11 +129,11 @@ namespace JB.Reactive.Analytics.Providers
 
             return analyzer.Subscribe(analysisResult =>
             {
-                AnalysisResultsNotifier.OnNext(analysisResult);
+                AnalysisResultsSubject.OnNext(analysisResult);
             },
             exception =>
             {
-                AnalysisResultsNotifier.OnError(exception);
+                AnalysisResultsSubject.OnError(exception);
             },
             () =>
             {
@@ -169,7 +144,7 @@ namespace JB.Reactive.Analytics.Providers
 
                     if (_analyzersAndNotifiers.Count == 0)
                     {
-                        AnalysisResultsNotifier.OnCompleted();
+                        AnalysisResultsSubject.OnCompleted();
                     }
                 }
             });
@@ -188,7 +163,7 @@ namespace JB.Reactive.Analytics.Providers
                 analyzer.OnNext(value);
             }
 
-            SourceValuesForwardingNotifier.OnNext(value);
+            SourceValuesSubject.OnNext(value);
         }
 
         /// <summary>
@@ -202,7 +177,7 @@ namespace JB.Reactive.Analytics.Providers
                 analyzer.OnError(error);
             }
 
-            SourceValuesForwardingNotifier.OnError(error);
+            SourceValuesSubject.OnError(error);
         }
 
         /// <summary>
@@ -215,7 +190,7 @@ namespace JB.Reactive.Analytics.Providers
                 analyzer.OnCompleted();
             }
 
-            SourceValuesForwardingNotifier.OnCompleted();
+            SourceValuesSubject.OnCompleted();
         }
 
         #endregion
@@ -228,7 +203,7 @@ namespace JB.Reactive.Analytics.Providers
         /// <value>
         /// The analysis results.
         /// </value>
-        public IObservable<IAnalysisResult> AnalysisResults
+        public virtual IObservable<IAnalysisResult> AnalysisResults
         {
             get
             {
@@ -248,10 +223,7 @@ namespace JB.Reactive.Analytics.Providers
         private readonly object _isDisposedLocker = new object();
 
         private Subject<TSource> _sourceValuesForwarderSubject;
-        private IObserver<TSource> _sourceValuesForwardingNotifier;
-
         private Subject<IAnalysisResult> _analysisResultsSubject;
-        private IObserver<IAnalysisResult> _analysisResultsNotifier;
 
         private IDisposable _analyzersSubscription;
 
@@ -323,19 +295,11 @@ namespace JB.Reactive.Analytics.Providers
                         _analyzersSubscription = null;
                     }
 
-                    var sourceValuesForwardingNotifierAsDisposable = _sourceValuesForwardingNotifier as IDisposable;
-                    sourceValuesForwardingNotifierAsDisposable?.Dispose();
-                    _sourceValuesForwardingNotifier = null;
-
                     if (_sourceValuesForwarderSubject != null)
                     {
                         _sourceValuesForwarderSubject.Dispose();
                         _sourceValuesForwarderSubject = null;
                     }
-
-                    var analysisResultsNotifierAsDisposable = _analysisResultsNotifier as IDisposable;
-                    analysisResultsNotifierAsDisposable?.Dispose();
-                    _analysisResultsNotifier = null;
 
                     if (_analysisResultsSubject != null)
                     {
@@ -390,7 +354,7 @@ namespace JB.Reactive.Analytics.Providers
 
             CheckForAndThrowIfDisposed();
 
-            return SourceValuesObservable.Subscribe(observer);
+            return SourceValuesSubject.Subscribe(observer);
         }
 
         #endregion
