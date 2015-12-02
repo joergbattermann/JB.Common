@@ -11,14 +11,12 @@ namespace JB.Reactive.Analytics.Providers
     /// sequence of <see cref="IAnalysisResult"/> instances.
     /// </summary>
     /// <typeparam name="TSource">The type of the source.</typeparam>
-    public interface IAnalyticsProvider<TSource> : ISubject<TSource>
+    public interface IAnalyticsProvider<in TSource> : IAnalyticsProvider<TSource, IAnalysisResult>
     {
-        /// <summary>
-        /// Gets the analysis results observable.
-        /// </summary>
-        /// <value>
-        /// The analysis results.
-        /// </value>
-        IObservable<IAnalysisResult> AnalysisResults { get; }
+    }
+
+    public interface IAnalyticsProvider<in TSource, out TAnalysisResult> : ISubject<TSource, TAnalysisResult>
+        where TAnalysisResult : IAnalysisResult
+    {
     }
 }

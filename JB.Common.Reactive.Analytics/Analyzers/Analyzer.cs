@@ -15,10 +15,9 @@ namespace JB.Reactive.Analytics.Analyzers
         private Subject<IAnalysisResult> _analysisResultSubject;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="Analyzer{TSource}"/> class.
+        /// Initializes a new instance of the <see cref="Analyzer{TSource}" /> class.
         /// </summary>
-        /// <param name="scheduler">The scheduler to run the analyses on.</param>
-        protected Analyzer(IScheduler scheduler = null)
+        protected Analyzer()
         {
             _analysisResultSubject = new Subject<IAnalysisResult>();
         }

@@ -33,13 +33,12 @@ namespace JB.Common.Reactive.Analytics.Tests.Analyzers
             var sourceSequenceObserver = testScheduler.CreateObserver<int>();
             var analysisResultsObserver = testScheduler.CreateObserver<ICountBasedAnalysisResult>();
 
-            var observable = Observable.Range(start, count)
-                .AnalyzeCount(analysisResultsObserver, scheduler: testScheduler);
+            var observable = Observable.Range(start, count).AnalyzeCount(analysisResultsObserver);
 
             using (observable.Subscribe(sourceSequenceObserver))
             {
                 // when producer ran to completion
-                testScheduler.AdvanceBy(count + 1);
+                testScheduler.Start();
 
                 // then
                 sourceSequenceObserver.Messages.Count.Should().Be(count + 1);

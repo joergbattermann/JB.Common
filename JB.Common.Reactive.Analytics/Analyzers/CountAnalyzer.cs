@@ -7,7 +7,6 @@
 // -----------------------------------------------------------------------
 
 using System;
-using System.Reactive.Concurrency;
 using System.Threading;
 using JB.Reactive.Analytics.AnalysisResults;
 
@@ -41,8 +40,7 @@ namespace JB.Reactive.Analytics.Analyzers
         /// <param name="predicate">The test to perform for each received <typeparamref name="TSource" /> instance whether or not to increase the count.
         /// If none is provided, all instances are counted.</param>
         /// <param name="scheduler">The scheduler to schedule notifications on, if any.</param>
-        public CountAnalyzer(long initialCount = 0, Func<TSource, bool> predicate = null, IScheduler scheduler = null)
-            : base(scheduler)
+        public CountAnalyzer(long initialCount = 0, Func<TSource, bool> predicate = null)
         {
             _currentCount = initialCount;
             _predicate = predicate ?? (source => true);
