@@ -8,313 +8,249 @@
 
 using System;
 using System.Collections.Generic;
-using System.Reactive;
+using System.Linq;
 using System.Reactive.Concurrency;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using JB.Reactive.Analytics.AnalysisResults;
 using JB.Reactive.Analytics.Analyzers;
-using JB.Reactive.Analytics.Providers;
 
 namespace JB.Reactive.Analytics.ExtensionMethods
 {
     public static class ObservableExtensions
     {
         /// <summary>
-        /// Takes the source sequence and attaches the <paramref name="analyticsProvider" /> to it while forwarding the source sequence
-        /// back to the caller, the provided actions will be invoked whenever the analytics provider produces a new <see cref="IAnalysisResult" /> instance.
+        /// Takes the source sequence, subscribes the <paramref name="analyzer" /> to it and returns the analyzer's <see cref="IAnalysisResult" /> sequence.
         /// </summary>
         /// <typeparam name="TSource">The type of the elements in the source sequence.</typeparam>
         /// <param name="source">The source sequence.</param>
-        /// <param name="analyticsProvider">The analytics provider to use.</param>
-        /// <param name="analysisResultsObserver">The analysis results observer.</param>
+        /// <param name="analyzer">The analyzer to use.</param>
+        /// <param name="scheduler">Scheduler used to introduce concurrency for making subscriptions to the given
+        /// source sequence and thereby running the <paramref name="analyzer" /> on.</param>
         /// <returns>
-        /// A new <see cref="IObservable{TSource}" /> providing the full <paramref name="source" /> sequence back to the caller.
+        /// The observable sequence that contains the analysis results the <paramref name="analyzer" /> produces.
         /// </returns>
         /// <exception cref="System.ArgumentNullException">
         /// </exception>
-        public static IObservable<TSource> AnalyzeWith<TSource>(this IObservable<TSource> source, IAnalyticsProvider<TSource> analyticsProvider, IObserver<IAnalysisResult> analysisResultsObserver)
+        public static IObservable<IAnalysisResult> AnalyzeWith<TSource>(this IObservable<TSource> source, IAnalyzer<TSource> analyzer, IScheduler scheduler = null)
         {
             if (source == null) throw new ArgumentNullException(nameof(source));
-            if (analyticsProvider == null) throw new ArgumentNullException(nameof(analyticsProvider));
-            if (analysisResultsObserver == null) throw new ArgumentNullException(nameof(analysisResultsObserver));
+            if (analyzer == null) throw new ArgumentNullException(nameof(analyzer));
 
-            return Observable.Create<TSource>(observer =>
-            {
-                // first we wire up the analytics provider with the actual source sequence as input sequence
-                var sourceAnalyticsProviderSubscription = source.Subscribe(analyticsProvider);
-
-                // then we wire up our to-be-returned observable with the analytics provider's output sequence
-                var sourceSequenceForwardingSubscription = analyticsProvider.Subscribe(observer);
-
-                // and finally we wire up the analytics provider's analysis results with the provided observer
-                var analysisResultsSubscription = analyticsProvider.AnalysisResults.Subscribe(analysisResultsObserver);
-
-                return () => new CompositeDisposable(sourceAnalyticsProviderSubscription, analysisResultsSubscription, sourceSequenceForwardingSubscription).Dispose();
-            })
-            .Publish()
-            .RefCount();
+            return source.AnalyzeWith<TSource, IAnalysisResult>(analyzer, scheduler);
         }
 
         /// <summary>
-        /// Takes the source sequence and attaches the <paramref name="analyticsProvider" /> to it while forwarding the source sequence
-        /// back to the caller, the provided actions will be invoked whenever the analytics provider produces a new <see cref="IAnalysisResult" /> instance.
+        /// Takes the source sequence, subscribes the <paramref name="analyzer" /> to it and returns the analyzer's <see cref="IAnalysisResult" /> sequence.
         /// </summary>
         /// <typeparam name="TSource">The type of the elements in the source sequence.</typeparam>
-        /// <typeparam name="TAnalysisResult">The filter of <see cref="IAnalysisResult" /> types to consider from the
-        /// <paramref name="analyticsProvider" /><see cref="IAnalysisResult" /> sequence.</typeparam>
+        /// <typeparam name="TAnalysisResult">The type of the analysis result.</typeparam>
         /// <param name="source">The source sequence.</param>
-        /// <param name="analyticsProvider">The analytics provider to use.</param>
-        /// <param name="analysisResultsObserver">The analysis results observer.</param>
+        /// <param name="analyzer">The analyzer to use.</param>
+        /// <param name="scheduler">Scheduler used to introduce concurrency for making subscriptions to the given
+        /// source sequence and thereby running the <paramref name="analyzer" /> on.</param>
         /// <returns>
-        /// A new <see cref="IObservable{TSource}" /> providing the full <paramref name="source" /> sequence back to the caller.
+        /// The observable sequence that contains the analysis results the <paramref name="analyzer" /> produces.
         /// </returns>
-        public static IObservable<TSource> AnalyzeWith<TSource, TAnalysisResult>(this IObservable<TSource> source, IAnalyticsProvider<TSource> analyticsProvider, IObserver<TAnalysisResult> analysisResultsObserver)
+        /// <exception cref="System.ArgumentNullException">
+        /// </exception>
+        public static IObservable<TAnalysisResult> AnalyzeWith<TSource, TAnalysisResult>(this IObservable<TSource> source, IAnalyzer<TSource, TAnalysisResult> analyzer, IScheduler scheduler = null)
             where TAnalysisResult : IAnalysisResult
         {
             if (source == null) throw new ArgumentNullException(nameof(source));
-            if (analyticsProvider == null) throw new ArgumentNullException(nameof(analyticsProvider));
-            if (analysisResultsObserver == null) throw new ArgumentNullException(nameof(analysisResultsObserver));
+            if (analyzer == null) throw new ArgumentNullException(nameof(analyzer));
 
-            return Observable.Create<TSource>(observer =>
+            return Observable.Create<TAnalysisResult>(observer =>
             {
-                // first we wire up the analytics provider with the actual source sequence as input sequence
-                var sourceAnalyticsProviderSubscription = source
-                    .Subscribe(analyticsProvider);
+                // first we wire up the analyzer with the source sequence
+                var sourceAnalyticsProviderSubscription = scheduler != null
+                    ? source.SubscribeOn(scheduler).Subscribe(analyzer)
+                    : source.Subscribe(analyzer);
 
-                // then we wire up our to-be-returned observable with the analytics provider's output sequence
-                var sourceSequenceForwardingSubscription = analyticsProvider
-                    .Subscribe(observer);
+                // then we wire up the returned observable with the analyzer's output sequence
+                var sourceSequenceForwardingSubscription = analyzer.Subscribe(observer);
 
-                // and finally we wire up the analytics provider's analysis results with the provided action to perform on every .OnNext() call
-                var analysisResultsSubscription = analyticsProvider.AnalysisResults.OfType<TAnalysisResult>()
-                    .Subscribe(analysisResultsObserver);
-
-                return () => new CompositeDisposable(sourceAnalyticsProviderSubscription, analysisResultsSubscription, sourceSequenceForwardingSubscription).Dispose();
+                return () => new CompositeDisposable(sourceSequenceForwardingSubscription, sourceAnalyticsProviderSubscription).Dispose();
             })
             .Publish()
             .RefCount();
         }
 
-
         /// <summary>
-        /// Takes the source sequence and attaches the <paramref name="analyticsProvider"/> to it while forwarding the source sequence
-        /// back to the caller, the provided actions will be invoked whenever the analytics provider produces a new <see cref="IAnalysisResult" /> instance.
-        /// </summary>
-        /// <typeparam name="TSource">The type of the elements in the source sequence.</typeparam>
-        /// <param name="source">The source sequence.</param>
-        /// <param name="analyticsProvider">The analytics provider to use.</param>
-        /// <param name="onNextAnalysisResult">The action to invoke whenever the <paramref name="analyticsProvider"/> produced an <see cref="IAnalysisResult"/>.</param>
-        /// <param name="onErrorOnAnalysisResultSequence">The action to invoke if the <paramref name="analyticsProvider"/> reports an error.</param>
-        /// <param name="onCompleteOnAnalysisResultSequence">The action to invoke whenever the <paramref name="analyticsProvider"/> signaled completion of its analysis sequence.</param>
-        /// <returns>A new <see cref="IObservable{TSource}"/> providing the full <paramref name="source"/> sequence back to the caller.</returns>
-        public static IObservable<TSource> AnalyzeWith<TSource>(this IObservable<TSource> source, IAnalyticsProvider<TSource> analyticsProvider, Action<IAnalysisResult> onNextAnalysisResult = null, Action<Exception> onErrorOnAnalysisResultSequence = null, Action onCompleteOnAnalysisResultSequence = null)
-        {
-            if (source == null) throw new ArgumentNullException(nameof(source));
-            if (analyticsProvider == null) throw new ArgumentNullException(nameof(analyticsProvider));
-
-            var analysisResultsObserver = Observer.Create<IAnalysisResult>(analysisResult =>
-            {
-                onNextAnalysisResult?.Invoke(analysisResult);
-            },
-            exception =>
-            {
-                onErrorOnAnalysisResultSequence?.Invoke(exception);
-            },
-            () =>
-            {
-                onCompleteOnAnalysisResultSequence?.Invoke();
-            });
-
-            return source.AnalyzeWith(analyticsProvider, analysisResultsObserver)
-                .Publish()
-                .RefCount();
-        }
-
-
-        /// <summary>
-        /// Takes the source sequence and attaches the <paramref name="analyticsProvider"/> to it while forwarding the source sequence
-        /// back to the caller, the provided actions will be invoked whenever the analytics provider produces a new <see cref="IAnalysisResult" /> instance.
-        /// </summary>
-        /// <typeparam name="TSource">The type of the elements in the source sequence.</typeparam>
-        /// <typeparam name="TAnalysisResult">The filter of <see cref="IAnalysisResult"/> types to consider from the
-        /// <paramref name="analyticsProvider" /> <see cref="IAnalysisResult"/> sequence.</typeparam>
-        /// <param name="source">The source sequence.</param>
-        /// <param name="analyticsProvider">The analytics provider to use.</param>
-        /// <param name="onNextAnalysisResult">The action to invoke whenever the <paramref name="analyticsProvider" /> produced an <see cref="IAnalysisResult" />.</param>
-        /// <param name="onErrorOnAnalysisResultSequence">The action to invoke if the <paramref name="analyticsProvider" /> reports an error.</param>
-        /// <param name="onCompleteOnAnalysisResultSequence">The action to invoke whenever the <paramref name="analyticsProvider" /> signaled completion of its analysis sequence.</param>
-        /// <returns>
-        /// A new <see cref="IObservable{TSource}" /> providing the full <paramref name="source" /> sequence back to the caller.
-        /// </returns>
-        public static IObservable<TSource> AnalyzeWith<TSource, TAnalysisResult>(this IObservable<TSource> source, IAnalyticsProvider<TSource> analyticsProvider, Action<TAnalysisResult> onNextAnalysisResult = null, Action<Exception> onErrorOnAnalysisResultSequence = null, Action onCompleteOnAnalysisResultSequence = null)
-                    where TAnalysisResult : IAnalysisResult
-        {
-            if (source == null) throw new ArgumentNullException(nameof(source));
-            if (analyticsProvider == null) throw new ArgumentNullException(nameof(analyticsProvider));
-
-            var analysisResultsObserver = Observer.Create<TAnalysisResult>(analysisResult =>
-            {
-                onNextAnalysisResult?.Invoke(analysisResult);
-            },
-            exception =>
-            {
-                onErrorOnAnalysisResultSequence?.Invoke(exception);
-            },
-            () =>
-            {
-                onCompleteOnAnalysisResultSequence?.Invoke();
-            });
-
-            return source
-                .AnalyzeWith(analyticsProvider, analysisResultsObserver)
-                .Publish()
-                .RefCount();
-        }
-
-        /// <summary>
-        /// Takes the source sequence and attaches a new <see cref="IAnalyticsProvider{TSource}" /> for the provided <paramref name="analyzers" /> to it
-        /// while forwarding the source sequence back to the caller, the provided actions will be invoked whenever the analytics provider
-        /// produces a new <see cref="IAnalysisResult" /> instance.
+        /// Takes the source sequence, subscribes the <paramref name="analyzers" /> to it and returns the analyzer's <see cref="IAnalysisResult" /> sequence.
         /// </summary>
         /// <typeparam name="TSource">The type of the elements in the source sequence.</typeparam>
         /// <param name="source">The source sequence.</param>
         /// <param name="analyzers">The analyzers to use.</param>
-        /// <param name="analysisResultsObserver">The analysis results observer.</param>
-        /// <param name="scheduler">The scheduler to invoke the <see cref="IAnalysisResult"/> notifications on.</param>
+        /// <param name="scheduler">Scheduler used to introduce concurrency for making subscriptions to the given
+        /// source sequence and thereby running the <paramref name="analyzers" /> on.</param>
         /// <returns>
-        /// A new <see cref="IObservable{TSource}" /> providing the full <paramref name="source" /> sequence back to the caller.
+        /// The observable sequence that contains the analysis results the <paramref name="analyzers" /> produce.
         /// </returns>
-        public static IObservable<TSource> AnalyzeWith<TSource>(this IObservable<TSource> source, IEnumerable<IAnalyzer<TSource>> analyzers,
-                    IObserver<IAnalysisResult> analysisResultsObserver,
-                    IScheduler scheduler = null)
+        /// <exception cref="System.ArgumentNullException">
+        /// </exception>
+        public static IObservable<IAnalysisResult> AnalyzeWith<TSource>(this IObservable<TSource> source, ICollection<IAnalyzer<TSource>> analyzers, IScheduler scheduler = null)
         {
             if (source == null) throw new ArgumentNullException(nameof(source));
             if (analyzers == null) throw new ArgumentNullException(nameof(analyzers));
-            if (analysisResultsObserver == null) throw new ArgumentNullException(nameof(analysisResultsObserver));
+            if (analyzers.Count == 0) throw new ArgumentOutOfRangeException(nameof(analyzers));
 
-            return source
-                .AnalyzeWith(new AnalyticsProvider<TSource>(analyzers, scheduler), analysisResultsObserver)
-                .Publish()
-                .RefCount();
+            return Observable.Create<IAnalysisResult>(observer =>
+            {
+                // first we wire up the analyzer with the source sequence
+                var sourceAnalyticsProviderSubscription = new CompositeDisposable(
+                    analyzers.Select(analyzer =>
+                        scheduler != null
+                            ? source.SubscribeOn(scheduler).Subscribe(analyzer)
+                            : source.Subscribe(analyzer)));
+
+                // then merge the analyzers' analysis sequence into one composite observable and subscribe the observer to it
+                var compositeAnalyzersObservable =
+                    analyzers.Aggregate<IAnalyzer<TSource>, IObservable<IAnalysisResult>>(null, (current, analyzer) => current == null ? analyzer : current.Merge(analyzer));
+
+                var sourceSequenceForwardingSubscription = compositeAnalyzersObservable.Subscribe(observer);
+
+                return () => new CompositeDisposable(sourceSequenceForwardingSubscription, sourceAnalyticsProviderSubscription).Dispose();
+            })
+            .Publish()
+            .RefCount();
         }
 
         /// <summary>
-        /// Takes the source sequence and attaches a new <see cref="IAnalyticsProvider{TSource}"/> for the provided <paramref name="analyzers"/> to it
-        /// while forwarding the source sequence back to the caller, the provided actions will be invoked whenever the analytics provider
-        /// produces a new <see cref="IAnalysisResult" /> instance.
+        /// Takes the source sequence, subscribes the <paramref name="analyzers" /> to it and returns the analyzer's <see cref="IAnalysisResult" /> sequence.
+        /// </summary>
+        /// <typeparam name="TSource">The type of the elements in the source sequence.</typeparam>
+        /// <typeparam name="TAnalysisResult">The type of the analysis result.</typeparam>
+        /// <param name="source">The source sequence.</param>
+        /// <param name="analyzers">The analyzers to use.</param>
+        /// <param name="scheduler">Scheduler used to introduce concurrency for making subscriptions to the given
+        /// source sequence and thereby running the <paramref name="analyzers" /> on.</param>
+        /// <returns>
+        /// The observable sequence that contains the analysis results the <paramref name="analyzers" /> produce.
+        /// </returns>
+        /// <exception cref="System.ArgumentNullException">
+        /// </exception>
+        /// <exception cref="System.ArgumentOutOfRangeException"></exception>
+        public static IObservable<TAnalysisResult> AnalyzeWith<TSource, TAnalysisResult>(this IObservable<TSource> source,
+            ICollection<IAnalyzer<TSource, TAnalysisResult>> analyzers,
+            IScheduler scheduler = null)
+            where TAnalysisResult : IAnalysisResult
+        {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            if (analyzers == null) throw new ArgumentNullException(nameof(analyzers));
+            if (analyzers.Count == 0) throw new ArgumentOutOfRangeException(nameof(analyzers));
+
+            return Observable.Create<TAnalysisResult>(observer =>
+            {
+                // first we wire up the analyzer with the source sequence
+                var sourceAnalyticsProviderSubscription = new CompositeDisposable(
+                    analyzers.Select(analyzer =>
+                        scheduler != null
+                            ? source.SubscribeOn(scheduler).Subscribe(analyzer)
+                            : source.Subscribe(analyzer)));
+
+                // then merge the analyzers' analysis sequence into one composite observable and subscribe the observer to it
+                var compositeAnalyzersObservable =
+                    analyzers.Aggregate<IAnalyzer<TSource, TAnalysisResult>, IObservable<TAnalysisResult>>(null, (current, analyzer) => current == null ? analyzer : current.Merge(analyzer));
+
+                var sourceSequenceForwardingSubscription = compositeAnalyzersObservable.Subscribe(observer);
+
+                return () => new CompositeDisposable(sourceSequenceForwardingSubscription, sourceAnalyticsProviderSubscription).Dispose();
+            })
+            .Publish()
+            .RefCount();
+        }
+
+        /// <summary>
+        /// Takes the source sequence, subscribes the <paramref name="analyzers" /> to it and returns the analyzer's <see cref="IAnalysisResult" /> sequence.
         /// </summary>
         /// <typeparam name="TSource">The type of the elements in the source sequence.</typeparam>
         /// <param name="source">The source sequence.</param>
         /// <param name="analyzers">The analyzers to use.</param>
-        /// <param name="onNextAnalysisResult">The action to invoke whenever the <paramref name="analyzers"/> produce an <see cref="IAnalysisResult"/>.</param>
-        /// <param name="onErrorOnAnalysisResultSequence">The action to invoke if one of the <paramref name="analyzers"/> reports an error.</param>
-        /// <param name="onCompleteOnAnalysisResultSequence">The action to invoke whenever the internally used <see cref="IAnalyticsProvider{TSource}"/> signaled
-        /// completion of its analysis sequence.</param>
-        /// <param name="scheduler">The scheduler to invoke the <see cref="IAnalysisResult"/> notifications on.</param>
-        /// <returns>A new <see cref="IObservable{TSource}"/> providing the full <paramref name="source"/> sequence back to the caller.</returns>
-        public static IObservable<TSource> AnalyzeWith<TSource>(this IObservable<TSource> source, IEnumerable<IAnalyzer<TSource>> analyzers,
-                    Action<IAnalysisResult> onNextAnalysisResult = null, Action<Exception> onErrorOnAnalysisResultSequence = null, Action onCompleteOnAnalysisResultSequence = null,
-                    IScheduler scheduler = null)
+        /// <returns>
+        /// The observable sequence that contains the analysis results the <paramref name="analyzers" /> produce.
+        /// </returns>
+        /// <exception cref="System.ArgumentNullException">
+        /// </exception>
+        public static IObservable<IAnalysisResult> AnalyzeWith<TSource>(this IObservable<TSource> source, params IAnalyzer<TSource>[] analyzers)
         {
             if (source == null) throw new ArgumentNullException(nameof(source));
             if (analyzers == null) throw new ArgumentNullException(nameof(analyzers));
+            if (analyzers.Length == 0) throw new ArgumentOutOfRangeException(nameof(analyzers));
 
-            return source
-                .AnalyzeWith(new AnalyticsProvider<TSource>(analyzers, scheduler), onNextAnalysisResult, onErrorOnAnalysisResultSequence, onCompleteOnAnalysisResultSequence)
-                .Publish()
-                .RefCount();
+            return source.AnalyzeWith(analyzers.ToList());
         }
 
         /// <summary>
-        /// Takes the source sequence and attaches a new <see cref="IAnalyticsProvider{TSource}" /> for the provided <paramref name="analyzers" /> to it
-        /// while forwarding the source sequence back to the caller, the provided actions will be invoked whenever the analytics provider
-        /// produces a new <see cref="IAnalysisResult" /> instance.
+        /// Takes the source sequence, subscribes the <paramref name="analyzers" /> to it and returns the analyzer's <see cref="IAnalysisResult" /> sequence.
         /// </summary>
         /// <typeparam name="TSource">The type of the elements in the source sequence.</typeparam>
-        /// <typeparam name="TAnalysisResult">The filter of <see cref="IAnalysisResult" /> types to consider from the
-        /// <paramref name="analyzers" /><see cref="IAnalysisResult" /> sequence.</typeparam>
+        /// <typeparam name="TAnalysisResult">The type of the analysis result.</typeparam>
         /// <param name="source">The source sequence.</param>
         /// <param name="analyzers">The analyzers to use.</param>
-        /// <param name="analysisResultsObserver">The analysis results observer.</param>
-        /// <param name="scheduler">The scheduler to invoke the <see cref="IAnalysisResult" /> notifications on.</param>
         /// <returns>
-        /// A new <see cref="IObservable{TSource}" /> providing the full <paramref name="source" /> sequence back to the caller.
+        /// The observable sequence that contains the analysis results the <paramref name="analyzers" /> produce.
         /// </returns>
-        public static IObservable<TSource> AnalyzeWith<TSource, TAnalysisResult>(this IObservable<TSource> source, IEnumerable<IAnalyzer<TSource>> analyzers,
-                    IObserver<TAnalysisResult> analysisResultsObserver,
-                    IScheduler scheduler = null)
-                    where TAnalysisResult : IAnalysisResult
+        /// <exception cref="System.ArgumentNullException">
+        /// </exception>
+        /// <exception cref="System.ArgumentOutOfRangeException"></exception>
+        public static IObservable<TAnalysisResult> AnalyzeWith<TSource, TAnalysisResult>(this IObservable<TSource> source, params IAnalyzer<TSource, TAnalysisResult>[] analyzers)
+            where TAnalysisResult : IAnalysisResult
         {
             if (source == null) throw new ArgumentNullException(nameof(source));
             if (analyzers == null) throw new ArgumentNullException(nameof(analyzers));
-            if (analysisResultsObserver == null) throw new ArgumentNullException(nameof(analysisResultsObserver));
+            if (analyzers.Length == 0) throw new ArgumentOutOfRangeException(nameof(analyzers));
 
-            return source.AnalyzeWith(new AnalyticsProvider<TSource>(analyzers, scheduler), analysisResultsObserver)
-                .Publish()
-                .RefCount();
+            return source.AnalyzeWith(analyzers.ToList());
         }
 
         /// <summary>
-        /// Takes the source sequence and attaches a new <see cref="IAnalyticsProvider{TSource}" /> for the provided <paramref name="analyzers" /> to it
-        /// while forwarding the source sequence back to the caller, the provided actions will be invoked whenever the analytics provider
-        /// produces a new <see cref="IAnalysisResult" /> instance.
+        /// Takes the source sequence, subscribes the <paramref name="analyzers" /> to it and returns the analyzer's <see cref="IAnalysisResult" /> sequence.
         /// </summary>
         /// <typeparam name="TSource">The type of the elements in the source sequence.</typeparam>
-        /// <typeparam name="TAnalysisResult">The filter of <see cref="IAnalysisResult"/> types to consider from the
-        /// <paramref name="analyzers" /> <see cref="IAnalysisResult"/> sequence.</typeparam>
         /// <param name="source">The source sequence.</param>
         /// <param name="analyzers">The analyzers to use.</param>
-        /// <param name="onNextAnalysisResult">The action to invoke whenever the <paramref name="analyzers" /> produce an <see cref="IAnalysisResult" />.</param>
-        /// <param name="onErrorOnAnalysisResultSequence">The action to invoke if one of the <paramref name="analyzers" /> reports an error.</param>
-        /// <param name="onCompleteOnAnalysisResultSequence">The action to invoke whenever the internally used <see cref="IAnalyticsProvider{TSource}" /> signaled
-        /// completion of its analysis sequence.</param>
-        /// <param name="scheduler">The scheduler to invoke the <see cref="IAnalysisResult"/> notifications on.</param>
+        /// <param name="scheduler">Scheduler used to introduce concurrency for making subscriptions to the given
+        /// source sequence and thereby running the <paramref name="analyzers" /> on.</param>
         /// <returns>
-        /// A new <see cref="IObservable{TSource}" /> providing the full <paramref name="source" /> sequence back to the caller.
+        /// The observable sequence that contains the analysis results the <paramref name="analyzers" /> produce.
         /// </returns>
-        public static IObservable<TSource> AnalyzeWith<TSource, TAnalysisResult>(this IObservable<TSource> source, IEnumerable<IAnalyzer<TSource>> analyzers,
-                    Action<TAnalysisResult> onNextAnalysisResult = null, Action<Exception> onErrorOnAnalysisResultSequence = null, Action onCompleteOnAnalysisResultSequence = null,
-                    IScheduler scheduler = null)
-                    where TAnalysisResult : IAnalysisResult
+        /// <exception cref="System.ArgumentNullException">
+        /// </exception>
+        public static IObservable<IAnalysisResult> AnalyzeWith<TSource>(this IObservable<TSource> source, IScheduler scheduler, params IAnalyzer<TSource>[] analyzers)
         {
             if (source == null) throw new ArgumentNullException(nameof(source));
+            if (scheduler == null) throw new ArgumentNullException(nameof(scheduler));
             if (analyzers == null) throw new ArgumentNullException(nameof(analyzers));
+            if (analyzers.Length == 0) throw new ArgumentOutOfRangeException(nameof(analyzers));
 
-            return source
-                .AnalyzeWith(new AnalyticsProvider<TSource>(analyzers, scheduler), onNextAnalysisResult, onErrorOnAnalysisResultSequence, onCompleteOnAnalysisResultSequence)
-                .Publish()
-                .RefCount();
+            return source.AnalyzeWith(analyzers.ToList(), scheduler);
         }
 
         /// <summary>
-        /// Provides an observable stream of <see cref="ICountBasedAnalysisResult"/> elements reporting the current count
-        /// for every received <typeparamref name="TSource"/> instance. If a <paramref name="predicate"/> is provided, the count
-        /// will only be increased if the test returns [true].
+        /// Takes the source sequence, subscribes the <paramref name="analyzers" /> to it and returns the analyzer's <see cref="IAnalysisResult" /> sequence.
         /// </summary>
-        /// <typeparam name="TSource">The type of the source.</typeparam>
+        /// <typeparam name="TSource">The type of the elements in the source sequence.</typeparam>
+        /// <typeparam name="TAnalysisResult">The type of the analysis result.</typeparam>
         /// <param name="source">The source sequence.</param>
-        /// <param name="analysisResultsObserver">The analysis results observer.</param>
-        /// <param name="initialCount">The initial count.</param>
-        /// <param name="predicate">A function to test each element whether or not to increase the count. If none is provided,
-        /// the count will be increased with every <typeparamref name="TSource"/> element reported.</param>
-        /// <param name="scheduler">The scheduler to run the <see cref="IAnalyzer{TSource}"/> on.</param>
+        /// <param name="scheduler">Scheduler used to introduce concurrency for making subscriptions to the given
+        /// source sequence and thereby running the <paramref name="analyzers" /> on.</param>
+        /// <param name="analyzers">The analyzers to use.</param>
         /// <returns>
-        /// A new <see cref="IObservable{TSource}" /> providing the full <paramref name="source" /> sequence back to the caller.
+        /// The observable sequence that contains the analysis results the <paramref name="analyzers" /> produce.
         /// </returns>
-        public static IObservable<TSource> AnalyzeCount<TSource>(this IObservable<TSource> source,
-                            IObserver<ICountBasedAnalysisResult> analysisResultsObserver,
-                            long initialCount = 0,
-                            Func<TSource, bool> predicate = null,
-                            IScheduler scheduler = null)
+        /// <exception cref="System.ArgumentNullException">
+        /// </exception>
+        /// <exception cref="System.ArgumentOutOfRangeException"></exception>
+        public static IObservable<TAnalysisResult> AnalyzeWith<TSource, TAnalysisResult>(this IObservable<TSource> source, IScheduler scheduler, params IAnalyzer<TSource, TAnalysisResult>[] analyzers)
+            where TAnalysisResult : IAnalysisResult
         {
             if (source == null) throw new ArgumentNullException(nameof(source));
-            if (analysisResultsObserver == null) throw new ArgumentNullException(nameof(analysisResultsObserver));
+            if (scheduler == null) throw new ArgumentNullException(nameof(scheduler));
+            if (analyzers == null) throw new ArgumentNullException(nameof(analyzers));
+            if (analyzers.Length == 0) throw new ArgumentOutOfRangeException(nameof(analyzers));
 
-            return source
-                .AnalyzeWith(new[] { new CountAnalyzer<TSource>(initialCount, predicate) }, analysisResultsObserver, scheduler)
-                .Publish()
-                .RefCount();
+            return source.AnalyzeWith(analyzers.ToList(), scheduler);
         }
 
         /// <summary>
@@ -326,30 +262,21 @@ namespace JB.Reactive.Analytics.ExtensionMethods
         /// <param name="source">The source sequence.</param>
         /// <param name="initialCount">The initial count.</param>
         /// <param name="predicate">A function to test each element whether or not to increase the count. If none is provided,
-        /// the count will be increased with every <typeparamref name="TSource"/> element reported.</param>
-        /// <param name="onNextAnalysisResult">The action to invoke whenever the count has increased.</param>
-        /// <param name="onErrorOnAnalysisResultSequence">The action to invoke if one the analyzer reports an error.</param>
-        /// <param name="onCompleteOnAnalysisResultSequence">The action to invoke whenever the internally used <see cref="IAnalyticsProvider{TSource}" /> signaled
-        /// completion of its analysis sequence.</param>
-        /// <param name="scheduler">The scheduler to run the <see cref="IAnalyzer{TSource}"/> on.</param>
+        /// the count will be increased with every <typeparamref name="TSource" /> element reported.</param>
+        /// <param name="scheduler">The scheduler to run the <see cref="IAnalyzer{TSource}" /> on.</param>
         /// <returns>
         /// A new <see cref="IObservable{TSource}" /> providing the full <paramref name="source" /> sequence back to the caller.
         /// </returns>
-        public static IObservable<TSource> AnalyzeCount<TSource>(this IObservable<TSource> source,
-                    long initialCount = 0,
-                    Func<TSource, bool> predicate = null,
-                    Action<ICountBasedAnalysisResult> onNextAnalysisResult = null, Action<Exception> onErrorOnAnalysisResultSequence = null, Action onCompleteOnAnalysisResultSequence = null,
-                    IScheduler scheduler = null)
+        /// <exception cref="System.ArgumentNullException"></exception>
+        public static IObservable<ICountBasedAnalysisResult> AnalyzeCount<TSource>(this IObservable<TSource> source,
+                            long initialCount = 0,
+                            Func<TSource, bool> predicate = null,
+                            IScheduler scheduler = null)
         {
             if (source == null) throw new ArgumentNullException(nameof(source));
 
-            return source.AnalyzeWith(new[] { new CountAnalyzer<TSource>(initialCount, predicate) },
-                onNextAnalysisResult,
-                onErrorOnAnalysisResultSequence,
-                onCompleteOnAnalysisResultSequence,
-                scheduler)
-                .Publish()
-                .RefCount();
+            return source
+                .AnalyzeWith(new CountAnalyzer<TSource>(initialCount, predicate), scheduler);
         }
     }
 }

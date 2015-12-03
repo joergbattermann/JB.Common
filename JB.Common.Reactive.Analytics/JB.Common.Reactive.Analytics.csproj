@@ -64,9 +64,7 @@
     <Compile Include="Analyzers\Analyzer.cs" />
     <Compile Include="Analyzers\CountAnalyzer.cs" />
     <Compile Include="ExtensionMethods\ObservableExtensions.cs" />
-    <Compile Include="Providers\AnalyticsProvider.cs" />
     <Compile Include="AnalysisResults\IAnalysisResult.cs" />
-    <Compile Include="Providers\IAnalyticsProvider.cs" />
     <Compile Include="AnalysisResults\ICountBasedAnalysisResult.cs" />
     <Compile Include="AnalysisResults\IMultipleElementsAnalysisResult.cs" />
     <Compile Include="Analyzers\IAnalyzer.cs" />

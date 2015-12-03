@@ -8,7 +8,12 @@ namespace JB.Reactive.Analytics.Analyzers
     /// corresponding analysis results as an observable sequence.
     /// </summary>
     /// <typeparam name="TSource">The type of the source.</typeparam>
-    public interface IAnalyzer<in TSource> : ISubject<TSource, IAnalysisResult>
+    public interface IAnalyzer<in TSource> : IAnalyzer<TSource, IAnalysisResult>
+    {
+    }
+
+    public interface IAnalyzer<in TSource, out TAnalysisResult> : ISubject<TSource, TAnalysisResult>
+        where TAnalysisResult : IAnalysisResult
     {
     }
 }

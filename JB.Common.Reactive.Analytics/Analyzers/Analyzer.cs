@@ -10,16 +10,26 @@ namespace JB.Reactive.Analytics.Analyzers
     /// Base class for <see cref="IAnalyzer{TSource}"/> implementations.
     /// </summary>
     /// <typeparam name="TSource">The type of the source.</typeparam>
-    public abstract class Analyzer<TSource> : IAnalyzer<TSource>, IDisposable
+    public abstract class Analyzer<TSource> : Analyzer<TSource, IAnalysisResult>
     {
-        private Subject<IAnalysisResult> _analysisResultSubject;
+    }
+
+    /// <summary>
+    /// Base class for <see cref="IAnalyzer{TSource}" /> implementations.
+    /// </summary>
+    /// <typeparam name="TSource">The type of the source.</typeparam>
+    /// <typeparam name="TAnalysisResult">The type of the analysis result.</typeparam>
+    public abstract class Analyzer<TSource, TAnalysisResult> : IAnalyzer<TSource, TAnalysisResult>, IDisposable
+        where TAnalysisResult : IAnalysisResult
+    {
+        private Subject<TAnalysisResult> _analysisResultSubject;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Analyzer{TSource}" /> class.
         /// </summary>
         protected Analyzer()
         {
-            _analysisResultSubject = new Subject<IAnalysisResult>();
+            _analysisResultSubject = new Subject<TAnalysisResult>();
         }
 
         /// <summary>
@@ -28,7 +38,7 @@ namespace JB.Reactive.Analytics.Analyzers
         /// <value>
         /// The analysis results subject.
         /// </value>
-        protected Subject<IAnalysisResult> AnalysisResultsSubject
+        protected Subject<TAnalysisResult> AnalysisResultsSubject
         {
             get
             {
@@ -37,7 +47,7 @@ namespace JB.Reactive.Analytics.Analyzers
                 return _analysisResultSubject;
             }
         }
-        
+
         #region Implementation of IObserver<in TSource>
 
         /// <summary>
@@ -67,7 +77,7 @@ namespace JB.Reactive.Analytics.Analyzers
 
         #endregion
 
-        #region Implementation of IObservable<out IAnalysisResult>
+        #region Implementation of IObservable<out TAnalysisResult>
 
         /// <summary>
         /// Notifies the provider that an observer is to receive notifications.
@@ -76,7 +86,7 @@ namespace JB.Reactive.Analytics.Analyzers
         /// A reference to an interface that allows observers to stop receiving notifications before the provider has finished sending them.
         /// </returns>
         /// <param name="observer">The object that is to receive notifications.</param>
-        public virtual IDisposable Subscribe(IObserver<IAnalysisResult> observer)
+        public virtual IDisposable Subscribe(IObserver<TAnalysisResult> observer)
         {
             if (observer == null) throw new ArgumentNullException(nameof(observer));
 

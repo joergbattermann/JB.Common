@@ -194,6 +194,72 @@ namespace JB.Reactive.Linq
         }
 
         /// <summary>
+        /// Merges elements from multiple observable sequences into a single observable sequence,
+        /// when specified a scheduler will be used for enumeration of and subscription to the sources.
+        /// </summary>
+        /// <typeparam name="TSource">The type of the elements in the source sequences.</typeparam>
+        /// <param name="observable">First observable sequence.</param>
+        /// <param name="others">The observable sequence(s) to merge <paramref name="observable"/> with.</param>
+        /// <returns>
+        /// The observable sequence that merges the elements of the given sequences.
+        /// </returns>
+        public static IObservable<TSource> Merge<TSource>(this IObservable<TSource> observable, params IObservable<TSource>[] others)
+        {
+            if (observable == null) throw new ArgumentNullException(nameof(observable));
+
+            if (others == null || others.Length == 0)
+                return observable;
+
+            // else
+            return others.Aggregate(observable, (current, analyzer) => current.Merge(analyzer));
+        }
+
+        /// <summary>
+        /// Merges elements from multiple observable sequences into a single observable sequence,
+        /// when specified a scheduler will be used for enumeration of and subscription to the sources.
+        /// </summary>
+        /// <typeparam name="TSource">The type of the elements in the source sequences.</typeparam>
+        /// <param name="observable">First observable sequence.</param>
+        /// <param name="others">The observable sequence(s) to merge <paramref name="observable"/> with.</param>
+        /// <param name="scheduler">Scheduler used to introduce concurrency for making subscriptions to the given sequences.</param>
+        /// <returns>
+        /// The observable sequence that merges the elements of the given sequences.
+        /// </returns>
+        public static IObservable<TSource> Merge<TSource>(this IObservable<TSource> observable, IScheduler scheduler, params IObservable<TSource>[] others)
+        {
+            if (observable == null) throw new ArgumentNullException(nameof(observable));
+            if (scheduler == null) throw new ArgumentNullException(nameof(scheduler));
+
+            if (others == null || others.Length == 0)
+                return observable;
+
+            // else
+            return others.Aggregate(observable, (current, analyzer) => current.Merge(analyzer, scheduler));
+        }
+
+        /// <summary>
+        /// Merges elements from multiple observable sequences into a single observable sequence,
+        /// when specified a scheduler will be used for enumeration of and subscription to the sources.
+        /// </summary>
+        /// <typeparam name="TSource">The type of the elements in the source sequences.</typeparam>
+        /// <param name="observable">First observable sequence.</param>
+        /// <param name="others">The observable sequence(s) to merge <paramref name="observable"/> with.</param>
+        /// <param name="scheduler">Scheduler used to introduce concurrency for making subscriptions to the given sequences.</param>
+        /// <returns>
+        /// The observable sequence that merges the elements of the given sequences.
+        /// </returns>
+        public static IObservable<TSource> Merge<TSource>(this IObservable<TSource> observable, IEnumerable<IObservable<TSource>> others, IScheduler scheduler = null)
+        {
+            if (observable == null) throw new ArgumentNullException(nameof(observable));
+
+            if (others == null)
+                return observable;
+
+            // else
+            return others.Aggregate(observable, (current, analyzer) => scheduler != null ? current.Merge(analyzer, scheduler) : current.Merge(analyzer));
+        }
+
+        /// <summary>
         /// Takes a source observable and forwards its sequence into target observers and returns the raw sequence back again.
         /// </summary>
         /// <typeparam name="TSource">The type of the elements in the source sequence.</typeparam>

@@ -6,8 +6,6 @@
 // <summary></summary>
 // -----------------------------------------------------------------------
 
-using System;
-using System.Collections.Generic;
 using System.Linq;
 using System.Reactive;
 using System.Reactive.Linq;
@@ -29,22 +27,15 @@ namespace JB.Common.Reactive.Analytics.Tests.Analyzers
         {
             // given
             var testScheduler = new TestScheduler();
-
-            var sourceSequenceObserver = testScheduler.CreateObserver<int>();
             var analysisResultsObserver = testScheduler.CreateObserver<ICountBasedAnalysisResult>();
 
-            var observable = Observable.Range(start, count).AnalyzeCount(analysisResultsObserver);
-
-            using (observable.Subscribe(sourceSequenceObserver))
+            using (Observable.Range(start, count, testScheduler).AnalyzeCount(scheduler: testScheduler).Subscribe(analysisResultsObserver))
             {
                 // when producer ran to completion
                 testScheduler.Start();
 
                 // then
-                sourceSequenceObserver.Messages.Count.Should().Be(count + 1);
-                sourceSequenceObserver.Messages.Last().Value.Kind.Should().Be(NotificationKind.OnCompleted);
-                
-                analysisResultsObserver.Messages.Count.Should().Be(sourceSequenceObserver.Messages.Count);
+                analysisResultsObserver.Messages.Count.Should().Be(count + 1); // +1 because the last message is an oncompleted one
                 analysisResultsObserver.Messages.Last().Value.Kind.Should().Be(NotificationKind.OnCompleted);
             }
         }

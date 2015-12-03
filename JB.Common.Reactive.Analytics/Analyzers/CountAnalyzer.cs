@@ -12,7 +12,7 @@ using JB.Reactive.Analytics.AnalysisResults;
 
 namespace JB.Reactive.Analytics.Analyzers
 {
-    public class CountAnalyzer<TSource> : Analyzer<TSource>
+    public class CountAnalyzer<TSource> : Analyzer<TSource, ICountBasedAnalysisResult>
     {
         private long _currentCount;
         private readonly Func<TSource, bool> _predicate;
@@ -39,7 +39,6 @@ namespace JB.Reactive.Analytics.Analyzers
         /// <param name="initialCount">The initial count.</param>
         /// <param name="predicate">The test to perform for each received <typeparamref name="TSource" /> instance whether or not to increase the count.
         /// If none is provided, all instances are counted.</param>
-        /// <param name="scheduler">The scheduler to schedule notifications on, if any.</param>
         public CountAnalyzer(long initialCount = 0, Func<TSource, bool> predicate = null)
         {
             _currentCount = initialCount;
