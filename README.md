@@ -15,6 +15,11 @@ The package contains helpers and Extension Methods specific to [Reactive Extensi
 
 `PM> Install-Package JB.Common.Reactive`
 
+## JB.Common.Reactive.Analytics [![NuGet Version](http://img.shields.io/nuget/v/JB.Common.Reactive.Analytics.svg?style=flat)](https://www.nuget.org/packages/JB.Common.Reactive.Analytics/) 
+
+This package contains observable sequence analytics and analysis functionality. Start by installing the [JB.Common.Reactive.Analytics](https://www.nuget.org/packages/JB.Common.Reactive.Analytics/) NuGet package:
+
+`PM> Install-Package JB.Common.Reactive.Analytics`
 
 ## JB.Common.Collections [![NuGet Version](http://img.shields.io/nuget/v/JB.Common.Collections.svg?style=flat)](https://www.nuget.org/packages/JB.Common.Collections/) 
 
@@ -39,4 +44,3 @@ This is a different kind of package: it provides Visual Studio Extensibility hel
 This package provides base classes and helpers regarding Visual Studio's Team Foundation Server functionality, including Work Item Tracking as well as for VS's Team Explorer. Start by installing the [JB.Common.VisualStudio.TeamFoundation](https://www.nuget.org/packages/JB.Common.VisualStudio.TeamFoundation/) NuGet package:
 
 `PM> Install-Package JB.Common.VisualStudio.TeamFoundation`
-
