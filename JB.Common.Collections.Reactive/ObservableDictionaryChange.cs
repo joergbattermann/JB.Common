@@ -72,10 +72,10 @@ namespace JB.Collections.Reactive
         }
 
         /// <summary>
-        /// Gets a <see cref="IObservableDictionaryChangeObservableDictionaryChange{TKey,TValue}"/> representing a <see cref="ObservableDictionaryChangeType.Reset"/>.
+        /// Gets a <see cref="IObservableDictionaryChange{TKey,TValue}"/> representing a <see cref="ObservableDictionaryChangeType.Reset"/>.
         /// </summary>
         /// <value>
-        /// An <see cref="IObservableDictionaryChangeObservableDictionaryChange{TKey,TValue}">instance</see> representing a <see cref="ObservableDictionaryChangeType.Reset"/>.
+        /// An <see cref="IObservableDictionaryChange{TKey,TValue}">instance</see> representing a <see cref="ObservableDictionaryChangeType.Reset"/>.
         /// </value>
         public static IObservableDictionaryChange<TKey, TValue> Reset => new ObservableDictionaryChange<TKey, TValue>(ObservableDictionaryChangeType.Reset);
     }
