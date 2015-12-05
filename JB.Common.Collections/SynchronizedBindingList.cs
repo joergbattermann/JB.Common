@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
 
@@ -9,7 +10,7 @@ namespace JB.Collections
     ///     implementation.
     /// </summary>
     /// <typeparam name="T">The type of elements in the list.</typeparam>
-    public class SynchronizedBindingList<T> : EnhancedBindingList<T>
+    public class SynchronizedBindingList<T> : EnhancedBindingList<T>, ICollection
     {
         /// <summary>
         ///     Initializes a new instance of the <see cref="SynchronizedBindingList{T}" /> class.
@@ -23,5 +24,22 @@ namespace JB.Collections
             : base(syncRoot == null ? new SynchronizedCollection<T>(list ?? new List<T>()) : new SynchronizedCollection<T>(syncRoot, list ?? new List<T>()))
         {
         }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether this instance is synchronized.
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if this instance is synchronized; otherwise, <c>false</c>.
+        /// </value>
+        bool ICollection.IsSynchronized => true;
+
+        /// <summary>
+        /// Gets an object that can be used to synchronize access to the <see cref="T:System.Collections.ICollection"/>.
+        /// </summary>
+        /// 
+        /// <returns>
+        /// An object that can be used to synchronize access to the <see cref="T:System.Collections.ICollection"/>.
+        /// </returns>
+        object ICollection.SyncRoot => (Items as SynchronizedCollection<T>)?.SyncRoot;
     }
 }

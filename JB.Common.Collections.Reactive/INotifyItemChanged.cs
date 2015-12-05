@@ -15,7 +15,7 @@ namespace JB.Collections.Reactive
 
         /// <summary>
         /// Gets a value indicating whether this instance has per item change tracking enabled and therefore listens to
-        /// <typeparam name="TItem"/>'s <see cref="INotifyPropertyChanged.PropertyChanged"/> events, if the interface is implemented.
+        /// <see cref="INotifyPropertyChanged.PropertyChanged"/> events, if that interface is implemented, too.
         /// </summary>
         /// <value>
         /// <c>true</c> if this instance has item change tracking enabled; otherwise, <c>false</c>.
@@ -24,7 +24,7 @@ namespace JB.Collections.Reactive
 
         /// <summary>
         /// Gets the minimum amount of items that have been changed to be notified / considered a
-        /// <see cref="ObservableCollectionChangeType.Reset"/> rather than indivudal <see cref="ObservableCollectionChangeType"/> notifications.
+        /// <see cref="ObservableCollectionChangeType.Reset"/> rather than individual <see cref="ObservableCollectionChangeType"/> notifications.
         /// </summary>
         /// <value>
         /// The minimum items changed to be considered reset.

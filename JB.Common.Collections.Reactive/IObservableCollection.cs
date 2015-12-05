@@ -5,7 +5,10 @@ using System.ComponentModel;
 
 namespace JB.Collections.Reactive
 {
-	public interface IObservableCollection<T> : IObservableReadOnlyCollection<T>, INotifyObservableCollectionChanged<T>, IReadOnlyCollection<T>, ICollection<T>, IEnumerable<T>, ICollection, IEnumerable, INotifyCollectionChanged, INotifyPropertyChanged
+	public interface IObservableCollection<T> : IObservableReadOnlyCollection<T>,
+        INotifyObservableCollectionChanged<T>,
+        IReadOnlyCollection<T>, ICollection<T>, ICollection, IEnumerable<T>, IEnumerable,
+        INotifyCollectionChanged, INotifyPropertyChanged
 	{
 		/// <summary>
 		/// Adds a range of items.
@@ -44,7 +47,7 @@ namespace JB.Collections.Reactive
         void RemoveRange(IEnumerable<T> items);
         
 		/// <summary>
-		/// Resets this instance.
+		/// Resets this instance and signals subscribers / binding consumers accordingly.
 		/// </summary>
 		void Reset();
     }

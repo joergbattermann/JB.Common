@@ -32,13 +32,24 @@ namespace JB.Collections.Reactive.ExtensionMethods
             switch (listChangedEventArgs.ListChangedType)
             {
                 case ListChangedType.ItemAdded:
-                    observableCollectionChange = new ObservableCollectionChange<T>(ObservableCollectionChangeType.ItemAdded, sender[listChangedEventArgs.NewIndex], listChangedEventArgs.NewIndex);
+                    observableCollectionChange = new ObservableCollectionChange<T>(
+                        ObservableCollectionChangeType.ItemAdded,
+                        sender[listChangedEventArgs.NewIndex],
+                        listChangedEventArgs.NewIndex);
                     break;
                 case ListChangedType.ItemChanged:
-                    observableCollectionChange = new ObservableCollectionChange<T>(ObservableCollectionChangeType.ItemChanged, sender[listChangedEventArgs.NewIndex], listChangedEventArgs.NewIndex, listChangedEventArgs.OldIndex);
+                    observableCollectionChange = new ObservableCollectionChange<T>(
+                        ObservableCollectionChangeType.ItemChanged,
+                        sender[listChangedEventArgs.NewIndex],
+                        listChangedEventArgs.NewIndex,
+                        listChangedEventArgs.OldIndex);
                     break;
                 case ListChangedType.ItemMoved:
-                    observableCollectionChange = new ObservableCollectionChange<T>(ObservableCollectionChangeType.ItemMoved, sender[listChangedEventArgs.NewIndex], listChangedEventArgs.NewIndex, listChangedEventArgs.OldIndex);
+                    observableCollectionChange = new ObservableCollectionChange<T>(
+                        ObservableCollectionChangeType.ItemMoved,
+                        sender[listChangedEventArgs.NewIndex],
+                        listChangedEventArgs.NewIndex,
+                        listChangedEventArgs.OldIndex);
                     break;
                 case ListChangedType.ItemDeleted:
                     {
@@ -53,7 +64,8 @@ namespace JB.Collections.Reactive.ExtensionMethods
                     observableCollectionChange = new ObservableCollectionChange<T>(ObservableCollectionChangeType.Reset);
                     break;
                 default:
-                    throw new ArgumentOutOfRangeException(nameof(listChangedEventArgs), $"Only {ListChangedType.ItemAdded}, {ListChangedType.ItemChanged}, {ListChangedType.ItemMoved}, {ListChangedType.ItemDeleted} and {ListChangedType.Reset} are supported.");
+                    throw new ArgumentOutOfRangeException(nameof(listChangedEventArgs),
+                        $"Only {ListChangedType.ItemAdded}, {ListChangedType.ItemChanged}, {ListChangedType.ItemMoved}, {ListChangedType.ItemDeleted} and {ListChangedType.Reset} are supported.");
 
             }
 
