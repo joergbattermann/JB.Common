@@ -5,10 +5,16 @@ using System.ComponentModel;
 
 namespace JB.Collections.Reactive
 {
-	public interface IObservableCollection<T> : IObservableReadOnlyCollection<T>,
+	public interface IObservableCollection<T> :
+        IObservableReadOnlyCollection<T>,
         INotifyObservableCollectionChanged<T>,
-        IReadOnlyCollection<T>, ICollection<T>, ICollection, IEnumerable<T>, IEnumerable,
-        INotifyCollectionChanged, INotifyPropertyChanged
+        IReadOnlyCollection<T>,
+        ICollection<T>,
+        ICollection,
+        IEnumerable<T>,
+        IEnumerable,
+        INotifyCollectionChanged,
+        INotifyPropertyChanged
 	{
 		/// <summary>
 		/// Adds a range of items.

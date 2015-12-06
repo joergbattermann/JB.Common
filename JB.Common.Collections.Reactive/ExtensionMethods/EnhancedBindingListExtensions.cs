@@ -140,7 +140,7 @@ namespace JB.Collections.Reactive.ExtensionMethods
 
 				case ListChangedType.Reset:
 					{
-						using (targetObservableList.SuppressCollectionChangedNotifications(true))
+						using (targetObservableList.SuppressChangeNotifications(true))
 						{
 							targetObservableList.Clear();
 							targetObservableList.AddRange(senderAsBindingList);

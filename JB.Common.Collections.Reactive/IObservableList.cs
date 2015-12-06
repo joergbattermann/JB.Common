@@ -11,8 +11,15 @@ using System.Collections.Generic;
 
 namespace JB.Collections.Reactive
 {
-	public interface IObservableList<T> : IObservableCollection<T>, IList<T>, ICollection<T>, IEnumerable<T>,
-		ICollection, IEnumerable, IList
+	public interface IObservableList<T> :
+        IObservableReadOnlyList<T>,
+        IObservableCollection<T>,
+        IList<T>,
+        IList,
+        ICollection<T>,
+        ICollection,
+        IEnumerable<T>,
+        IEnumerable
     {
 		 
 	}

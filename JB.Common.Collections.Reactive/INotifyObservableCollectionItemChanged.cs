@@ -11,7 +11,8 @@ namespace JB.Collections.Reactive
     public interface INotifyObservableCollectionItemChanged<out TItem> : INotifyItemChanged
     {
         /// <summary>
-        /// Gets the observable streams of item changes.
+        /// Gets the observable streams of item changes, however these will only have their
+        /// <see cref="IObservableCollectionChange{T}.ChangeType"/> set to <see cref="ObservableCollectionChangeType.ItemChanged"/>.
         /// </summary>
         /// <value>
         /// The item changes.

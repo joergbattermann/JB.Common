@@ -30,7 +30,7 @@ namespace JB.Collections.Reactive
         {
             try
             {
-                RaiseListChanged(observableCollectionChangedEventArgs.ObservableCollectionChange.ToListChangedEventArgs());
+                RaiseListChanged(observableCollectionChangedEventArgs.Change.ToListChangedEventArgs());
             }
             catch (Exception exception)
             {
@@ -422,7 +422,7 @@ namespace JB.Collections.Reactive
             {
                 CheckForAndThrowIfDisposed();
 
-                return IsTrackingCollectionChanges;
+                return IsTrackingChanges;
             }
         }
 

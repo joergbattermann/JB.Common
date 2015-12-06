@@ -5,7 +5,16 @@ using System.ComponentModel;
 
 namespace JB.Collections.Reactive
 {
-	public interface IObservableReadOnlyCollection<T> : INotifyObservableCollectionChanged<T>, INotifyObservableCountChanged, IReadOnlyCollection<T>, IEnumerable<T>, IEnumerable, INotifyCollectionChanged, INotifyPropertyChanged
+	public interface IObservableReadOnlyCollection<out T> :
+        INotifyObservableCollectionItemChanged<T>,
+        INotifyObservableCountChanged,
+        INotifyCollectionChanged,
+        INotifyObservableResets,
+        INotifyObservableExceptionsThrown,
+        INotifyPropertyChanged,
+        IReadOnlyCollection<T>,
+        IEnumerable<T>,
+        IEnumerable
     {
 	}
 }

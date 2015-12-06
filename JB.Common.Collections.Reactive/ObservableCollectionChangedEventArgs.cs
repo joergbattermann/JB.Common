@@ -10,7 +10,7 @@ namespace JB.Collections.Reactive
         /// <value>
         /// The observable collection change data.
         /// </value>
-        public IObservableCollectionChange<T> ObservableCollectionChange { get; }
+        public IObservableCollectionChange<T> Change { get; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ObservableCollectionChangedEventArgs{T}"/> class.
@@ -22,7 +22,7 @@ namespace JB.Collections.Reactive
             if (observableCollectionChange == null)
                 throw new ArgumentNullException(nameof(observableCollectionChange));
 
-            ObservableCollectionChange = observableCollectionChange;
+            Change = observableCollectionChange;
         }
     }
 }

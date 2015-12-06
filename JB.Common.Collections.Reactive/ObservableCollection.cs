@@ -59,7 +59,7 @@ namespace JB.Collections.Reactive
 
             ThresholdAmountWhenItemChangesAreNotifiedAsReset = 100;
 
-            IsTrackingCollectionChanges = true;
+            IsTrackingChanges = true;
 
             IsTrackingItemChanges = true;
             IsTrackingCountChanges = true;
@@ -100,15 +100,15 @@ namespace JB.Collections.Reactive
         /// </summary>
         /// <param name="signalResetWhenFinished">if set to <c>true</c> signals a reset when finished.</param>
         /// <returns></returns>
-        public IDisposable SuppressCollectionChangedNotifications(bool signalResetWhenFinished = true)
+        public IDisposable SuppressChangeNotifications(bool signalResetWhenFinished = true)
         {
             CheckForAndThrowIfDisposed();
 
-            IsTrackingCollectionChanges = false;
+            IsTrackingChanges = false;
 
             return Disposable.Create(() =>
             {
-                IsTrackingCollectionChanges = true;
+                IsTrackingChanges = true;
 
                 if (signalResetWhenFinished)
                 {
@@ -126,7 +126,7 @@ namespace JB.Collections.Reactive
         /// <value>
         ///     <c>true</c> if this instance is tracking and notifying about collection changes; otherwise, <c>false</c>.
         /// </value>
-        public bool IsTrackingCollectionChanges
+        public bool IsTrackingChanges
         {
             get { return Interlocked.Read(ref _isTrackingCollectionChanges) == 1; }
             protected set
@@ -135,7 +135,7 @@ namespace JB.Collections.Reactive
 
                 lock (_isTrackingCollectionChangesLocker)
                 {
-                    if (value == false && IsTrackingCollectionChanges == false)
+                    if (value == false && IsTrackingChanges == false)
                         throw new InvalidOperationException("A Collection Change Notification Suppression is currently already ongoing, multiple concurrent suppressions are not supported.");
 
                     // First set marker here to prevent re-entry
@@ -214,7 +214,7 @@ namespace JB.Collections.Reactive
 
                 return ChangesSubject
                     .TakeWhile(_ => !IsDisposing && !IsDisposed)
-                    .SkipWhileContinuously(change => !IsTrackingCollectionChanges)
+                    .SkipWhileContinuously(change => !IsTrackingChanges)
                     .SkipWhileContinuously(change => change.ChangeType == ObservableCollectionChangeType.ItemChanged && !IsTrackingItemChanges)
                     .SkipWhileContinuously(change => change.ChangeType == ObservableCollectionChangeType.Reset && !IsTrackingResets);
             }
@@ -557,7 +557,7 @@ namespace JB.Collections.Reactive
                 handler => InnerList.ListChanged += handler,
                 handler => InnerList.ListChanged -= handler)
                 .TakeWhile(_ => !IsDisposing && !IsDisposed)
-                .SkipWhileContinuously(_ => !IsTrackingCollectionChanges)
+                .SkipWhileContinuously(_ => !IsTrackingChanges)
                 .Where(eventPattern => eventPattern?.EventArgs != null)
                 .Select(eventPattern => eventPattern.EventArgs.ToObservableCollectionChange(InnerList))
                 .ObserveOn(Scheduler)
@@ -1048,10 +1048,10 @@ namespace JB.Collections.Reactive
             // only use the Suppress & Reset mechanism if possible
             var suppressItemChangesWhileAdding =
                 IsItemsChangedAmountGreaterThanResetThreshold(itemsAsList.Count, ThresholdAmountWhenItemChangesAreNotifiedAsReset)
-                && IsTrackingCollectionChanges;
+                && IsTrackingChanges;
 
             // we use an IDisposable either way, but in case of not sending a reset, an empty Disposable will be used to simplify the logic here
-            using (suppressItemChangesWhileAdding ? SuppressCollectionChangedNotifications(true) : Disposable.Empty)
+            using (suppressItemChangesWhileAdding ? SuppressChangeNotifications(true) : Disposable.Empty)
             {
                 var originalRaiseListChangedEvents = InnerList.RaiseListChangedEvents;
                 try
@@ -1134,10 +1134,10 @@ namespace JB.Collections.Reactive
             // only use the Suppress & Reset mechanism if possible
             var suppressionItemChanges =
                 IsItemsChangedAmountGreaterThanResetThreshold(itemsAsList.Count, ThresholdAmountWhenItemChangesAreNotifiedAsReset)
-                && IsTrackingCollectionChanges;
+                && IsTrackingChanges;
 
             // we use an IDisposable either way, but in case of not sending a reset, an empty Disposable will be used to simplify the logic here
-            using (suppressionItemChanges ? SuppressCollectionChangedNotifications(true) : Disposable.Empty)
+            using (suppressionItemChanges ? SuppressChangeNotifications(true) : Disposable.Empty)
             {
                 var originalRaiseListChangedEvents = InnerList.RaiseListChangedEvents;
                 try
