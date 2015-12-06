@@ -20,7 +20,7 @@ namespace JB.Collections.Reactive
         /// <value>
         /// <c>true</c> if this instance has item change tracking enabled; otherwise, <c>false</c>.
         /// </value>
-        bool IsNotifyingAboutItemChanges { get; }
+        bool IsTrackingItemChanges { get; }
 
         /// <summary>
         /// Gets the minimum amount of items that have been changed to be notified / considered a

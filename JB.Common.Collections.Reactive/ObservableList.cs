@@ -9,11 +9,13 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Reactive.Concurrency;
 using JB.ExtensionMethods;
 
 namespace JB.Collections.Reactive
 {
+    [DebuggerDisplay("Count={Count}")]
     public class ObservableList<T> : ObservableCollection<T>, IObservableList<T>, IDisposable
     {
         /// <summary>

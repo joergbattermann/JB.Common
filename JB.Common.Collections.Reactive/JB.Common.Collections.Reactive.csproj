@@ -81,11 +81,11 @@
     <Compile Include="IObservableDictionary.cs" />
     <Compile Include="IObservableDictionaryChange.cs" />
     <Compile Include="IObservableList.cs" />
-    <Compile Include="IObservablePropertyChangedEventArgs.cs" />
     <Compile Include="IObservableReadOnlyCollection.cs" />
     <Compile Include="IObservableReadOnlyDictionary.cs" />
     <Compile Include="IObservableReadOnlyList.cs" />
     <Compile Include="ObservableCollection.cs" />
+    <Compile Include="ObservableDictionary.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ExtensionMethods\ObservableListExtensions.cs" />
     <Compile Include="ObservableBindingList.cs" />

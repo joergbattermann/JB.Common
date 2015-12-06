@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Reactive;
 using System.Reactive.Concurrency;
@@ -16,6 +17,7 @@ using JB.Reactive.Linq;
 
 namespace JB.Collections.Reactive
 {
+    [DebuggerDisplay("Count={Count}")]
     public class ObservableCollection<T> : IObservableCollection<T>, IDisposable
     {
         private IDisposable _collectionChangesAndResetsPropertyChangeForwarder = null;
@@ -47,10 +49,11 @@ namespace JB.Collections.Reactive
         /// </summary>
         /// <param name="list">The initial list, if any.</param>
         /// <param name="syncRoot">The object used to synchronize access to the thread-safe collection.</param>
-        /// <param name="scheduler">The scheduler to raise events on.</param>
+        /// <param name="scheduler">The scheduler to raise events on, if none is provided <see cref="System.Reactive.Concurrency.Scheduler.CurrentThread"/> will be used.</param>
         public ObservableCollection(IList<T> list = null, object syncRoot = null, IScheduler scheduler = null)
         {
-            Scheduler = scheduler ?? System.Reactive.Concurrency.Scheduler.Default;
+            // ToDo: check whether scheduler shall / should be used for internall used RX notifications / Subjects etc
+            Scheduler = scheduler ?? System.Reactive.Concurrency.Scheduler.CurrentThread;
 
             InnerList = new SynchronizedBindingList<T>(list, syncRoot ?? new object());
 
@@ -58,8 +61,8 @@ namespace JB.Collections.Reactive
 
             IsTrackingCollectionChanges = true;
 
-            IsNotifyingAboutItemChanges = true;
-            IsNotifyingAboutCountChanges = true;
+            IsTrackingItemChanges = true;
+            IsTrackingCountChanges = true;
             IsTrackingResets = true;
 
             SetupRxObservablesAndSubjects();
@@ -82,7 +85,7 @@ namespace JB.Collections.Reactive
 
                 return CollectionChanges
                     .Where(change => change.ChangeType == ObservableCollectionChangeType.ItemChanged)
-                    .SkipWhileContinuously(_ => !IsNotifyingAboutItemChanges);
+                    .SkipWhileContinuously(_ => !IsTrackingItemChanges);
             }
         }
 
@@ -212,7 +215,7 @@ namespace JB.Collections.Reactive
                 return ChangesSubject
                     .TakeWhile(_ => !IsDisposing && !IsDisposed)
                     .SkipWhileContinuously(change => !IsTrackingCollectionChanges)
-                    .SkipWhileContinuously(change => change.ChangeType == ObservableCollectionChangeType.ItemChanged && !IsNotifyingAboutItemChanges)
+                    .SkipWhileContinuously(change => change.ChangeType == ObservableCollectionChangeType.ItemChanged && !IsTrackingItemChanges)
                     .SkipWhileContinuously(change => change.ChangeType == ObservableCollectionChangeType.Reset && !IsTrackingResets);
             }
         }
@@ -303,8 +306,8 @@ namespace JB.Collections.Reactive
         
         #region Implementation of INotifyObservableCountChanged
 
-        private readonly object _isNotifyingAboutCountChangesLocker = new object();
-        private long _isNotifyingAboutCountChanges = 0;
+        private readonly object _isTrackingCountChangesLocker = new object();
+        private long _isTrackingCountChanges = 0;
 
         /// <summary>
         ///     Gets a value indicating whether this instance is tracking <see cref="IReadOnlyCollection{T}.Count" /> changes.
@@ -312,20 +315,20 @@ namespace JB.Collections.Reactive
         /// <value>
         ///     <c>true</c> if this instance is tracking resets; otherwise, <c>false</c>.
         /// </value>
-        public bool IsNotifyingAboutCountChanges
+        public bool IsTrackingCountChanges
         {
-            get { return Interlocked.Read(ref _isNotifyingAboutCountChanges) == 1; }
+            get { return Interlocked.Read(ref _isTrackingCountChanges) == 1; }
             protected set
             {
                 CheckForAndThrowIfDisposed();
 
-                lock (_isNotifyingAboutCountChangesLocker)
+                lock (_isTrackingCountChangesLocker)
                 {
-                    if (value == false && IsNotifyingAboutCountChanges == false)
+                    if (value == false && IsTrackingCountChanges == false)
                         throw new InvalidOperationException("A Count Change(s) Notification Suppression is currently already ongoing, multiple concurrent suppressions are not supported.");
 
                     // First set marker here to prevent re-entry
-                    Interlocked.Exchange(ref _isNotifyingAboutCountChanges, value ? 1 : 0);
+                    Interlocked.Exchange(ref _isTrackingCountChanges, value ? 1 : 0);
 
                     RaisePropertyChanged();
                 }
@@ -346,7 +349,7 @@ namespace JB.Collections.Reactive
 
                 return CountChangesSubject
                     .TakeWhile(_ => !IsDisposing && !IsDisposed)
-                    .SkipWhileContinuously(_ => !IsNotifyingAboutCountChanges)
+                    .SkipWhileContinuously(_ => !IsTrackingCountChanges)
                     .DistinctUntilChanged();
             }
         }
@@ -365,11 +368,11 @@ namespace JB.Collections.Reactive
         {
             CheckForAndThrowIfDisposed();
 
-            IsNotifyingAboutCountChanges = false;
+            IsTrackingCountChanges = false;
 
             return Disposable.Create(() =>
             {
-                IsNotifyingAboutCountChanges = true;
+                IsTrackingCountChanges = true;
 
                 if (signalCurrentCountWhenFinished)
                 {
@@ -393,11 +396,11 @@ namespace JB.Collections.Reactive
         {
             CheckForAndThrowIfDisposed();
 
-            IsNotifyingAboutItemChanges = false;
+            IsTrackingItemChanges = false;
 
             return Disposable.Create(() =>
             {
-                IsNotifyingAboutItemChanges = true;
+                IsTrackingItemChanges = true;
 
                 if (signalResetWhenFinished)
                 {
@@ -406,8 +409,8 @@ namespace JB.Collections.Reactive
             });
         }
 
-        private readonly object _isNotifyingAboutItemChangesLocker = new object();
-        private long _isNotifyingAboutItemChanges = 0;
+        private readonly object _isTrackingItemChangesLocker = new object();
+        private long _isTrackingItemChanges = 0;
 
         /// <summary>
         ///     Gets a value indicating whether this instance has per item change tracking enabled and therefore listens to
@@ -416,20 +419,20 @@ namespace JB.Collections.Reactive
         /// <value>
         ///     <c>true</c> if this instance has item change tracking enabled; otherwise, <c>false</c>.
         /// </value>
-        public bool IsNotifyingAboutItemChanges
+        public bool IsTrackingItemChanges
         {
-            get { return Interlocked.Read(ref _isNotifyingAboutItemChanges) == 1; }
+            get { return Interlocked.Read(ref _isTrackingItemChanges) == 1; }
             protected set
             {
                 CheckForAndThrowIfDisposed();
 
-                lock (_isNotifyingAboutItemChangesLocker)
+                lock (_isTrackingItemChangesLocker)
                 {
-                    if (value == false && IsNotifyingAboutItemChanges == false)
+                    if (value == false && IsTrackingItemChanges == false)
                         throw new InvalidOperationException("An Item Change Notification Suppression is currently already ongoing, multiple concurrent suppressions are not supported.");
 
                     // First set marker here to prevent re-entry
-                    Interlocked.Exchange(ref _isNotifyingAboutItemChanges, value ? 1 : 0);
+                    Interlocked.Exchange(ref _isTrackingItemChanges, value ? 1 : 0);
 
                     RaisePropertyChanged();
                 }
@@ -522,9 +525,10 @@ namespace JB.Collections.Reactive
             if (IsDisposed || IsDisposing)
                 return;
 
-            if (_propertyChanged != null)
+            var eventHandler = _propertyChanged;
+            if (eventHandler != null)
             {
-                Scheduler.Schedule(() => _propertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName)));
+                Scheduler.Schedule(() => eventHandler.Invoke(this, new PropertyChangedEventArgs(propertyName)));
             }
         }
 
@@ -541,6 +545,8 @@ namespace JB.Collections.Reactive
         /// </summary>
         private void SetupRxObservablesAndSubjects()
         {
+            // ToDo: check whether scheduler shall / should be used for internall used RX notifications / Subjects etc
+
             // prepare subjects for RX
             ThrownExceptionsSubject = new Subject<Exception>();
             ChangesSubject = new Subject<IObservableCollectionChange<T>>();
@@ -554,13 +560,14 @@ namespace JB.Collections.Reactive
                 .SkipWhileContinuously(_ => !IsTrackingCollectionChanges)
                 .Where(eventPattern => eventPattern?.EventArgs != null)
                 .Select(eventPattern => eventPattern.EventArgs.ToObservableCollectionChange(InnerList))
+                .ObserveOn(Scheduler)
                 .Subscribe(NotifySubscribersAndRaiseListAndCollectionChangedEvents);
 
 
             // 'Count' and 'Item[]' PropertyChanged events are used by WPF typically via / for ObservableCollections, see
             // http://referencesource.microsoft.com/#System/compmod/system/collections/objectmodel/observablecollection.cs,421
-            _countChangesPropertyChangeForwarder = CountChanges.Subscribe(_ => RaisePropertyChanged("Count"));
-            _collectionChangesAndResetsPropertyChangeForwarder = CollectionChanges.Subscribe(_ => RaisePropertyChanged("Item[]"));
+            _countChangesPropertyChangeForwarder = CountChanges.ObserveOn(Scheduler).Subscribe(_ => RaisePropertyChanged("Count"));
+            _collectionChangesAndResetsPropertyChangeForwarder = CollectionChanges.ObserveOn(Scheduler).Subscribe(_ => RaisePropertyChanged("Item[]"));
         }
 
         /// <summary>

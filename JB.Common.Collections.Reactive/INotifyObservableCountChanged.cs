@@ -13,7 +13,7 @@ namespace JB.Collections.Reactive
         /// <value>
         /// <c>true</c> if this instance is tracking counts; otherwise, <c>false</c>.
         /// </value>
-        bool IsNotifyingAboutCountChanges { get; }
+        bool IsTrackingCountChanges { get; }
 
         /// <summary>
         /// Gets the count change notifications as an observable stream.

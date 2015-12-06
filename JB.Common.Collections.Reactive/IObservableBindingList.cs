@@ -6,12 +6,12 @@ namespace JB.Collections.Reactive
 	public interface IObservableBindingList<T> : IObservableList<T>, IBindingList, ICancelAddNew, IRaiseItemChangedEvents
     {
         /// <summary>
-        /// Gets a value indicating whether this instance is currently notifying event and observable subscribers about collection changed events.
+        /// Gets a value indicating whether this instance is currently notifying event- and observable subscribers about <see cref="IBindingList.ListChanged"/> events.
         /// </summary>
         /// <value>
         /// <c>true</c> if this instance is notifying observable and event subscribers; otherwise, <c>false</c>.
         /// </value>
-        bool RaiseListChangedEvents { get; }
+        bool RaisesListChangedEvents { get; }
 
         /// <summary>
         /// Raises <see cref="INotifyObservableCollectionChanged{T}.ObservableCollectionChanged"/>,  <see cref="INotifyCollectionChanged.CollectionChanged"/>

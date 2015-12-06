@@ -64,9 +64,9 @@ namespace JB.Collections.Reactive
         ///     The item added to the list.
         /// </returns>
         /// <exception cref="T:System.NotSupportedException"><see cref="P:System.ComponentModel.IBindingList.AllowNew" /> is false. </exception>
-        public object AddNew()
+        public virtual object AddNew()
         {
-            return (InnerList as IBindingList).AddNew();
+            return (InnerList as IBindingList)?.AddNew();
         }
 
         /// <summary>
@@ -76,9 +76,9 @@ namespace JB.Collections.Reactive
         ///     The <see cref="T:System.ComponentModel.PropertyDescriptor" /> to add to the indexes used for
         ///     searching.
         /// </param>
-        public void AddIndex(PropertyDescriptor property)
+        public virtual void AddIndex(PropertyDescriptor property)
         {
-            (InnerList as IBindingList).AddIndex(property);
+            (InnerList as IBindingList)?.AddIndex(property);
         }
 
         /// <summary>
@@ -91,9 +91,9 @@ namespace JB.Collections.Reactive
         ///     <see cref="P:System.ComponentModel.IBindingList.SupportsSorting" /> is
         ///     false.
         /// </exception>
-        public void ApplySort(PropertyDescriptor property, ListSortDirection direction)
+        public virtual void ApplySort(PropertyDescriptor property, ListSortDirection direction)
         {
-            (InnerList as IBindingList).ApplySort(property, direction);
+            (InnerList as IBindingList)?.ApplySort(property, direction);
         }
 
         /// <summary>
@@ -108,9 +108,9 @@ namespace JB.Collections.Reactive
         ///     <see cref="P:System.ComponentModel.IBindingList.SupportsSearching" />
         ///     is false.
         /// </exception>
-        public int Find(PropertyDescriptor property, object key)
+        public virtual int Find(PropertyDescriptor property, object key)
         {
-            return (InnerList as IBindingList).Find(property, key);
+            return (InnerList as IBindingList)?.Find(property, key) ?? -1;
         }
 
         /// <summary>
@@ -120,9 +120,9 @@ namespace JB.Collections.Reactive
         ///     The <see cref="T:System.ComponentModel.PropertyDescriptor" /> to remove from the indexes used
         ///     for searching.
         /// </param>
-        public void RemoveIndex(PropertyDescriptor property)
+        public virtual void RemoveIndex(PropertyDescriptor property)
         {
-            (InnerList as IBindingList).RemoveIndex(property);
+            (InnerList as IBindingList)?.RemoveIndex(property);
         }
 
         /// <summary>
@@ -135,9 +135,9 @@ namespace JB.Collections.Reactive
         ///     <see cref="P:System.ComponentModel.IBindingList.SupportsSorting" /> is
         ///     false.
         /// </exception>
-        public void RemoveSort()
+        public virtual void RemoveSort()
         {
-            (InnerList as IBindingList).RemoveSort();
+            (InnerList as IBindingList)?.RemoveSort();
         }
 
         /// <summary>
@@ -147,7 +147,7 @@ namespace JB.Collections.Reactive
         ///     true if you can add items to the list using <see cref="M:System.ComponentModel.IBindingList.AddNew" />; otherwise,
         ///     false.
         /// </returns>
-        public bool AllowNew
+        public virtual bool AllowNew
         {
             get
             {
@@ -162,7 +162,7 @@ namespace JB.Collections.Reactive
         /// <returns>
         ///     true if you can update the items in the list; otherwise, false.
         /// </returns>
-        public bool AllowEdit
+        public virtual bool AllowEdit
         {
             get
             {
@@ -179,7 +179,7 @@ namespace JB.Collections.Reactive
         /// <returns>
         ///     true if you can remove items from the list; otherwise, false.
         /// </returns>
-        public bool AllowRemove
+        public virtual bool AllowRemove
         {
             get
             {
@@ -196,13 +196,13 @@ namespace JB.Collections.Reactive
         ///     true if a <see cref="E:System.ComponentModel.IBindingList.ListChanged" /> event is raised when the list changes or
         ///     when an item changes; otherwise, false.
         /// </returns>
-        public bool SupportsChangeNotification
+        public virtual bool SupportsChangeNotification
         {
             get
             {
                 CheckForAndThrowIfDisposed();
 
-                return (InnerList as IBindingList).SupportsChangeNotification;
+                return (InnerList as IBindingList)?.SupportsChangeNotification ?? false;
             }
         }
 
@@ -216,13 +216,13 @@ namespace JB.Collections.Reactive
         ///     <see cref="M:System.ComponentModel.IBindingList.Find(System.ComponentModel.PropertyDescriptor,System.Object)" />
         ///     method; otherwise, false.
         /// </returns>
-        public bool SupportsSearching
+        public virtual bool SupportsSearching
         {
             get
             {
                 CheckForAndThrowIfDisposed();
 
-                return (InnerList as IBindingList).SupportsSearching;
+                return (InnerList as IBindingList)?.SupportsSearching ?? false;
             }
         }
 
@@ -232,13 +232,13 @@ namespace JB.Collections.Reactive
         /// <returns>
         ///     true if the list supports sorting; otherwise, false.
         /// </returns>
-        public bool SupportsSorting
+        public virtual bool SupportsSorting
         {
             get
             {
                 CheckForAndThrowIfDisposed();
 
-                return (InnerList as IBindingList).SupportsSorting;
+                return (InnerList as IBindingList)?.SupportsSorting ?? false;
             }
         }
 
@@ -256,13 +256,13 @@ namespace JB.Collections.Reactive
         ///     <see cref="P:System.ComponentModel.IBindingList.SupportsSorting" /> is
         ///     false.
         /// </exception>
-        public bool IsSorted
+        public virtual bool IsSorted
         {
             get
             {
                 CheckForAndThrowIfDisposed();
 
-                return (InnerList as IBindingList).IsSorted;
+                return (InnerList as IBindingList)?.IsSorted ?? false;
             }
         }
 
@@ -276,13 +276,13 @@ namespace JB.Collections.Reactive
         ///     <see cref="P:System.ComponentModel.IBindingList.SupportsSorting" /> is
         ///     false.
         /// </exception>
-        public PropertyDescriptor SortProperty
+        public virtual PropertyDescriptor SortProperty
         {
             get
             {
                 CheckForAndThrowIfDisposed();
 
-                return (InnerList as IBindingList).SortProperty;
+                return (InnerList as IBindingList)?.SortProperty;
             }
         }
 
@@ -296,13 +296,13 @@ namespace JB.Collections.Reactive
         ///     <see cref="P:System.ComponentModel.IBindingList.SupportsSorting" /> is
         ///     false.
         /// </exception>
-        public ListSortDirection SortDirection
+        public virtual ListSortDirection SortDirection
         {
             get
             {
                 CheckForAndThrowIfDisposed();
 
-                return (InnerList as IBindingList).SortDirection;
+                return (InnerList as IBindingList)?.SortDirection ?? default(ListSortDirection);
             }
         }
 
@@ -314,7 +314,7 @@ namespace JB.Collections.Reactive
         /// <summary>
         ///     Occurs when the list changes or an item in the list changes.
         /// </summary>
-        public event ListChangedEventHandler ListChanged
+        public virtual event ListChangedEventHandler ListChanged
         {
             add
             {
@@ -345,7 +345,14 @@ namespace JB.Collections.Reactive
             if (IsDisposed || IsDisposing)
                 return;
 
-            Scheduler.Schedule(() => _listChanged?.Invoke(this, listChangedEventArgs));
+            if (!RaisesListChangedEvents)
+                return;
+
+            var eventHandler = _listChanged;
+            if (eventHandler != null)
+            {
+                Scheduler.Schedule(() => eventHandler.Invoke(this, listChangedEventArgs));
+            }
         }
 
         #endregion
@@ -356,7 +363,7 @@ namespace JB.Collections.Reactive
         ///     Discards a pending new item from the collection.
         /// </summary>
         /// <param name="itemIndex">The index of the item that was previously added to the collection. </param>
-        public void CancelNew(int itemIndex)
+        public virtual void CancelNew(int itemIndex)
         {
             CheckForAndThrowIfDisposed();
 
@@ -367,7 +374,7 @@ namespace JB.Collections.Reactive
         ///     Commits a pending new item to the collection.
         /// </summary>
         /// <param name="itemIndex">The index of the item that was previously added to the collection. </param>
-        public void EndNew(int itemIndex)
+        public virtual void EndNew(int itemIndex)
         {
             CheckForAndThrowIfDisposed();
 
@@ -409,7 +416,7 @@ namespace JB.Collections.Reactive
         /// <value>
         ///     <c>true</c> if this instance is notifying observable and event subscribers; otherwise, <c>false</c>.
         /// </value>
-        public bool RaiseListChangedEvents
+        public virtual bool RaisesListChangedEvents
         {
             get
             {
@@ -427,7 +434,7 @@ namespace JB.Collections.Reactive
         ///     and <see cref="INotifyObservableCollectionChanged{T}.Resets" /> subscribers signalling an entire List / Collection
         ///     Reset.
         /// </summary>
-        public void ResetBindings()
+        public virtual void ResetBindings()
         {
             CheckForAndThrowIfDisposed();
 
@@ -442,7 +449,7 @@ namespace JB.Collections.Reactive
         ///     subscribers signalling a single item change event.
         /// </summary>
         /// <param name="index">A zero-based index position of the item to be reset.</param>
-        public void ResetItem(int index)
+        public virtual void ResetItem(int index)
         {
             CheckForAndThrowIfDisposed();
 
