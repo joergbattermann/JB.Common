@@ -77,7 +77,7 @@ namespace JB.Collections.Reactive
         /// <value>
         /// The item changes.
         /// </value>
-        public IObservable<IObservableCollectionChange<T>> CollectionItemChanges
+        public virtual IObservable<IObservableCollectionChange<T>> CollectionItemChanges
         {
             get
             {
@@ -100,7 +100,7 @@ namespace JB.Collections.Reactive
         /// </summary>
         /// <param name="signalResetWhenFinished">if set to <c>true</c> signals a reset when finished.</param>
         /// <returns></returns>
-        public IDisposable SuppressChangeNotifications(bool signalResetWhenFinished = true)
+        public virtual IDisposable SuppressChangeNotifications(bool signalResetWhenFinished = true)
         {
             CheckForAndThrowIfDisposed();
 
@@ -182,7 +182,7 @@ namespace JB.Collections.Reactive
         /// </summary>
         /// <param name="signalResetWhenFinished">if set to <c>true</c> signals a reset when finished.</param>
         /// <returns></returns>
-        public IDisposable SuppressResetNotifications(bool signalResetWhenFinished = true)
+        public virtual IDisposable SuppressResetNotifications(bool signalResetWhenFinished = true)
         {
             CheckForAndThrowIfDisposed();
 
@@ -206,7 +206,7 @@ namespace JB.Collections.Reactive
         /// <value>
         ///     The collection changes.
         /// </value>
-        public IObservable<IObservableCollectionChange<T>> CollectionChanges
+        public virtual IObservable<IObservableCollectionChange<T>> CollectionChanges
         {
             get
             {
@@ -228,7 +228,7 @@ namespace JB.Collections.Reactive
         /// <value>
         ///     The resets.
         /// </value>
-        public IObservable<Unit> Resets
+        public virtual IObservable<Unit> Resets
         {
             get
             {
@@ -248,7 +248,7 @@ namespace JB.Collections.Reactive
         /// <value>
         ///     The thrown exceptions.
         /// </value>
-        public IObservable<Exception> ThrownExceptions
+        public virtual IObservable<Exception> ThrownExceptions
         {
             get
             {
@@ -341,7 +341,7 @@ namespace JB.Collections.Reactive
         /// <value>
         ///     The count changes.
         /// </value>
-        public IObservable<int> CountChanges
+        public virtual IObservable<int> CountChanges
         {
             get
             {
@@ -364,7 +364,7 @@ namespace JB.Collections.Reactive
         ///     when finished.
         /// </param>
         /// <returns></returns>
-        public IDisposable SuppressCountChangedNotifications(bool signalCurrentCountWhenFinished = true)
+        public virtual IDisposable SuppressCountChangedNotifications(bool signalCurrentCountWhenFinished = true)
         {
             CheckForAndThrowIfDisposed();
 
@@ -392,7 +392,7 @@ namespace JB.Collections.Reactive
         /// </summary>
         /// <param name="signalResetWhenFinished">if set to <c>true</c> signals a reset when finished.</param>
         /// <returns></returns>
-        public IDisposable SuppressItemChangedNotifications(bool signalResetWhenFinished = true)
+        public virtual IDisposable SuppressItemChangedNotifications(bool signalResetWhenFinished = true)
         {
             CheckForAndThrowIfDisposed();
 
@@ -502,7 +502,7 @@ namespace JB.Collections.Reactive
         /// <summary>
         ///     Occurs when a property changed.
         /// </summary>
-        public event PropertyChangedEventHandler PropertyChanged
+        public virtual event PropertyChangedEventHandler PropertyChanged
         {
             add
             {
@@ -580,7 +580,7 @@ namespace JB.Collections.Reactive
         ///     consider a change or a range of changes a reset.
         /// </param>
         /// <returns></returns>
-        protected bool IsItemsChangedAmountGreaterThanResetThreshold(int affectedItemsCount, int maximumAmountOfItemsChangedToBeConsideredResetThreshold)
+        protected virtual bool IsItemsChangedAmountGreaterThanResetThreshold(int affectedItemsCount, int maximumAmountOfItemsChangedToBeConsideredResetThreshold)
         {
             if (affectedItemsCount <= 0) throw new ArgumentOutOfRangeException(nameof(affectedItemsCount));
             if (maximumAmountOfItemsChangedToBeConsideredResetThreshold < 0) throw new ArgumentOutOfRangeException(nameof(maximumAmountOfItemsChangedToBeConsideredResetThreshold));
@@ -597,7 +597,7 @@ namespace JB.Collections.Reactive
         ///     raises the list- and (observable)collection changed events.
         /// </summary>
         /// <param name="observableCollectionChange">The observable collection change.</param>
-        protected void NotifySubscribersAndRaiseListAndCollectionChangedEvents(IObservableCollectionChange<T> observableCollectionChange)
+        protected virtual void NotifySubscribersAndRaiseListAndCollectionChangedEvents(IObservableCollectionChange<T> observableCollectionChange)
         {
             if (observableCollectionChange == null)
                 throw new ArgumentNullException(nameof(observableCollectionChange));
@@ -1034,7 +1034,7 @@ namespace JB.Collections.Reactive
         ///     Adds a range of items.
         /// </summary>
         /// <param name="items">The items.</param>
-        public void AddRange(IEnumerable<T> items)
+        public virtual void AddRange(IEnumerable<T> items)
         {
             if (items == null) throw new ArgumentNullException(nameof(items));
 
@@ -1081,7 +1081,7 @@ namespace JB.Collections.Reactive
         ///     Depending on whether the caller intends to move the item strictly or logically to the <paramref name="newIndex" />
         ///     position, correction might be useful.
         /// </param>
-        public void Move(T item, int newIndex, bool correctNewIndexOnIndexShift = true)
+        public virtual void Move(T item, int newIndex, bool correctNewIndexOnIndexShift = true)
         {
             if (Equals(item, default(T))) throw new ArgumentOutOfRangeException(nameof(item));
             if (newIndex < 0 || newIndex >= InnerList.Count) throw new ArgumentOutOfRangeException(nameof(newIndex));
@@ -1106,7 +1106,7 @@ namespace JB.Collections.Reactive
         ///     Depending on whether the caller intends to move the item strictly or logically to the <paramref name="newIndex" />
         ///     position, correction might be useful.
         /// </param>
-        public void Move(int itemIndex, int newIndex, bool correctNewIndexOnIndexShift = true)
+        public virtual void Move(int itemIndex, int newIndex, bool correctNewIndexOnIndexShift = true)
         {
             if (itemIndex < 0 || itemIndex >= InnerList.Count) throw new ArgumentOutOfRangeException(nameof(newIndex));
             if (newIndex < 0 || newIndex >= InnerList.Count) throw new ArgumentOutOfRangeException(nameof(newIndex));
@@ -1120,7 +1120,7 @@ namespace JB.Collections.Reactive
         ///     Removes the specified items.
         /// </summary>
         /// <param name="items">The items.</param>
-        public void RemoveRange(IEnumerable<T> items)
+        public virtual void RemoveRange(IEnumerable<T> items)
         {
             if (items == null) throw new ArgumentNullException(nameof(items));
 
@@ -1155,7 +1155,7 @@ namespace JB.Collections.Reactive
         /// <summary>
         /// Resets this instance and signals subscribers / binding consumers accordingly.
         /// </summary>
-        public void Reset()
+        public virtual void Reset()
         {
             CheckForAndThrowIfDisposed();
 

@@ -14,14 +14,14 @@ namespace JB.Collections.Reactive
         bool RaisesListChangedEvents { get; }
 
         /// <summary>
-        /// Raises <see cref="INotifyObservableCollectionChanged{T}.CollectionChanged"/>,  <see cref="INotifyCollectionChanged.CollectionChanged"/>
-        /// and <see cref="IBindingList.ListChanged"/> event(s) as well as notifies the <see cref="INotifyObservableCollectionChanged{T}.CollectionChanges"/>
-        /// and <see cref="INotifyObservableCollectionChanged{T}.Resets"/> subscribers signalling an entire List / Collection Reset.
+        /// Raises <see cref="INotifyObservableCollectionChanged{T}.CollectionChanges"/>, <see cref="INotifyCollectionChanged.CollectionChanged"/>
+        /// and <see cref="IBindingList.ListChanged"/> event(s) as well as notifies subscribers via about <see cref="INotifyObservableResets.Resets"/>
+        /// signalling an entire List / Collection Reset.
         /// </summary>
         void ResetBindings();
 
         /// <summary>
-        /// Raises <see cref="INotifyObservableCollectionChanged{T}.CollectionChanged"/>,  <see cref="INotifyCollectionChanged.CollectionChanged"/>
+        /// Raises <see cref="INotifyObservableCollectionChanged{T}.CollectionChanges"/>, <see cref="INotifyCollectionChanged.CollectionChanged"/>
         /// and <see cref="IBindingList.ListChanged"/> event(s) as well as notifies the <see cref="INotifyObservableCollectionChanged{T}.CollectionChanges"/>
         /// subscribers signalling a single item change event.
         /// </summary>
