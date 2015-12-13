@@ -1,6 +1,8 @@
 using System;
+using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Reactive;
@@ -17,12 +19,12 @@ namespace JB.Collections.Reactive
     [DebuggerDisplay("Count={Count}")]
     public class ObservableDictionary<TKey, TValue> : IObservableDictionary<TKey, TValue>, IDisposable
     {
-        protected Subject<IObservableDictionaryChange<TKey, TValue>> ChangesSubject = null;
+        protected Subject<IObservableDictionaryChange<TKey, TValue>> DictionaryChangesSubject = null;
         protected Subject<int> CountChangesSubject = null;
         protected Subject<Exception> ThrownExceptionsSubject = null;
 
         /// <summary>
-        /// Gets the actual, inner dictionary used.
+        /// Gets the actual dictionary used - the rest in here is just fancy wrapping paper.
         /// </summary>
         /// <value>
         /// The inner dictionary.
@@ -77,7 +79,7 @@ namespace JB.Collections.Reactive
 
         /// <summary>
         /// Prepares and sets up the observables and subjects used, particularly
-        /// <see cref="ChangesSubject"/>, <see cref="CountChangesSubject"/> and <see cref="ThrownExceptionsSubject"/> and also notifications for
+        /// <see cref="DictionaryChangesSubject"/>, <see cref="CountChangesSubject"/> and <see cref="ThrownExceptionsSubject"/> and also notifications for
         /// 'Count' and 'Items[]' <see cref="INotifyPropertyChanged"/> events on <see cref="CountChanges"/> and <see cref="CollectionChanges"/>
         /// occurrences (for WPF / Binding)
         /// </summary>
@@ -87,7 +89,7 @@ namespace JB.Collections.Reactive
 
             // prepare subjects for RX
             ThrownExceptionsSubject = new Subject<Exception>();
-            ChangesSubject = new Subject<IObservableDictionaryChange<TKey, TValue>>();
+            DictionaryChangesSubject = new Subject<IObservableDictionaryChange<TKey, TValue>>();
             CountChangesSubject = new Subject<int>();
 
             //// then connect to InnerList's ListChanged Event
@@ -99,7 +101,13 @@ namespace JB.Collections.Reactive
             //    .Where(eventPattern => eventPattern?.EventArgs != null)
             //    .Select(eventPattern => eventPattern.EventArgs.ToObservableCollectionChange(InnerList))
             //    .ObserveOn(Scheduler)
-            //    .Subscribe(NotifySubscribersAndRaiseListAndCollectionChangedEvents);
+                    //.Subscribe(
+                    //NotifySubscribersAndRaiseListAndCollectionChangedEvents,
+                    //exception =>
+                    //{
+                    //    ThrownExceptionsSubject.OnNext(exception);
+                    //    // ToDo: at this point this instance is practically doomed / no longer forwarding any events & therefore further usage of the instance itself should be prevented, or the observable stream should re-connect/signal-and-swallow exceptions. Either way.. not ideal.
+                    //});
 
 
             //// 'Count' and 'Item[]' PropertyChanged events are used by WPF typically via / for ObservableCollections, see
@@ -194,10 +202,10 @@ namespace JB.Collections.Reactive
                         CountChangesSubject = null;
                     }
 
-                    if (ChangesSubject != null)
+                    if (DictionaryChangesSubject != null)
                     {
-                        ChangesSubject.Dispose();
-                        ChangesSubject = null;
+                        DictionaryChangesSubject.Dispose();
+                        DictionaryChangesSubject = null;
                     }
 
                     if (ThrownExceptionsSubject != null)
@@ -548,15 +556,14 @@ namespace JB.Collections.Reactive
             {
                 CheckForAndThrowIfDisposed();
 
-                return ChangesSubject
+                return DictionaryChangesSubject
                     .TakeWhile(_ => !IsDisposing && !IsDisposed)
                     .SkipWhileContinuously(change => !IsTrackingChanges)
                     .SkipWhileContinuously(change => change.ChangeType == ObservableDictionaryChangeType.ItemChanged && !IsTrackingItemChanges)
                     .SkipWhileContinuously(change => change.ChangeType == ObservableDictionaryChangeType.Reset && !IsTrackingResets);
             }
         }
-
-
+        
         /// <summary>
         /// The actual event for <see cref="ObservableDictionaryChanged"/>.
         /// </summary>
@@ -579,6 +586,26 @@ namespace JB.Collections.Reactive
             }
         }
 
+        /// <summary>
+        ///     Raises the <see cref="E:ObservableDictionaryChanged" /> event.
+        /// </summary>
+        /// <param name="observableDictionaryChangedEventArgs">
+        ///     The <see cref="ObservableDictionaryChangedEventArgs{TKey,TValue}" /> instance
+        ///     containing the event data.
+        /// </param>
+        protected virtual void RaiseObservableDictionaryChanged(ObservableDictionaryChangedEventArgs<TKey, TValue> observableDictionaryChangedEventArgs)
+        {
+            if (observableDictionaryChangedEventArgs == null) throw new ArgumentNullException(nameof(observableDictionaryChangedEventArgs));
+
+            if (IsDisposed || IsDisposing)
+                return;
+
+            var eventHandler = _observableDictionaryChanged;
+            if (eventHandler != null)
+            {
+                Scheduler.Schedule(() => eventHandler.Invoke(this, observableDictionaryChangedEventArgs));
+            }
+        }
 
         #endregion
 
@@ -634,6 +661,186 @@ namespace JB.Collections.Reactive
 
                     RaisePropertyChanged();
                 }
+            }
+        }
+
+        #endregion
+
+        #region Implementation of IReadOnlyCollection<out KeyValuePair<TKey,TValue>>
+
+        /// <summary>
+        /// Gets the number of elements in the collection.
+        /// </summary>
+        /// <returns>
+        /// The number of elements in the collection. 
+        /// </returns>
+        public virtual int Count
+        {
+            get
+            {
+                CheckForAndThrowIfDisposed();
+                return InnerDictionary.Count;
+            }
+        }
+
+        #endregion
+
+        #region Implementation of IEnumerable<out KeyValuePair<TKey,TValue>>
+
+        /// <summary>
+        /// Returns an enumerator that iterates through the collection.
+        /// </summary>
+        /// <returns>
+        /// An enumerator that can be used to iterate through the collection.
+        /// </returns>
+        public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator()
+        {
+            CheckForAndThrowIfDisposed();
+
+            return InnerDictionary.GetEnumerator();
+        }
+
+        #endregion
+
+        #region Implementation of INotifyCollectionChanged
+
+
+        /// <summary>
+        ///     The actual <see cref="CollectionChanged" /> event.
+        /// </summary>
+        private NotifyCollectionChangedEventHandler _collectionChanged;
+
+        /// <summary>
+        ///     Occurs when the collection changed.
+        /// </summary>
+        public virtual event NotifyCollectionChangedEventHandler CollectionChanged
+        {
+            add
+            {
+                CheckForAndThrowIfDisposed();
+                _collectionChanged += value;
+            }
+            remove
+            {
+                CheckForAndThrowIfDisposed();
+                _collectionChanged -= value;
+            }
+        }
+
+        /// <summary>
+        ///     Raises the <see cref="E:CollectionChanged" /> event.
+        /// </summary>
+        /// <param name="notifyCollectionChangedEventArgs">
+        ///     The
+        ///     <see cref="System.Collections.Specialized.NotifyCollectionChangedEventArgs" /> instance containing the event data.
+        /// </param>
+        protected virtual void RaiseCollectionChanged(NotifyCollectionChangedEventArgs notifyCollectionChangedEventArgs)
+        {
+            if (notifyCollectionChangedEventArgs == null) throw new ArgumentNullException(nameof(notifyCollectionChangedEventArgs));
+
+            if (IsDisposed || IsDisposing)
+                return;
+
+            var eventHandler = _collectionChanged;
+            if (eventHandler != null)
+            {
+                Scheduler.Schedule(() => eventHandler.Invoke(this, notifyCollectionChangedEventArgs));
+            }
+        }
+
+        #endregion
+
+        #region Implementation of IEnumerable
+
+        /// <summary>
+        /// Returns an enumerator that iterates through a collection.
+        /// </summary>
+        /// <returns>
+        /// An <see cref="T:System.Collections.IEnumerator"/> object that can be used to iterate through the collection.
+        /// </returns>
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
+
+        #endregion
+
+        #region Implementation of IReadOnlyDictionary<TKey,TValue>
+
+        /// <summary>
+        /// Determines whether the read-only dictionary contains an element that has the specified key.
+        /// </summary>
+        /// <returns>
+        /// true if the read-only dictionary contains an element that has the specified key; otherwise, false.
+        /// </returns>
+        /// <param name="key">The key to locate.</param><exception cref="T:System.ArgumentNullException"><paramref name="key"/> is null.</exception>
+        public virtual bool ContainsKey(TKey key)
+        {
+            CheckForAndThrowIfDisposed();
+
+            return InnerDictionary.ContainsKey(key);
+        }
+
+        /// <summary>
+        /// Gets the value that is associated with the specified key.
+        /// </summary>
+        /// <returns>
+        /// true if the object that implements the <see cref="T:System.Collections.Generic.IReadOnlyDictionary`2"/> interface contains an element that has the specified key; otherwise, false.
+        /// </returns>
+        /// <param name="key">The key to locate.</param><param name="value">When this method returns, the value associated with the specified key, if the key is found; otherwise, the default value for the type of the <paramref name="value"/> parameter. This parameter is passed uninitialized.</param><exception cref="T:System.ArgumentNullException"><paramref name="key"/> is null.</exception>
+        public virtual bool TryGetValue(TKey key, out TValue value)
+        {
+            CheckForAndThrowIfDisposed();
+
+            return InnerDictionary.TryGetValue(key, out value);
+        }
+
+        /// <summary>
+        /// Gets the element that has the specified key in the read-only dictionary.
+        /// </summary>
+        /// <returns>
+        /// The element that has the specified key in the read-only dictionary.
+        /// </returns>
+        /// <param name="key">The key to locate.</param><exception cref="T:System.ArgumentNullException"><paramref name="key"/> is null.</exception><exception cref="T:System.Collections.Generic.KeyNotFoundException">The property is retrieved and <paramref name="key"/> is not found. </exception>
+        public virtual TValue this[TKey key]
+        {
+            get
+            {
+                CheckForAndThrowIfDisposed();
+
+                return InnerDictionary[key];
+            }
+        }
+
+        /// <summary>
+        /// Gets an enumerable collection that contains the keys in the read-only dictionary. 
+        /// </summary>
+        /// <returns>
+        /// An enumerable collection that contains the keys in the read-only dictionary.
+        /// </returns>
+        public virtual IEnumerable<TKey> Keys
+        {
+            get
+            {
+                CheckForAndThrowIfDisposed();
+
+                return InnerDictionary.Keys;
+            }
+        }
+
+        /// <summary>
+        /// Gets an enumerable collection that contains the values in the read-only dictionary.
+        /// </summary>
+        /// <returns>
+        /// An enumerable collection that contains the values in the read-only dictionary.
+        /// </returns>
+        public virtual IEnumerable<TValue> Values
+        {
+            get
+            {
+                CheckForAndThrowIfDisposed();
+
+                return InnerDictionary.Values;
             }
         }
 

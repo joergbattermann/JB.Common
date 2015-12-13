@@ -559,7 +559,13 @@ namespace JB.Collections.Reactive
                 .Where(eventPattern => eventPattern?.EventArgs != null)
                 .Select(eventPattern => eventPattern.EventArgs.ToObservableCollectionChange(InnerList))
                 .ObserveOn(Scheduler)
-                .Subscribe(NotifySubscribersAndRaiseListAndCollectionChangedEvents);
+                .Subscribe(
+                    NotifySubscribersAndRaiseListAndCollectionChangedEvents,
+                    exception =>
+                    {
+                        ThrownExceptionsSubject.OnNext(exception);
+                        // ToDo: at this point this instance is practically doomed / no longer forwarding any events & therefore further usage of the instance itself should be prevented, or the observable stream should re-connect/signal-and-swallow exceptions. Either way.. not ideal.
+                    });
 
 
             // 'Count' and 'Item[]' PropertyChanged events are used by WPF typically via / for ObservableCollections, see
