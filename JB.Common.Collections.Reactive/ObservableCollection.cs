@@ -60,7 +60,6 @@ namespace JB.Collections.Reactive
             ThresholdAmountWhenItemChangesAreNotifiedAsReset = 100;
 
             IsTrackingChanges = true;
-
             IsTrackingItemChanges = true;
             IsTrackingCountChanges = true;
             IsTrackingResets = true;
@@ -117,8 +116,8 @@ namespace JB.Collections.Reactive
             });
         }
 
-        private readonly object _isTrackingCollectionChangesLocker = new object();
-        private long _isTrackingCollectionChanges = 0;
+        private readonly object _isTrackingChangesLocker = new object();
+        private long _isTrackingChanges = 0;
 
         /// <summary>
         ///     Gets or sets a value indicating whether this instance is tracking and notifying about all collection changes.
@@ -128,18 +127,18 @@ namespace JB.Collections.Reactive
         /// </value>
         public bool IsTrackingChanges
         {
-            get { return Interlocked.Read(ref _isTrackingCollectionChanges) == 1; }
+            get { return Interlocked.Read(ref _isTrackingChanges) == 1; }
             protected set
             {
                 CheckForAndThrowIfDisposed();
 
-                lock (_isTrackingCollectionChangesLocker)
+                lock (_isTrackingChangesLocker)
                 {
                     if (value == false && IsTrackingChanges == false)
-                        throw new InvalidOperationException("A Collection Change Notification Suppression is currently already ongoing, multiple concurrent suppressions are not supported.");
+                        throw new InvalidOperationException("A Change Notification Suppression is currently already ongoing, multiple concurrent suppressions are not supported.");
 
                     // First set marker here to prevent re-entry
-                    Interlocked.Exchange(ref _isTrackingCollectionChanges, value ? 1 : 0);
+                    Interlocked.Exchange(ref _isTrackingChanges, value ? 1 : 0);
 
                     RaisePropertyChanged();
                 }
@@ -242,11 +241,10 @@ namespace JB.Collections.Reactive
         }
 
         /// <summary>
-        ///     Gets the thrown exceptions for the <see cref="INotifyObservableCollectionChanged{T}.CollectionChanges" /> stream.
-        ///     Ugly, but oh well.
+        /// Provides an observable sequence of exceptions thrown.
         /// </summary>
         /// <value>
-        ///     The thrown exceptions.
+        /// The thrown exceptions.
         /// </value>
         public virtual IObservable<Exception> ThrownExceptions
         {
@@ -383,7 +381,7 @@ namespace JB.Collections.Reactive
 
         #endregion
         
-        #region Implementation of INotifyItemChanged
+        #region Implementation of INotifyObservableItemChanged
 
         /// <summary>
         ///     (Temporarily) suppresses change notifications for (single) item changes until the returned
@@ -545,7 +543,7 @@ namespace JB.Collections.Reactive
         /// </summary>
         private void SetupRxObservablesAndSubjects()
         {
-            // ToDo: check whether scheduler shall / should be used for internall used RX notifications / Subjects etc
+            // ToDo: check whether scheduler shall / should be used for internally used RX notifications / Subjects etc and if so, where
 
             // prepare subjects for RX
             ThrownExceptionsSubject = new Subject<Exception>();

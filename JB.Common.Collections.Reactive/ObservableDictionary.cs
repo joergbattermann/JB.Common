@@ -3,15 +3,24 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Reactive;
 using System.Reactive.Concurrency;
+using System.Reactive.Disposables;
+using System.Reactive.Linq;
+using System.Reactive.Subjects;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using JB.Reactive.Linq;
 
 namespace JB.Collections.Reactive
 {
     [DebuggerDisplay("Count={Count}")]
     public class ObservableDictionary<TKey, TValue> : IObservableDictionary<TKey, TValue>, IDisposable
     {
+        protected Subject<IObservableDictionaryChange<TKey, TValue>> ChangesSubject = null;
+        protected Subject<int> CountChangesSubject = null;
+        protected Subject<Exception> ThrownExceptionsSubject = null;
+
         /// <summary>
         /// Gets the actual, inner dictionary used.
         /// </summary>
@@ -53,8 +62,53 @@ namespace JB.Collections.Reactive
                     ? new ConcurrentDictionary<TKey, TValue>(collection)
                     : new ConcurrentDictionary<TKey, TValue>();
             }
+
+            ThresholdAmountWhenItemChangesAreNotifiedAsReset = 100;
+
+            IsTrackingChanges = true;
+            IsTrackingItemChanges = true;
+            IsTrackingCountChanges = true;
+            IsTrackingResets = true;
+
+            SetupRxObservablesAndSubjects();
         }
 
+        #region Helper Methods
+
+        /// <summary>
+        /// Prepares and sets up the observables and subjects used, particularly
+        /// <see cref="ChangesSubject"/>, <see cref="CountChangesSubject"/> and <see cref="ThrownExceptionsSubject"/> and also notifications for
+        /// 'Count' and 'Items[]' <see cref="INotifyPropertyChanged"/> events on <see cref="CountChanges"/> and <see cref="CollectionChanges"/>
+        /// occurrences (for WPF / Binding)
+        /// </summary>
+        private void SetupRxObservablesAndSubjects()
+        {
+            // ToDo: check whether scheduler shall / should be used for internally used RX notifications / Subjects etc and if so, where
+
+            // prepare subjects for RX
+            ThrownExceptionsSubject = new Subject<Exception>();
+            ChangesSubject = new Subject<IObservableDictionaryChange<TKey, TValue>>();
+            CountChangesSubject = new Subject<int>();
+
+            //// then connect to InnerList's ListChanged Event
+            //_innerListChangedForwader = Observable.FromEventPattern<ListChangedEventHandler, ListChangedEventArgs>(
+            //    handler => InnerList.ListChanged += handler,
+            //    handler => InnerList.ListChanged -= handler)
+            //    .TakeWhile(_ => !IsDisposing && !IsDisposed)
+            //    .SkipWhileContinuously(_ => !IsTrackingChanges)
+            //    .Where(eventPattern => eventPattern?.EventArgs != null)
+            //    .Select(eventPattern => eventPattern.EventArgs.ToObservableCollectionChange(InnerList))
+            //    .ObserveOn(Scheduler)
+            //    .Subscribe(NotifySubscribersAndRaiseListAndCollectionChangedEvents);
+
+
+            //// 'Count' and 'Item[]' PropertyChanged events are used by WPF typically via / for ObservableCollections, see
+            //// http://referencesource.microsoft.com/#System/compmod/system/collections/objectmodel/observablecollection.cs,421
+            //_countChangesPropertyChangeForwarder = CountChanges.ObserveOn(Scheduler).Subscribe(_ => RaisePropertyChanged("Count"));
+            //_collectionChangesAndResetsPropertyChangeForwarder = CollectionChanges.ObserveOn(Scheduler).Subscribe(_ => RaisePropertyChanged("Item[]"));
+        }
+
+        #endregion
 
         #region Implementation of IDisposable
 
@@ -133,6 +187,24 @@ namespace JB.Collections.Reactive
                     //    _collectionChangesAndResetsPropertyChangeForwarder.Dispose();
                     //    _collectionChangesAndResetsPropertyChangeForwarder = null;
                     //}
+
+                    if (CountChangesSubject != null)
+                    {
+                        CountChangesSubject.Dispose();
+                        CountChangesSubject = null;
+                    }
+
+                    if (ChangesSubject != null)
+                    {
+                        ChangesSubject.Dispose();
+                        ChangesSubject = null;
+                    }
+
+                    if (ThrownExceptionsSubject != null)
+                    {
+                        ThrownExceptionsSubject.Dispose();
+                        ThrownExceptionsSubject = null;
+                    }
                 }
             }
             finally
@@ -197,6 +269,371 @@ namespace JB.Collections.Reactive
             if (eventHandler != null)
             {
                 Scheduler.Schedule(() => eventHandler.Invoke(this, new PropertyChangedEventArgs(propertyName)));
+            }
+        }
+
+        #endregion
+
+        #region Implementation of INotifyObservableExceptionsThrown
+
+        /// <summary>
+        /// Provides an observable sequence of exceptions thrown.
+        /// </summary>
+        /// <value>
+        /// The thrown exceptions.
+        /// </value>
+        public virtual IObservable<Exception> ThrownExceptions
+        {
+            get
+            {
+                CheckForAndThrowIfDisposed();
+
+                // not caring about IsDisposing / IsDisposed on purpose once subscribed, so corresponding Exceptions are forwarded 'til the "end" to already existing subscribers
+                return ThrownExceptionsSubject;
+            }
+        }
+
+        #endregion
+
+        #region Implementation of INotifyObservableResets
+
+        /// <summary>
+        /// Gets a value indicating whether this instance is tracking and notifying about
+        /// list / collection resets, typically for data binding.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if this instance is tracking resets; otherwise, <c>false</c>.
+        /// </value>
+
+        private readonly object _isTrackingResetsLocker = new object();
+        private long _isTrackingResets = 0;
+
+        /// <summary>
+        ///     Gets a value indicating whether this instance is tracking resets.
+        /// </summary>
+        /// <value>
+        ///     <c>true</c> if this instance is tracking resets; otherwise, <c>false</c>.
+        /// </value>
+        public bool IsTrackingResets
+        {
+            get { return Interlocked.Read(ref _isTrackingResets) == 1; }
+            protected set
+            {
+                CheckForAndThrowIfDisposed();
+
+                lock (_isTrackingResetsLocker)
+                {
+                    if (value == false && IsTrackingResets == false)
+                        throw new InvalidOperationException("A Reset(s) Notification Suppression is currently already ongoing, multiple concurrent suppressions are not supported.");
+
+                    // First set marker here to prevent re-entry
+                    Interlocked.Exchange(ref _isTrackingResets, value ? 1 : 0);
+
+                    RaisePropertyChanged();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets the reset notifications as an observable stream.  Whenever signaled,
+        /// observers should reset any knowledge / state etc about the list.
+        /// </summary>
+        /// <value>
+        /// The resets.
+        /// </value>
+        public virtual IObservable<Unit> Resets
+        {
+            get
+            {
+                CheckForAndThrowIfDisposed();
+
+                return DictionaryChanges
+                    .Where(change => change.ChangeType == ObservableDictionaryChangeType.Reset)
+                    .SkipWhileContinuously(_ => IsTrackingResets == false)
+                    .Select(_ => Unit.Default);
+            }
+        }
+
+        /// <summary>
+        /// (Temporarily) suppresses change notifications for resets until the <see cref="IDisposable" /> handed over to the caller
+        /// has been Disposed and then a Reset will be signaled, if wanted and applicable.
+        /// </summary>
+        /// <param name="signalResetWhenFinished">if set to <c>true</c> signals a reset when finished.</param>
+        /// <returns></returns>
+        public virtual IDisposable SuppressResetNotifications(bool signalResetWhenFinished = true)
+        {
+            CheckForAndThrowIfDisposed();
+
+            IsTrackingResets = false;
+
+            return Disposable.Create(() =>
+            {
+                IsTrackingResets = true;
+
+                if (signalResetWhenFinished)
+                {
+                    InnerList.ResetBindings();
+                }
+            });
+        }
+
+        #endregion
+
+        #region Implementation of INotifyObservableCountChanged
+
+        private readonly object _isTrackingCountChangesLocker = new object();
+        private long _isTrackingCountChanges = 0;
+
+        /// <summary>
+        ///     Gets a value indicating whether this instance is tracking <see cref="IReadOnlyCollection{T}.Count" /> changes.
+        /// </summary>
+        /// <value>
+        ///     <c>true</c> if this instance is tracking resets; otherwise, <c>false</c>.
+        /// </value>
+        public bool IsTrackingCountChanges
+        {
+            get { return Interlocked.Read(ref _isTrackingCountChanges) == 1; }
+            protected set
+            {
+                CheckForAndThrowIfDisposed();
+
+                lock (_isTrackingCountChangesLocker)
+                {
+                    if (value == false && IsTrackingCountChanges == false)
+                        throw new InvalidOperationException("A Count Change(s) Notification Suppression is currently already ongoing, multiple concurrent suppressions are not supported.");
+
+                    // First set marker here to prevent re-entry
+                    Interlocked.Exchange(ref _isTrackingCountChanges, value ? 1 : 0);
+
+                    RaisePropertyChanged();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets the count change notifications as an observable stream.
+        /// </summary>
+        /// <value>
+        /// The count changes.
+        /// </value>
+        public virtual IObservable<int> CountChanges
+        {
+            get
+            {
+                CheckForAndThrowIfDisposed();
+
+                return CountChangesSubject
+                    .TakeWhile(_ => !IsDisposing && !IsDisposed)
+                    .SkipWhileContinuously(_ => !IsTrackingCountChanges)
+                    .DistinctUntilChanged();
+            }
+        }
+
+        /// <summary>
+        /// (Temporarily) suppresses item count change notification until the returned <see cref="IDisposable" />
+        /// has been Disposed.
+        /// </summary>
+        /// <param name="signalCurrentCountWhenFinished">if set to <c>true</c> signals a the current count when disposed.</param>
+        /// <returns></returns>
+        public virtual IDisposable SuppressCountChangedNotifications(bool signalCurrentCountWhenFinished = true)
+        {
+            CheckForAndThrowIfDisposed();
+
+            IsTrackingCountChanges = false;
+
+            return Disposable.Create(() =>
+            {
+                IsTrackingCountChanges = true;
+
+                if (signalCurrentCountWhenFinished)
+                {
+                    CountChangesSubject.OnNext(Count);
+                }
+            });
+        }
+
+        #endregion
+
+        #region Implementation of INotifyObservableItemChanged
+
+        /// <summary>
+        /// (Temporarily) suppresses change notifications for <see cref="ObservableCollectionChangeType.ItemChanged"/> events until the returned <see cref="IDisposable" />
+        /// has been Disposed and a Reset will be signaled, if applicable.
+        /// </summary>
+        /// <param name="signalResetWhenFinished">if set to <c>true</c> signals a reset when finished.</param>
+        /// <returns></returns>
+        public virtual IDisposable SuppressItemChangedNotifications(bool signalResetWhenFinished = true)
+        {
+            CheckForAndThrowIfDisposed();
+
+            IsTrackingItemChanges = false;
+
+            return Disposable.Create(() =>
+            {
+                IsTrackingItemChanges = true;
+
+                if (signalResetWhenFinished)
+                {
+                    InnerList.ResetBindings();
+                }
+            });
+        }
+
+        private readonly object _isTrackingItemChangesLocker = new object();
+        private long _isTrackingItemChanges = 0;
+
+        /// <summary>
+        /// Gets a value indicating whether this instance has per item change tracking enabled and therefore listens to
+        /// <see cref="INotifyPropertyChanged.PropertyChanged" /> events, if that interface is implemented, too.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if this instance has item change tracking enabled; otherwise, <c>false</c>.
+        /// </value>
+        /// <exception cref="System.InvalidOperationException">An Item Change Notification Suppression is currently already ongoing, multiple concurrent suppressions are not supported.</exception>
+        public bool IsTrackingItemChanges
+        {
+            get { return Interlocked.Read(ref _isTrackingItemChanges) == 1; }
+            protected set
+            {
+                CheckForAndThrowIfDisposed();
+
+                lock (_isTrackingItemChangesLocker)
+                {
+                    if (value == false && IsTrackingItemChanges == false)
+                        throw new InvalidOperationException("An Item Change Notification Suppression is currently already ongoing, multiple concurrent suppressions are not supported.");
+
+                    // First set marker here to prevent re-entry
+                    Interlocked.Exchange(ref _isTrackingItemChanges, value ? 1 : 0);
+
+                    RaisePropertyChanged();
+                }
+            }
+        }
+
+        private volatile int _thresholdAmountWhenItemChangesAreNotifiedAsReset;
+
+        /// <summary>
+        /// Gets the minimum amount of items that have been changed to be notified / considered a
+        /// <see cref="ObservableCollectionChangeType.Reset" /> rather than individual <see cref="ObservableCollectionChangeType" /> notifications.
+        /// </summary>
+        /// <value>
+        /// The minimum items changed to be considered reset.
+        /// </value>
+        public int ThresholdAmountWhenItemChangesAreNotifiedAsReset
+        {
+            get { return _thresholdAmountWhenItemChangesAreNotifiedAsReset; }
+            set
+            {
+                CheckForAndThrowIfDisposed();
+
+                _thresholdAmountWhenItemChangesAreNotifiedAsReset = value;
+
+                RaisePropertyChanged();
+            }
+        }
+
+        #endregion
+
+        #region Implementation of INotifyObservableDictionaryChanged<TKey,TValue>
+
+        /// <summary>
+        /// Gets the dictionary changes as an observable stream.
+        /// </summary>
+        /// <value>
+        /// The dictionary changes.
+        /// </value>
+        public virtual IObservable<IObservableDictionaryChange<TKey, TValue>> DictionaryChanges
+        {
+            get
+            {
+                CheckForAndThrowIfDisposed();
+
+                return ChangesSubject
+                    .TakeWhile(_ => !IsDisposing && !IsDisposed)
+                    .SkipWhileContinuously(change => !IsTrackingChanges)
+                    .SkipWhileContinuously(change => change.ChangeType == ObservableDictionaryChangeType.ItemChanged && !IsTrackingItemChanges)
+                    .SkipWhileContinuously(change => change.ChangeType == ObservableDictionaryChangeType.Reset && !IsTrackingResets);
+            }
+        }
+
+
+        /// <summary>
+        /// The actual event for <see cref="ObservableDictionaryChanged"/>.
+        /// </summary>
+        private EventHandler<ObservableDictionaryChangedEventArgs<TKey, TValue>> _observableDictionaryChanged;
+
+        /// <summary>
+        /// Occurs when the corresponding <see cref="IObservableCollection{T}" /> changed.
+        /// </summary>
+        public event EventHandler<ObservableDictionaryChangedEventArgs<TKey, TValue>> ObservableDictionaryChanged
+        {
+            add
+            {
+                CheckForAndThrowIfDisposed();
+                _observableDictionaryChanged += value;
+            }
+            remove
+            {
+                CheckForAndThrowIfDisposed();
+                _observableDictionaryChanged -= value;
+            }
+        }
+
+
+        #endregion
+
+        #region Implementation of INotifyObservableChanges
+
+        /// <summary>
+        /// (Temporarily) suppresses change notifications until the returned <see cref="IDisposable" />
+        /// has been Disposed and a Reset will be signaled, if wanted and applicable.
+        /// </summary>
+        /// <param name="signalResetWhenFinished">if set to <c>true</c> signals a reset when finished.</param>
+        /// <returns></returns>
+        public virtual IDisposable SuppressChangeNotifications(bool signalResetWhenFinished = true)
+        {
+            CheckForAndThrowIfDisposed();
+
+            IsTrackingChanges = false;
+
+            return Disposable.Create(() =>
+            {
+                IsTrackingChanges = true;
+
+                if (signalResetWhenFinished)
+                {
+                    InnerList.ResetBindings();
+                }
+            });
+        }
+
+        private readonly object _isTrackingChangesLocker = new object();
+        private long _isTrackingChanges = 0;
+
+        /// <summary>
+        /// Gets a value indicating whether this instance is currently suppressing observable collection changed notifications.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if this instance is suppressing observable collection changed notifications; otherwise, <c>false</c>.
+        /// </value>
+        /// <exception cref="System.InvalidOperationException">A Collection Change Notification Suppression is currently already ongoing, multiple concurrent suppressions are not supported.</exception>
+        public bool IsTrackingChanges
+        {
+            get { return Interlocked.Read(ref _isTrackingChanges) == 1; }
+            protected set
+            {
+                CheckForAndThrowIfDisposed();
+
+                lock (_isTrackingChangesLocker)
+                {
+                    if (value == false && IsTrackingChanges == false)
+                        throw new InvalidOperationException("A Change Notification Suppression is currently already ongoing, multiple concurrent suppressions are not supported.");
+
+                    // First set marker here to prevent re-entry
+                    Interlocked.Exchange(ref _isTrackingChanges, value ? 1 : 0);
+
+                    RaisePropertyChanged();
+                }
             }
         }
 

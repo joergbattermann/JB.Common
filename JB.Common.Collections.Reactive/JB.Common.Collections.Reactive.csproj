@@ -70,7 +70,7 @@
     <Compile Include="ExtensionMethods\ListChangedEventArgsExtensions.cs" />
     <Compile Include="ExtensionMethods\ObservableCollectionChangeExtensions.cs" />
     <Compile Include="ExtensionMethods\ListChangedTypeExtensions.cs" />
-    <Compile Include="INotifyItemChanged.cs" />
+    <Compile Include="INotifyObservableItemChanged.cs" />
     <Compile Include="INotifyObservableChanges.cs" />
     <Compile Include="INotifyObservableCollectionChanged.cs" />
     <Compile Include="INotifyObservableCountChanged.cs" />

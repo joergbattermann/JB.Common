@@ -3,7 +3,7 @@ using System.ComponentModel;
 
 namespace JB.Collections.Reactive
 {
-    public interface INotifyItemChanged
+    public interface INotifyObservableItemChanged
     {
         /// <summary>
         /// (Temporarily) suppresses change notifications for <see cref="ObservableCollectionChangeType.ItemChanged"/> events until the returned <see cref="IDisposable" />

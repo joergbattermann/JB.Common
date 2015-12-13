@@ -6,7 +6,8 @@ namespace JB.Collections.Reactive
     public interface INotifyObservableResets
     {
         /// <summary>
-        /// Gets a value indicating whether this instance is tracking and notifying about resets, typically for data binding.
+        /// Gets a value indicating whether this instance is tracking and notifying about
+        /// list / collection resets, typically for data binding.
         /// </summary>
         /// <value>
         /// <c>true</c> if this instance is tracking resets; otherwise, <c>false</c>.
