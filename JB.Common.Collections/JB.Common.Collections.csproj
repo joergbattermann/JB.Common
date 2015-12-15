@@ -49,6 +49,10 @@
       <Link>Properties\CommonAssemblyInfo.cs</Link>
     </Compile>
     <Compile Include="EnhancedBindingList.cs" />
+    <Compile Include="IBulkModifiableBindingList.cs" />
+    <Compile Include="IBulkModifiableCollection.cs" />
+    <Compile Include="IEnhancedBindingList.cs" />
+    <Compile Include="IItemMovableList.cs" />
     <Compile Include="ItemDeletedListChangedEventArgs.cs" />
     <Compile Include="SynchronizationContextCoordinatedBindingList.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

@@ -14,6 +14,7 @@ namespace JB.Collections.Reactive
 	public interface IObservableList<T> :
         IObservableReadOnlyList<T>,
         IObservableCollection<T>,
+        IItemMovableList<T>,
         IList<T>,
         IList,
         ICollection<T>,

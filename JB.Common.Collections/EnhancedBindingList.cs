@@ -28,8 +28,8 @@ namespace JB.Collections
 	///     .
 	/// </summary>
 	/// <typeparam name="T">The type of elements in the list.</typeparam>
-	public class EnhancedBindingList<T> : BindingList<T>
-	{
+	public class EnhancedBindingList<T> : BindingList<T>, IEnhancedBindingList<T>, IBulkModifiableBindingList<T>
+    {
 		/// <summary>
 		///     Initializes a new instance of the <see cref="EnhancedBindingList{T}" /> class.
 		/// </summary>
@@ -50,7 +50,7 @@ namespace JB.Collections
         /// <param name="signalResetWhenFinished">if set to <c>true</c> a <see cref="ListChangedType.Reset"/> will be signaled when finished.
         /// This and <see cref="BindingList{T}.RaiseListChangedEvents"/> control if and what <see cref="IBindingList.ListChanged" />
         /// event will be raised while / after adding the <paramref name="items"/>.</param>
-        public void AddRange(IEnumerable<T> items, bool signalResetWhenFinished = false)
+        public void AddRange(IEnumerable<T> items, bool signalResetWhenFinished)
 		{
 			if (items == null)
 				return;
@@ -72,7 +72,7 @@ namespace JB.Collections
         /// <param name="signalResetWhenFinished">if set to <c>true</c> a <see cref="ListChangedType.Reset"/> will be signaled when finished.
         /// This and <see cref="BindingList{T}.RaiseListChangedEvents"/> control if and what <see cref="IBindingList.ListChanged" />
         /// event will be raised while / after adding the <paramref name="items"/>.</param>
-        public void RemoveRange(IEnumerable<T> items, bool signalResetWhenFinished = false)
+        public void RemoveRange(IEnumerable<T> items, bool signalResetWhenFinished)
         {
             if (items == null)
                 return;
@@ -206,5 +206,27 @@ namespace JB.Collections
 				RaiseListChangedEvents = originalRaiseListChangedEventsValue;
 			}
 		}
-	}
+
+	    #region Implementation of IBulkModifiableCollection<T>
+
+	    /// <summary>
+	    /// Adds a range of items.
+	    /// </summary>
+	    /// <param name="items">The items.</param>
+	    public void AddRange(IEnumerable<T> items)
+	    {
+	        this.AddRange(items, false);
+	    }
+
+	    /// <summary>
+	    /// Removes the specified items.
+	    /// </summary>
+	    /// <param name="items">The items.</param>
+	    public void RemoveRange(IEnumerable<T> items)
+	    {
+            this.RemoveRange(items, false);
+        }
+
+	    #endregion
+    }
 }
