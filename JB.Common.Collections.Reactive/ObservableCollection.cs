@@ -83,8 +83,9 @@ namespace JB.Collections.Reactive
                 CheckForAndThrowIfDisposed();
 
                 return CollectionChanges
-                    .Where(change => change.ChangeType == ObservableCollectionChangeType.ItemChanged)
-                    .SkipWhileContinuously(_ => !IsTrackingItemChanges);
+                    .TakeWhile(_ => !IsDisposing && !IsDisposed)
+                    .SkipWhileContinuously(change => !IsTrackingChanges)
+                    .Where(change => change.ChangeType == ObservableCollectionChangeType.ItemChanged);
             }
         }
 

@@ -845,5 +845,50 @@ namespace JB.Collections.Reactive
         }
 
         #endregion
+
+        #region Implementation of INotifyObservableDictionaryItemChanged<out TKey,out TValue>
+
+        /// <summary>
+        /// Gets the observable streams of item changes, however these will only have their
+        /// <see cref="IObservableDictionaryChange{TKey, TValue}.ChangeType" /> set to <see cref="ObservableDictionaryChangeType.ItemChanged" />.
+        /// </summary>
+        /// <value>
+        /// The item changes.
+        /// </value>
+        public virtual IObservable<IObservableDictionaryChange<TKey, TValue>> DictionaryItemChanges
+        {
+            get
+            {
+                CheckForAndThrowIfDisposed();
+
+                return DictionaryChanges
+                    .TakeWhile(_ => !IsDisposing && !IsDisposed)
+                    .SkipWhileContinuously(change => !IsTrackingChanges)
+                    .Where(change => change.ChangeType == ObservableDictionaryChangeType.ItemChanged);
+            }
+        }
+
+        #endregion
+
+        #region Implementation of INotifyObservableCollectionItemChanged<out KeyValuePair<TKey,TValue>>
+
+        /// <summary>
+        /// Gets the observable streams of item changes, however these will only have their
+        /// <see cref="IObservableCollectionChange{T}.ChangeType"/> set to <see cref="ObservableCollectionChangeType.ItemChanged"/>.
+        /// </summary>
+        /// <value>
+        /// The item changes.
+        /// </value>
+        public IObservable<IObservableCollectionChange<KeyValuePair<TKey, TValue>>> CollectionItemChanges
+        {
+            get
+            {
+                this.InnerDictionary[]
+
+
+            }
+        }
+
+        #endregion
     }
 }
