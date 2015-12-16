@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
-VisualStudioVersion = 14.0.23107.0
+VisualStudioVersion = 14.0.24720.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JB.Common.Collections", "JB.Common.Collections\JB.Common.Collections.csproj", "{360B8B3F-5EF4-4CD1-96F2-F3CC67A2B2B3}"
 EndProject
@@ -40,6 +40,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JB.Common.Reactive.Analytics", "JB.Common.Reactive.Analytics\JB.Common.Reactive.Analytics.csproj", "{450B98C1-5F88-48E7-808E-7BDD4CF0D179}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JB.Common.Reactive.Analytics.Tests", "JB.Common.Reactive.Analytics.Tests\JB.Common.Reactive.Analytics.Tests.csproj", "{66781C50-92C1-4832-85DE-5BF3E8EC14C2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JB.Common.Reactive.Cache", "JB.Common.Reactive.Cache\JB.Common.Reactive.Cache.csproj", "{7AE2D5D9-00E7-447E-9642-E9377FCE9B98}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -91,6 +93,10 @@ Global
 		{66781C50-92C1-4832-85DE-5BF3E8EC14C2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{66781C50-92C1-4832-85DE-5BF3E8EC14C2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{66781C50-92C1-4832-85DE-5BF3E8EC14C2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7AE2D5D9-00E7-447E-9642-E9377FCE9B98}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7AE2D5D9-00E7-447E-9642-E9377FCE9B98}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7AE2D5D9-00E7-447E-9642-E9377FCE9B98}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7AE2D5D9-00E7-447E-9642-E9377FCE9B98}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
