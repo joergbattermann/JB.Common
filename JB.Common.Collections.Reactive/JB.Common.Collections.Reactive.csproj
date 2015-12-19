@@ -72,7 +72,6 @@
     <Compile Include="ExtensionMethods\ListChangedTypeExtensions.cs" />
     <Compile Include="ExtensionMethods\ObservableDictionaryChangeExtensions.cs" />
     <Compile Include="ExtensionMethods\ObservableListChangeExtensions.cs" />
-    <Compile Include="INotifyObservableItemChanged.cs" />
     <Compile Include="INotifyObservableChanges.cs" />
     <Compile Include="INotifyObservableCollectionChanged.cs" />
     <Compile Include="INotifyObservableCountChanged.cs" />
@@ -80,6 +79,7 @@
     <Compile Include="INotifyObservableDictionaryChanged.cs" />
     <Compile Include="INotifyObservableDictionaryItemChanged.cs" />
     <Compile Include="INotifyObservableExceptionsThrown.cs" />
+    <Compile Include="INotifyObservableListChanged.cs" />
     <Compile Include="INotifyObservableResets.cs" />
     <Compile Include="IObservableBindingDictionary.cs" />
     <Compile Include="IObservableBindingList.cs" />
@@ -96,6 +96,7 @@
     <Compile Include="ObservableDictionary.cs" />
     <Compile Include="ObservableDictionaryChangedEventArgs.cs" />
     <Compile Include="ObservableListChange.cs" />
+    <Compile Include="ObservableListChangedEventArgs.cs" />
     <Compile Include="ObservableListChangeType.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ExtensionMethods\ObservableListExtensions.cs" />

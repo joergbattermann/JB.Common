@@ -11,6 +11,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Reactive.Concurrency;
+using System.Reactive.Subjects;
 using JB.ExtensionMethods;
 
 namespace JB.Collections.Reactive
@@ -18,6 +19,8 @@ namespace JB.Collections.Reactive
     [DebuggerDisplay("Count={Count}")]
     public class ObservableList<T> : ObservableCollection<T>, IObservableList<T>, IDisposable
     {
+        protected Subject<IObservableListChange<T>> ListChangesSubject = new Subject<IObservableListChange<T>>();
+
         /// <summary>
         /// Initializes a new instance of the <see cref="ObservableList{T}" /> class.
         /// </summary>
@@ -27,7 +30,7 @@ namespace JB.Collections.Reactive
         public ObservableList(IList<T> list = null, object syncRoot = null, IScheduler scheduler = null)
             : base(list, syncRoot, scheduler)
         {
-            afgdagf >> this needs to override / provide what the collection cannot provide
+            
         }
 
         #region Implementation of IList

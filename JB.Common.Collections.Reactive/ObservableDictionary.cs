@@ -102,7 +102,7 @@ namespace JB.Collections.Reactive
             //    .Select(eventPattern => eventPattern.EventArgs.ToObservableCollectionChange(InnerList))
             //    .ObserveOn(Scheduler)
                     //.Subscribe(
-                    //NotifySubscribersAndRaiseListAndCollectionChangedEvents,
+                    //NotifyObservableCollectionChangedSubscribersAndRaiseCollectionChangedEvents,
                     //exception =>
                     //{
                     //    ThrownExceptionsSubject.OnNext(exception);
@@ -870,7 +870,7 @@ namespace JB.Collections.Reactive
 
         #endregion
 
-        #region Implementation of INotifyObservableCollectionItemChanged<out KeyValuePair<TKey,TValue>>
+        #region Implementation of INotifyObservableItemChanged<out KeyValuePair<TKey,TValue>>
 
         /// <summary>
         /// Gets the observable streams of item changes, however these will only have their

@@ -20,13 +20,13 @@ namespace JB.Collections.Reactive
     [DebuggerDisplay("Count={Count}")]
     public class ObservableCollection<T> : IObservableCollection<T>, IDisposable
     {
-        private IDisposable _collectionChangesAndResetsPropertyChangeForwarder = null;
-        private IDisposable _countChangesPropertyChangeForwarder = null;
-        private IDisposable _innerListChangedForwader = null;
-
-        protected Subject<IObservableCollectionChange<T>> ChangesSubject = null;
-        protected Subject<int> CountChangesSubject = null;
-        protected Subject<Exception> ThrownExceptionsSubject = null;
+        private IDisposable _collectionChangesAndResetsPropertyChangeForwarder;
+        private IDisposable _countChangesPropertyChangeForwarder;
+        private IDisposable _innerListChangedRelevantCollectionChangeEventsForwader;
+        
+        protected Subject<IObservableCollectionChange<T>> CollectionChangesSubject = new Subject<IObservableCollectionChange<T>>();
+        protected Subject<int> CountChangesSubject = new Subject<int>();
+        protected Subject<Exception> ThrownExceptionsSubject = new Subject<Exception>();
 
         /// <summary>
         ///     Gets the inner list.
@@ -45,7 +45,7 @@ namespace JB.Collections.Reactive
         protected IScheduler Scheduler { get; }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ObservableList{T}" /> class.
+        /// Initializes a new instance of the <see cref="ObservableCollection{T}" /> class.
         /// </summary>
         /// <param name="list">The initial list, if any.</param>
         /// <param name="syncRoot">The object used to synchronize access to the thread-safe collection.</param>
@@ -64,11 +64,11 @@ namespace JB.Collections.Reactive
             IsTrackingCountChanges = true;
             IsTrackingResets = true;
 
-            SetupRxObservablesAndSubjects();
+            SetupCollectionChangedObservablesAndEvents();
         }
 
 
-        #region Implementation of INotifyObservableCollectionItemChanged<out T>
+        #region Implementation of INotifyObservableItemChanged<out T>
 
         /// <summary>
         /// Gets the observable streams of item changes.
@@ -212,7 +212,7 @@ namespace JB.Collections.Reactive
             {
                 CheckForAndThrowIfDisposed();
 
-                return ChangesSubject
+                return CollectionChangesSubject
                     .TakeWhile(_ => !IsDisposing && !IsDisposed)
                     .SkipWhileContinuously(change => !IsTrackingChanges)
                     .SkipWhileContinuously(change => change.ChangeType == ObservableCollectionChangeType.ItemChanged && !IsTrackingItemChanges)
@@ -537,31 +537,27 @@ namespace JB.Collections.Reactive
 
         /// <summary>
         /// Prepares and sets up the observables and subjects used, particularly
-        /// <see cref="ChangesSubject"/>, <see cref="CountChangesSubject"/> and <see cref="ThrownExceptionsSubject"/>
+        /// <see cref="CollectionChangesSubject"/>, <see cref="CountChangesSubject"/> and <see cref="ThrownExceptionsSubject"/>
         /// but also internally used RX subscriptions for <see cref="IBindingList.ListChanged"/> and somewhat hack-ish
         /// 'Count' and 'Items[]' <see cref="INotifyPropertyChanged"/> events on <see cref="CountChanges"/> and <see cref="CollectionChanges"/>
         /// occurrences (for WPF / Binding)
         /// </summary>
-        private void SetupRxObservablesAndSubjects()
+        private void SetupCollectionChangedObservablesAndEvents()
         {
             // ToDo: check whether scheduler shall / should be used for internally used RX notifications / Subjects etc and if so, where
-
-            // prepare subjects for RX
-            ThrownExceptionsSubject = new Subject<Exception>();
-            ChangesSubject = new Subject<IObservableCollectionChange<T>>();
-            CountChangesSubject = new Subject<int>();
-
+            
             // then connect to InnerList's ListChanged Event
-            _innerListChangedForwader = Observable.FromEventPattern<ListChangedEventHandler, ListChangedEventArgs>(
+            _innerListChangedRelevantCollectionChangeEventsForwader = Observable.FromEventPattern<ListChangedEventHandler, ListChangedEventArgs>(
                 handler => InnerList.ListChanged += handler,
                 handler => InnerList.ListChanged -= handler)
                 .TakeWhile(_ => !IsDisposing && !IsDisposed)
                 .SkipWhileContinuously(_ => !IsTrackingChanges)
                 .Where(eventPattern => eventPattern?.EventArgs != null)
-                .Select(eventPattern => eventPattern.EventArgs.ToObservableCollectionChange(InnerList)) sgsfg
+                .Where(eventPattern => eventPattern.EventArgs.ListChangedType != ListChangedType.ItemMoved) // Collection does not / cannot handle moved
+                .Select(eventPattern => eventPattern.EventArgs.ToObservableCollectionChange(InnerList))
                 .ObserveOn(Scheduler)
                 .Subscribe(
-                    NotifySubscribersAndRaiseListAndCollectionChangedEvents,
+                    NotifyObservableCollectionChangedSubscribersAndRaiseCollectionChangedEvents,
                     exception =>
                     {
                         ThrownExceptionsSubject.OnNext(exception);
@@ -571,8 +567,14 @@ namespace JB.Collections.Reactive
 
             // 'Count' and 'Item[]' PropertyChanged events are used by WPF typically via / for ObservableCollections, see
             // http://referencesource.microsoft.com/#System/compmod/system/collections/objectmodel/observablecollection.cs,421
-            _countChangesPropertyChangeForwarder = CountChanges.ObserveOn(Scheduler).Subscribe(_ => RaisePropertyChanged("Count"));
-            _collectionChangesAndResetsPropertyChangeForwarder = CollectionChanges.ObserveOn(Scheduler).Subscribe(_ => RaisePropertyChanged("Item[]"));
+            _countChangesPropertyChangeForwarder = CountChanges
+                .ObserveOn(Scheduler)
+                .Subscribe(_ => RaisePropertyChanged("Count"));
+
+            // ToDo: IObserableList must additionally handle Moves and raise Item[] changes, too
+            _collectionChangesAndResetsPropertyChangeForwarder = CollectionChanges
+                .ObserveOn(Scheduler)
+                .Subscribe(_ => RaisePropertyChanged("Item[]"));
         }
 
         /// <summary>
@@ -598,15 +600,15 @@ namespace JB.Collections.Reactive
         }
 
         /// <summary>
-        ///     Notifies all <see cref="CollectionChanges" /> and <see cref="Resets" /> subscribes and
-        ///     raises the list- and (observable)collection changed events.
+        ///     Notifies all <see cref="CollectionChanges" /> and <see cref="Resets" /> subscribers and
+        ///     raises the (observable)collection changed events.
         /// </summary>
         /// <param name="observableCollectionChange">The observable collection change.</param>
-        protected virtual void NotifySubscribersAndRaiseListAndCollectionChangedEvents(IObservableCollectionChange<T> observableCollectionChange)
+        protected virtual void NotifyObservableCollectionChangedSubscribersAndRaiseCollectionChangedEvents(IObservableCollectionChange<T> observableCollectionChange)
         {
             if (observableCollectionChange == null)
                 throw new ArgumentNullException(nameof(observableCollectionChange));
-             afdafa
+
             CheckForAndThrowIfDisposed();
 
             // go ahead and check whether a Reset or item add, -change, -move or -remove shall be signaled
@@ -620,7 +622,7 @@ namespace JB.Collections.Reactive
             // raise events and notify about collection/list changes
             try
             {
-                ChangesSubject.OnNext(actualObservableCollectionChange);
+                CollectionChangesSubject.OnNext(actualObservableCollectionChange);
             }
             catch (Exception exception)
             {
@@ -752,17 +754,17 @@ namespace JB.Collections.Reactive
                         CountChangesSubject = null;
                     }
 
-                    if (ChangesSubject != null)
+                    if (CollectionChangesSubject != null)
                     {
-                        ChangesSubject.Dispose();
-                        ChangesSubject = null;
+                        CollectionChangesSubject.Dispose();
+                        CollectionChangesSubject = null;
                     }
 
 
-                    if (_innerListChangedForwader != null)
+                    if (_innerListChangedRelevantCollectionChangeEventsForwader != null)
                     {
-                        _innerListChangedForwader.Dispose();
-                        _innerListChangedForwader = null;
+                        _innerListChangedRelevantCollectionChangeEventsForwader.Dispose();
+                        _innerListChangedRelevantCollectionChangeEventsForwader = null;
                     }
 
                     if (ThrownExceptionsSubject != null)
