@@ -90,59 +90,59 @@ namespace JB.Collections.Reactive.ExtensionMethods
                 throw new InvalidOperationException("Source and Target Lists must contain exactly the same element(s) at the exact same index position(s)");
             }
 
-            IObservable<IObservableCollectionChange<T>> sourceObservable = scheduler != null
-                ? sourceObservableList.CollectionItemChanges.ObserveOn(scheduler)
-                : sourceObservableList.CollectionItemChanges;
+            IObservable<IObservableListChange<T>> sourceObservable = scheduler != null
+                ? sourceObservableList.ListChanges.ObserveOn(scheduler)
+                : sourceObservableList.ListChanges;
 
-            return sourceObservable.Subscribe(observableCollectionChange =>
+            return sourceObservable.Subscribe(observableListChange =>
             {
-                switch (observableCollectionChange.ChangeType)
+                switch (observableListChange.ChangeType)
                 {
-                    case ObservableCollectionChangeType.ItemAdded:
+                    case ObservableListChangeType.ItemAdded:
                     {
-                        targetBindingList.Insert(observableCollectionChange.Index, observableCollectionChange.Item);
+                        targetBindingList.Insert(observableListChange.Index, observableListChange.Item);
                         break;
                     }
-                    case ObservableCollectionChangeType.ItemChanged:
+                    case ObservableListChangeType.ItemChanged:
                     {
                         if (includeItemChanges)
                         {
                             // check whether target list contains the moved element at its expected index position
-                            if (targetBindingList.IndexOf(observableCollectionChange.Item) != observableCollectionChange.Index)
+                            if (targetBindingList.IndexOf(observableListChange.Item) != observableListChange.Index)
                             {
-                                throw new InvalidOperationException($"{nameof(sourceObservableList)} and {nameof(targetBindingList)} are no longer in sync: {nameof(targetBindingList)} has a diffent item at index position {observableCollectionChange.Index} than expected.");
+                                throw new InvalidOperationException($"{nameof(sourceObservableList)} and {nameof(targetBindingList)} are no longer in sync: {nameof(targetBindingList)} has a diffent item at index position {observableListChange.Index} than expected.");
                             }
 
-                            targetBindingList.ResetItem(observableCollectionChange.Index);
+                            targetBindingList.ResetItem(observableListChange.Index);
                         }
                         break;
                     }
-                    case ObservableCollectionChangeType.ItemMoved:
+                    case ObservableListChangeType.ItemMoved:
                     {
                         if (includeMoves)
                         {
                             // check whether target list contains the moved element at its expected index position
-                            if (targetBindingList.IndexOf(observableCollectionChange.Item) != observableCollectionChange.OldIndex)
+                            if (targetBindingList.IndexOf(observableListChange.Item) != observableListChange.OldIndex)
                             {
-                                throw new InvalidOperationException($"{nameof(sourceObservableList)} and {nameof(targetBindingList)} are no longer in sync: {nameof(targetBindingList)} has a diffent item at index position {observableCollectionChange.OldIndex} than expected.");
+                                throw new InvalidOperationException($"{nameof(sourceObservableList)} and {nameof(targetBindingList)} are no longer in sync: {nameof(targetBindingList)} has a diffent item at index position {observableListChange.OldIndex} than expected.");
                             }
 
-                            targetBindingList.Move(observableCollectionChange.Item, observableCollectionChange.Index);
+                            targetBindingList.Move(observableListChange.Item, observableListChange.Index);
                         }
                         break;
                     }
-                    case ObservableCollectionChangeType.ItemRemoved:
+                    case ObservableListChangeType.ItemRemoved:
                     {
                         // check whether target list contains the moved element at its expected index position
-                        if (targetBindingList.IndexOf(observableCollectionChange.Item) != observableCollectionChange.OldIndex)
+                        if (targetBindingList.IndexOf(observableListChange.Item) != observableListChange.OldIndex)
                         {
-                            throw new InvalidOperationException($"{nameof(sourceObservableList)} and {nameof(targetBindingList)} are no longer in sync: {nameof(targetBindingList)} has a diffent item at index position {observableCollectionChange.OldIndex} than expected.");
+                            throw new InvalidOperationException($"{nameof(sourceObservableList)} and {nameof(targetBindingList)} are no longer in sync: {nameof(targetBindingList)} has a diffent item at index position {observableListChange.OldIndex} than expected.");
                         }
 
-                        targetBindingList.RemoveAt(observableCollectionChange.OldIndex);
+                        targetBindingList.RemoveAt(observableListChange.OldIndex);
                         break;
                     }
-                    case ObservableCollectionChangeType.Reset:
+                    case ObservableListChangeType.Reset:
                     {
                         var originalBindingRaiseListChangedEvents = targetBindingList.RaiseListChangedEvents;
                         try
