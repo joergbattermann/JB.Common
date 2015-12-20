@@ -5,10 +5,10 @@ namespace JB.Collections.Reactive
     public interface INotifyObservableListChanged<T> : INotifyObservableChanges
     {
         /// <summary>
-        /// Gets the collection changes as an observable stream.
+        /// Gets the list changes as an observable stream.
         /// </summary>
         /// <value>
-        /// The collection changes.
+        /// The list changes.
         /// </value>
         IObservable<IObservableListChange<T>> ListChanges { get; }
 

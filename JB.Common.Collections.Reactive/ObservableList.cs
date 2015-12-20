@@ -9,16 +9,22 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Reactive.Concurrency;
+using System.Reactive.Linq;
 using System.Reactive.Subjects;
+using JB.Collections.Reactive.ExtensionMethods;
 using JB.ExtensionMethods;
+using JB.Reactive.Linq;
 
 namespace JB.Collections.Reactive
 {
     [DebuggerDisplay("Count={Count}")]
     public class ObservableList<T> : ObservableCollection<T>, IObservableList<T>, IDisposable
     {
+        private IDisposable _innerListChangedRelevantListChangedEventsForwader;
+
         protected Subject<IObservableListChange<T>> ListChangesSubject = new Subject<IObservableListChange<T>>();
 
         /// <summary>
@@ -30,11 +36,98 @@ namespace JB.Collections.Reactive
         public ObservableList(IList<T> list = null, object syncRoot = null, IScheduler scheduler = null)
             : base(list, syncRoot, scheduler)
         {
-            
+            SetupListChangedObservablesAndEvents();
         }
 
+        #region Helpers
+
+        /// <summary>
+        /// Prepares and sets up the observables and subjects used, particularly
+        /// <see cref="ListChanges"/>, <see cref="INotifyObservableCountChanged.CountChanges"/> and <see cref="INotifyObservableExceptionsThrown.ThrownExceptions"/>.
+        /// </summary>
+        private void SetupListChangedObservablesAndEvents()
+        {
+            // ToDo: check whether scheduler shall / should be used for internally used RX notifications / Subjects etc and if so, where
+
+            // then connect to InnerList's ListChanged Event
+            _innerListChangedRelevantListChangedEventsForwader = Observable.FromEventPattern<ListChangedEventHandler, ListChangedEventArgs>(
+                handler => InnerList.ListChanged += handler,
+                handler => InnerList.ListChanged -= handler)
+                .TakeWhile(_ => !IsDisposing && !IsDisposed)
+                .SkipWhileContinuously(_ => !IsTrackingChanges)
+                .Where(eventPattern => eventPattern?.EventArgs != null)
+                .Select(eventPattern => eventPattern.EventArgs.ToObservableListChange(InnerList))
+                .ObserveOn(Scheduler)
+                .Subscribe(
+                    NotifyObservableListChangedSubscribersAndRaiseListChangedEvents,
+                    exception =>
+                    {
+                        ThrownExceptionsSubject.OnNext(exception);
+                        // ToDo: at this point this instance is practically doomed / no longer forwarding any events & therefore further usage of the instance itself should be prevented, or the observable stream should re-connect/signal-and-swallow exceptions. Either way.. not ideal.
+                    });
+        }
+
+        /// <summary>
+        ///     Notifies all <see cref="ListChanges" /> and <see cref="INotifyObservableResets.Resets" /> subscribers and
+        ///     raises the (observable)collection changed events.
+        /// </summary>
+        /// <param name="observableListChange">The observable list change.</param>
+        protected virtual void NotifyObservableListChangedSubscribersAndRaiseListChangedEvents(IObservableListChange<T> observableListChange)
+        {
+            // This is similar to what ObservableCollection implements via its NotifyObservableCollectionChangedSubscribersAndRaiseCollectionChangedEvents method,
+            // however:
+            // - no need to handle count-relevant changes because the underlying ObservableCollection takes care of this
+            // - no (extra) (Raise)CollectionChanged call here, again.. already done by the ObservableCollection
+            // - however as 'Move's are only possible for / with ObservableLists, we also raise a PropertyChangedEvent for 'Item[]' (for wpf) in case of a item move(s)
+
+            if (observableListChange == null)
+                throw new ArgumentNullException(nameof(observableListChange));
+
+            CheckForAndThrowIfDisposed();
+
+            // go ahead and check whether a Reset or item add, -change, -move or -remove shall be signaled
+            // .. based on the ThresholdAmountWhenItemChangesAreNotifiedAsReset value
+            var actualObservableListChange =
+                (observableListChange.ChangeType == ObservableListChangeType.Reset
+                 || IsItemsChangedAmountGreaterThanResetThreshold(1, ThresholdAmountWhenItemChangesAreNotifiedAsReset))
+                    ? ObservableListChange<T>.Reset
+                    : observableListChange;
+
+            // raise events and notify about list changes
+            try
+            {
+                ListChangesSubject.OnNext(actualObservableListChange);
+            }
+            catch (Exception exception)
+            {
+                ThrownExceptionsSubject.OnNext(exception);
+            }
+
+            try
+            {
+                RaiseObservableListChanged(new ObservableListChangedEventArgs<T>(actualObservableListChange));
+            }
+            catch (Exception exception)
+            {
+                ThrownExceptionsSubject.OnNext(exception);
+            }
+
+            if (actualObservableListChange.ChangeType == ObservableListChangeType.ItemMoved)
+            {
+                try
+                {
+                    RaisePropertyChanged("Item[]");
+                }
+                catch (Exception exception)
+                {
+                    ThrownExceptionsSubject.OnNext(exception);
+                }
+            }
+        }
+        #endregion
+
         #region Implementation of IList
-        
+
         /// <summary>
         ///     Adds an item to the <see cref="T:System.Collections.IList" />.
         /// </summary>
@@ -313,6 +406,136 @@ namespace JB.Collections.Reactive
 
             InnerList.Move(itemIndex, newIndex, correctNewIndexOnIndexShift);
         }
+
+        #endregion
+
+        #region Implementation of IDisposable
+
+        #region Overrides of ObservableCollection<T>
+
+        /// <summary>
+        ///     Performs application-defined tasks associated with freeing, releasing, or resetting unmanaged resources.
+        /// </summary>
+        public override void Dispose()
+        {
+            if (IsDisposing || IsDisposed)
+                return;
+            try
+            {
+                IsDisposing = true;
+
+                Dispose(true);
+            }
+            finally
+            {
+                IsDisposed = true;
+                IsDisposing = false;
+
+                GC.SuppressFinalize(this);
+            }
+        }
+
+        #endregion
+
+        /// <summary>
+        ///     Releases unmanaged and - optionally - managed resources.
+        /// </summary>
+        /// <param name="disposeManagedResources">
+        ///     <c>true</c> to release both managed and unmanaged resources; <c>false</c> to release only unmanaged resources.
+        /// </param>
+        protected override void Dispose(bool disposeManagedResources)
+        {
+            if (disposeManagedResources)
+            {
+                if (_innerListChangedRelevantListChangedEventsForwader != null)
+                {
+                    _innerListChangedRelevantListChangedEventsForwader.Dispose();
+                    _innerListChangedRelevantListChangedEventsForwader = null;
+                }
+
+                if (ListChangesSubject != null)
+                {
+                    ListChangesSubject.Dispose();
+                    ListChangesSubject = null;
+                }
+            }
+
+            base.Dispose(disposeManagedResources);
+        }
+
+        #endregion
+
+        #region Implementation of INotifyObservableListChanged<T>
+
+        /// <summary>
+        /// Gets the list changes as an observable stream.
+        /// This, contrary to <see cref="INotifyObservableCollectionChanged{T}.CollectionChanges"/>
+        /// also notifies about move operations inside the underlying list of items and provides index positions
+        /// per change event.
+        /// </summary>
+        /// <value>
+        /// The list changes.
+        /// </value>
+        public IObservable<IObservableListChange<T>> ListChanges
+        {
+            get
+            {
+                CheckForAndThrowIfDisposed();
+                
+                return ListChangesSubject
+                    .TakeWhile(_ => !IsDisposing && !IsDisposed)
+                    .SkipWhileContinuously(change => !IsTrackingChanges)
+                    .SkipWhileContinuously(change => change.ChangeType == ObservableListChangeType.ItemChanged&& !IsTrackingItemChanges)
+                    .SkipWhileContinuously(change => change.ChangeType == ObservableListChangeType.Reset && !IsTrackingResets);
+            }
+        }
+
+        /// <summary>
+        ///     The actual <see cref="ObservableListChanged" /> event.
+        /// </summary>
+        private event EventHandler<ObservableListChangedEventArgs<T>> _observableListChanged;
+
+        /// <summary>
+        /// Occurs when the corresponding <see cref="T:JB.Collections.Reactive.IObservableList`1" /> changed.
+        /// This, contrary to <see cref="INotifyObservableCollectionChanged{T}.ObservableCollectionChanged"/>
+        /// also notifies about move operations inside the underlying list of items and provides index positions
+        /// per change event.
+        /// </summary>
+        public event EventHandler<ObservableListChangedEventArgs<T>> ObservableListChanged
+        {
+            add
+            {
+                CheckForAndThrowIfDisposed();
+                _observableListChanged += value;
+            }
+            remove
+            {
+                CheckForAndThrowIfDisposed();
+                _observableListChanged -= value;
+            }
+        }
+
+        /// <summary>
+        ///     Raises the <see cref="E:ObservableListChanged" /> event.
+        /// </summary>
+        /// <param name="observableListChangedEventArgs">
+        ///     The <see cref="ObservableListChangedEventArgs{T}" /> instance
+        ///     containing the event data.
+        /// </param>
+        protected virtual void RaiseObservableListChanged(ObservableListChangedEventArgs<T> observableListChangedEventArgs)
+        {
+            if (observableListChangedEventArgs == null) throw new ArgumentNullException(nameof(observableListChangedEventArgs));
+
+            if (IsDisposed || IsDisposing)
+                return;
+
+            var eventHandler = _observableListChanged;
+            if (eventHandler != null)
+            {
+                Scheduler.Schedule(() => eventHandler.Invoke(this, observableListChangedEventArgs));
+            }
+        }
+
         #endregion
     }
 }

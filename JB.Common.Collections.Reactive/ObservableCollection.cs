@@ -22,7 +22,7 @@ namespace JB.Collections.Reactive
     {
         private IDisposable _collectionChangesAndResetsPropertyChangeForwarder;
         private IDisposable _countChangesPropertyChangeForwarder;
-        private IDisposable _innerListChangedRelevantCollectionChangeEventsForwader;
+        private IDisposable _innerListChangedRelevantCollectionChangedEventsForwader;
         
         protected Subject<IObservableCollectionChange<T>> CollectionChangesSubject = new Subject<IObservableCollectionChange<T>>();
         protected Subject<int> CountChangesSubject = new Subject<int>();
@@ -547,7 +547,7 @@ namespace JB.Collections.Reactive
             // ToDo: check whether scheduler shall / should be used for internally used RX notifications / Subjects etc and if so, where
             
             // then connect to InnerList's ListChanged Event
-            _innerListChangedRelevantCollectionChangeEventsForwader = Observable.FromEventPattern<ListChangedEventHandler, ListChangedEventArgs>(
+            _innerListChangedRelevantCollectionChangedEventsForwader = Observable.FromEventPattern<ListChangedEventHandler, ListChangedEventArgs>(
                 handler => InnerList.ListChanged += handler,
                 handler => InnerList.ListChanged -= handler)
                 .TakeWhile(_ => !IsDisposing && !IsDisposed)
@@ -619,7 +619,7 @@ namespace JB.Collections.Reactive
                     ? ObservableCollectionChange<T>.Reset
                     : observableCollectionChange;
 
-            // raise events and notify about collection/list changes
+            // raise events and notify about collection changes
             try
             {
                 CollectionChangesSubject.OnNext(actualObservableCollectionChange);
@@ -689,8 +689,6 @@ namespace JB.Collections.Reactive
 
                     Interlocked.Exchange(ref _isDisposed, value ? 1 : 0);
                 }
-
-                RaisePropertyChanged();
             }
         }
 
@@ -706,7 +704,6 @@ namespace JB.Collections.Reactive
             protected set
             {
                 Interlocked.Exchange(ref _isDisposing, value ? 1 : 0);
-                RaisePropertyChanged();
             }
         }
 
@@ -715,8 +712,21 @@ namespace JB.Collections.Reactive
         /// </summary>
         public virtual void Dispose()
         {
-            Dispose(true);
-            GC.SuppressFinalize(this);
+            if (IsDisposing || IsDisposed)
+                return;
+            try
+            {
+                IsDisposing = true;
+
+                Dispose(true);
+            }
+            finally
+            {
+                IsDisposed = true;
+                IsDisposing = false;
+                
+                GC.SuppressFinalize(this);
+            }
         }
 
         /// <summary>
@@ -727,57 +737,43 @@ namespace JB.Collections.Reactive
         /// </param>
         protected virtual void Dispose(bool disposeManagedResources)
         {
-            if (IsDisposing || IsDisposed)
-                return;
-
-            try
+            if (disposeManagedResources)
             {
-                IsDisposing = true;
-
-                if (disposeManagedResources)
+                if (_innerListChangedRelevantCollectionChangedEventsForwader != null)
                 {
-                    if (_collectionChangesAndResetsPropertyChangeForwarder != null)
-                    {
-                        _collectionChangesAndResetsPropertyChangeForwarder.Dispose();
-                        _collectionChangesAndResetsPropertyChangeForwarder = null;
-                    }
-
-                    if (_countChangesPropertyChangeForwarder != null)
-                    {
-                        _countChangesPropertyChangeForwarder.Dispose();
-                        _countChangesPropertyChangeForwarder = null;
-                    }
-
-                    if (CountChangesSubject != null)
-                    {
-                        CountChangesSubject.Dispose();
-                        CountChangesSubject = null;
-                    }
-
-                    if (CollectionChangesSubject != null)
-                    {
-                        CollectionChangesSubject.Dispose();
-                        CollectionChangesSubject = null;
-                    }
-
-
-                    if (_innerListChangedRelevantCollectionChangeEventsForwader != null)
-                    {
-                        _innerListChangedRelevantCollectionChangeEventsForwader.Dispose();
-                        _innerListChangedRelevantCollectionChangeEventsForwader = null;
-                    }
-
-                    if (ThrownExceptionsSubject != null)
-                    {
-                        ThrownExceptionsSubject.Dispose();
-                        ThrownExceptionsSubject = null;
-                    }
+                    _innerListChangedRelevantCollectionChangedEventsForwader.Dispose();
+                    _innerListChangedRelevantCollectionChangedEventsForwader = null;
                 }
-            }
-            finally
-            {
-                IsDisposing = false;
-                IsDisposed = true;
+
+                if (_collectionChangesAndResetsPropertyChangeForwarder != null)
+                {
+                    _collectionChangesAndResetsPropertyChangeForwarder.Dispose();
+                    _collectionChangesAndResetsPropertyChangeForwarder = null;
+                }
+
+                if (_countChangesPropertyChangeForwarder != null)
+                {
+                    _countChangesPropertyChangeForwarder.Dispose();
+                    _countChangesPropertyChangeForwarder = null;
+                }
+
+                if (CountChangesSubject != null)
+                {
+                    CountChangesSubject.Dispose();
+                    CountChangesSubject = null;
+                }
+
+                if (CollectionChangesSubject != null)
+                {
+                    CollectionChangesSubject.Dispose();
+                    CollectionChangesSubject = null;
+                }
+
+                if (ThrownExceptionsSubject != null)
+                {
+                    ThrownExceptionsSubject.Dispose();
+                    ThrownExceptionsSubject = null;
+                }
             }
         }
 
