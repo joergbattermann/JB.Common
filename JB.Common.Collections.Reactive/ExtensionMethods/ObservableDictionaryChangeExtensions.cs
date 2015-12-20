@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 
 namespace JB.Collections.Reactive.ExtensionMethods
 {
@@ -16,26 +17,28 @@ namespace JB.Collections.Reactive.ExtensionMethods
         /// <returns></returns>
         /// <exception cref="System.ArgumentNullException"></exception>
         /// <exception cref="System.ArgumentOutOfRangeException">$Only {ObservableDictionaryChangeType.ItemAdded}, {ObservableDictionaryChangeType.ItemChanged}, {ObservableDictionaryChangeType.ItemRemoved} and {ObservableDictionaryChangeType.Reset} are supported.</exception>
-        public static IObservableCollectionChange<TValue> ToObservableCollectionChange<TKey, TValue>(this IObservableDictionaryChange<TKey, TValue> observableDictionaryChange)
+        public static IObservableCollectionChange<KeyValuePair<TKey, TValue>> ToObservableCollectionChange<TKey, TValue>(this IObservableDictionaryChange<TKey, TValue> observableDictionaryChange)
         {
             if (observableDictionaryChange == null) throw new ArgumentNullException(nameof(observableDictionaryChange));
-        
+
+            var keyValuePair = new KeyValuePair<TKey, TValue>(observableDictionaryChange.Key, observableDictionaryChange.Value);
+
             switch (observableDictionaryChange.ChangeType)
             {
                 case ObservableDictionaryChangeType.ItemAdded:
-                    return new ObservableCollectionChange<TValue>(
+                    return new ObservableCollectionChange<KeyValuePair<TKey, TValue>>(
                         ObservableCollectionChangeType.ItemAdded,
-                        observableDictionaryChange.Value);
+                        keyValuePair);
                 case ObservableDictionaryChangeType.ItemChanged:
-                    return new ObservableCollectionChange<TValue>(
+                    return new ObservableCollectionChange<KeyValuePair<TKey, TValue>>(
                         ObservableCollectionChangeType.ItemChanged,
-                        observableDictionaryChange.Value);
+                        keyValuePair);
                 case ObservableDictionaryChangeType.ItemRemoved:
-                    return new ObservableCollectionChange<TValue>(
+                    return new ObservableCollectionChange<KeyValuePair<TKey, TValue>>(
                         ObservableCollectionChangeType.ItemRemoved,
-                        observableDictionaryChange.Value);
+                        keyValuePair);
                 case ObservableDictionaryChangeType.Reset:
-                    return new ObservableCollectionChange<TValue>(
+                    return new ObservableCollectionChange<KeyValuePair<TKey, TValue>>(
                         ObservableCollectionChangeType.Reset);
                 default:
                     throw new ArgumentOutOfRangeException(nameof(observableDictionaryChange),

@@ -12,6 +12,7 @@ using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using JB.Collections.Reactive.ExtensionMethods;
 using JB.Reactive.Linq;
 
 namespace JB.Collections.Reactive
@@ -101,13 +102,13 @@ namespace JB.Collections.Reactive
             //    .Where(eventPattern => eventPattern?.EventArgs != null)
             //    .Select(eventPattern => eventPattern.EventArgs.ToObservableCollectionChange(InnerList))
             //    .ObserveOn(Scheduler)
-                    //.Subscribe(
-                    //NotifyObservableCollectionChangedSubscribersAndRaiseCollectionChangedEvents,
-                    //exception =>
-                    //{
-                    //    ThrownExceptionsSubject.OnNext(exception);
-                    //    // ToDo: at this point this instance is practically doomed / no longer forwarding any events & therefore further usage of the instance itself should be prevented, or the observable stream should re-connect/signal-and-swallow exceptions. Either way.. not ideal.
-                    //});
+            //.Subscribe(
+            //NotifyObservableCollectionChangedSubscribersAndRaiseCollectionChangedEvents,
+            //exception =>
+            //{
+            //    ThrownExceptionsSubject.OnNext(exception);
+            //    // ToDo: at this point this instance is practically doomed / no longer forwarding any events & therefore further usage of the instance itself should be prevented, or the observable stream should re-connect/signal-and-swallow exceptions. Either way.. not ideal.
+            //});
 
 
             //// 'Count' and 'Item[]' PropertyChanged events are used by WPF typically via / for ObservableCollections, see
@@ -190,12 +191,6 @@ namespace JB.Collections.Reactive
 
                 if (disposeManagedResources)
                 {
-                    //if (_collectionChangesAndResetsPropertyChangeForwarder != null)
-                    //{
-                    //    _collectionChangesAndResetsPropertyChangeForwarder.Dispose();
-                    //    _collectionChangesAndResetsPropertyChangeForwarder = null;
-                    //}
-
                     if (CountChangesSubject != null)
                     {
                         CountChangesSubject.Dispose();
@@ -563,7 +558,7 @@ namespace JB.Collections.Reactive
                     .SkipWhileContinuously(change => change.ChangeType == ObservableDictionaryChangeType.Reset && !IsTrackingResets);
             }
         }
-        
+
         /// <summary>
         /// The actual event for <see cref="ObservableDictionaryChanged"/>.
         /// </summary>
@@ -883,9 +878,14 @@ namespace JB.Collections.Reactive
         {
             get
             {
-                this.InnerDictionary[]
+                CheckForAndThrowIfDisposed();
 
-
+                return DictionaryChanges
+                    .TakeWhile(_ => !IsDisposing && !IsDisposed)
+                    .SkipWhileContinuously(change => !IsTrackingChanges)
+                    .SkipWhileContinuously(change => change.ChangeType == ObservableDictionaryChangeType.ItemChanged && !IsTrackingItemChanges)
+                    .SkipWhileContinuously(change => change.ChangeType == ObservableDictionaryChangeType.Reset && !IsTrackingResets)
+                    .Select(change => change.ToObservableCollectionChange());
             }
         }
 
