@@ -15,53 +15,68 @@ namespace JB.Collections.Reactive.ExtensionMethods
     public static class ListChangedEventArgsExtensions
     {
         /// <summary>
-        /// Converts the given <paramref name="listChangedEventArgs"/> and converts it to its <see cref="IObservableCollectionChange{T}"/> counterpart.
+        /// Converts the given <paramref name="listChangedEventArgs"/> and converts it to its <see cref="IObservableCollectionChange{T}"/> counterparts.
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="listChangedEventArgs">The <see cref="ListChangedEventArgs"/> instance containing the event data.</param>
         /// <param name="sender">The sender.</param>
-        /// <returns></returns>
+        /// <returns>A list of <see cref="IObservableCollectionChange{T}"/> - List because Moves can only be represented by two changes: Remove and Adds</returns>
         /// <exception cref="System.ArgumentNullException">
         /// </exception>
-        public static IObservableCollectionChange<T> ToObservableCollectionChange<T>(this ListChangedEventArgs listChangedEventArgs, IEnhancedBindingList<T> sender)
+        public static IList<IObservableCollectionChange<T>> ToObservableCollectionChanges<T>(this ListChangedEventArgs listChangedEventArgs, IEnhancedBindingList<T> sender)
         {
             if (listChangedEventArgs == null) throw new ArgumentNullException(nameof(listChangedEventArgs));
             if (sender == null) throw new ArgumentNullException(nameof(sender));
 
-            IObservableCollectionChange<T> observableCollectionChange;
+            List<IObservableCollectionChange<T>> observableCollectionChanges = new List<IObservableCollectionChange<T>>();
             var senderAsList = sender as IList<T>;
 
             switch (listChangedEventArgs.ListChangedType)
             {
                 case ListChangedType.ItemAdded:
-                    observableCollectionChange = new ObservableCollectionChange<T>(
+                    observableCollectionChanges.Add(new ObservableCollectionChange<T>(
                         ObservableCollectionChangeType.ItemAdded,
-                        senderAsList[listChangedEventArgs.NewIndex]);
+                        senderAsList[listChangedEventArgs.NewIndex]));
                     break;
                 case ListChangedType.ItemChanged:
-                    observableCollectionChange = new ObservableCollectionChange<T>(
+                    observableCollectionChanges.Add(new ObservableCollectionChange<T>(
                         ObservableCollectionChangeType.ItemChanged,
-                        senderAsList[listChangedEventArgs.NewIndex]);
+                        senderAsList[listChangedEventArgs.NewIndex]));
+                    break;
+                case ListChangedType.ItemMoved:
+                    // first signal remove,
+                    observableCollectionChanges.Add(new ObservableCollectionChange<T>(
+                        ObservableCollectionChangeType.ItemRemoved,
+                        senderAsList[listChangedEventArgs.NewIndex]));
+
+                    // then an add
+                    observableCollectionChanges.Add(new ObservableCollectionChange<T>(
+                        ObservableCollectionChangeType.ItemAdded,
+                        senderAsList[listChangedEventArgs.NewIndex]));
+
+                    // .. to work around that collection(s) don't really support moves
                     break;
                 case ListChangedType.ItemDeleted:
                     {
                         var itemDeletedListChangedEventArgs = (listChangedEventArgs as ItemDeletedListChangedEventArgs<T>);
-                        observableCollectionChange = itemDeletedListChangedEventArgs != null
+                        var itemDeletedObservableCollectionChange = itemDeletedListChangedEventArgs != null
                             ? new ObservableCollectionChange<T>(ObservableCollectionChangeType.ItemRemoved, itemDeletedListChangedEventArgs.Item)
                             : new ObservableCollectionChange<T>(ObservableCollectionChangeType.ItemRemoved);
+
+                        observableCollectionChanges.Add(itemDeletedObservableCollectionChange);
 
                         break;
                     }
                 case ListChangedType.Reset:
-                    observableCollectionChange = new ObservableCollectionChange<T>(ObservableCollectionChangeType.Reset);
+                    observableCollectionChanges.Add(new ObservableCollectionChange<T>(ObservableCollectionChangeType.Reset));
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(listChangedEventArgs),
-                        $"Only {ListChangedType.ItemAdded}, {ListChangedType.ItemChanged}, {ListChangedType.ItemDeleted} and {ListChangedType.Reset} are supported.");
+                        $"Only {ListChangedType.ItemAdded}, {ListChangedType.ItemChanged}, {ListChangedType.ItemMoved}, {ListChangedType.ItemDeleted} and {ListChangedType.Reset} are supported.");
 
             }
 
-            return observableCollectionChange;
+            return observableCollectionChanges;
         }
 
         /// <summary>

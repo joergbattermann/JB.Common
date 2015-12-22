@@ -553,8 +553,7 @@ namespace JB.Collections.Reactive
                 .TakeWhile(_ => !IsDisposing && !IsDisposed)
                 .SkipWhileContinuously(_ => !IsTrackingChanges)
                 .Where(eventPattern => eventPattern?.EventArgs != null)
-                .Where(eventPattern => eventPattern.EventArgs.ListChangedType != ListChangedType.ItemMoved) // Collection does not / cannot handle moved
-                .Select(eventPattern => eventPattern.EventArgs.ToObservableCollectionChange(InnerList))
+                .SelectMany(eventPattern => eventPattern.EventArgs.ToObservableCollectionChanges(InnerList))
                 .ObserveOn(Scheduler)
                 .Subscribe(
                     NotifyObservableCollectionChangedSubscribersAndRaiseCollectionChangedEvents,

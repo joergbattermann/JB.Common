@@ -100,7 +100,7 @@ namespace JB.Collections.Reactive
             //    .TakeWhile(_ => !IsDisposing && !IsDisposed)
             //    .SkipWhileContinuously(_ => !IsTrackingChanges)
             //    .Where(eventPattern => eventPattern?.EventArgs != null)
-            //    .Select(eventPattern => eventPattern.EventArgs.ToObservableCollectionChange(InnerList))
+            //    .Select(eventPattern => eventPattern.EventArgs.ToObservableCollectionChanges(InnerList))
             //    .ObserveOn(Scheduler)
             //.Subscribe(
             //NotifyObservableCollectionChangedSubscribersAndRaiseCollectionChangedEvents,
