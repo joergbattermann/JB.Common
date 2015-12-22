@@ -170,6 +170,9 @@ namespace JB.Collections.Reactive
         /// </summary>
         public virtual void Dispose()
         {
+            if (IsDisposing || IsDisposed)
+                return;
+
             Dispose(true);
             GC.SuppressFinalize(this);
         }
@@ -886,6 +889,76 @@ namespace JB.Collections.Reactive
                     .SkipWhileContinuously(change => change.ChangeType == ObservableDictionaryChangeType.ItemChanged && !IsTrackingItemChanges)
                     .SkipWhileContinuously(change => change.ChangeType == ObservableDictionaryChangeType.Reset && !IsTrackingResets)
                     .Select(change => change.ToObservableCollectionChange());
+            }
+        }
+
+        #endregion
+
+        #region Implementation of INotifyObservableCollectionChanged<KeyValuePair<TKey,TValue>>
+
+        /// <summary>
+        /// Gets the collection changes as an observable stream.
+        /// </summary>
+        /// <value>
+        /// The collection changes.
+        /// </value>
+        public IObservable<IObservableCollectionChange<KeyValuePair<TKey, TValue>>> CollectionChanges
+        {
+            get
+            {
+                CheckForAndThrowIfDisposed();
+
+                return DictionaryChanges
+                    .TakeWhile(_ => !IsDisposing && !IsDisposed)
+                    .SkipWhileContinuously(change => !IsTrackingChanges)
+                    .SkipWhileContinuously(change => change.ChangeType == ObservableDictionaryChangeType.ItemChanged && !IsTrackingItemChanges)
+                    .SkipWhileContinuously(change => change.ChangeType == ObservableDictionaryChangeType.Reset && !IsTrackingResets)
+                    .Select(dictionaryChange => dictionaryChange.ToObservableCollectionChange());
+            }
+        }
+
+        /// <summary>
+        ///     The actual <see cref="ObservableCollectionChanged" /> event.
+        /// </summary>
+        private EventHandler<ObservableCollectionChangedEventArgs<KeyValuePair<TKey, TValue>>> _observableCollectionChanged;
+
+        /// <summary>
+        ///     Occurs when the corresponding <see cref="IObservableCollection{T}" /> changed.
+        /// </summary>
+        public event EventHandler<ObservableCollectionChangedEventArgs<KeyValuePair<TKey, TValue>>> ObservableCollectionChanged
+        {
+            add
+            {
+                CheckForAndThrowIfDisposed();
+                _observableCollectionChanged += value;
+            }
+            remove
+            {
+                CheckForAndThrowIfDisposed();
+                _observableCollectionChanged -= value;
+            }
+        }
+
+        /// <summary>
+        ///     Raises the <see cref="E:ObservableCollectionChanged" /> event.
+        /// </summary>
+        /// <param name="observableCollectionChangedEventArgs">
+        ///     The <see cref="ObservableCollectionChangedEventArgs{T}" /> instance
+        ///     containing the event data.
+        /// </param>
+        protected virtual void RaiseObservableCollectionChanged(ObservableCollectionChangedEventArgs<KeyValuePair<TKey, TValue>> observableCollectionChangedEventArgs)
+        {
+            // ToDo: this needs to be invoked / used
+
+            if (observableCollectionChangedEventArgs == null) throw new ArgumentNullException(nameof(observableCollectionChangedEventArgs));
+
+            if (IsDisposed || IsDisposing)
+                return;
+
+            var eventHandler = _observableCollectionChanged;
+            if (eventHandler != null)
+            {
+                Scheduler.Schedule(() => eventHandler.Invoke(this, observableCollectionChangedEventArgs));
             }
         }
 
