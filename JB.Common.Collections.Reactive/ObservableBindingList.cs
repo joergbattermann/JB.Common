@@ -34,7 +34,7 @@ namespace JB.Collections.Reactive
             }
             catch (Exception exception)
             {
-                ThrownExceptionsSubject.OnNext(exception);
+                ThrownExceptionsObserver.OnNext(exception);
             }
         }
 
@@ -431,7 +431,7 @@ namespace JB.Collections.Reactive
         ///     <see cref="INotifyCollectionChanged.CollectionChanged" />
         ///     and <see cref="IBindingList.ListChanged" /> event(s) as well as notifies the
         ///     <see cref="INotifyObservableCollectionChanged{T}.CollectionChanges" />
-        ///     and <see cref="INotifyObservableCollectionChanged{T}.Resets" /> subscribers signalling an entire List / Collection
+        ///     and <see cref="INotifyObservableResets.Resets" /> subscribers signalling an entire List / Collection
         ///     Reset.
         /// </summary>
         public virtual void ResetBindings()

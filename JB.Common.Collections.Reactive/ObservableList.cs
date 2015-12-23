@@ -11,6 +11,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Reactive;
 using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
@@ -25,14 +26,22 @@ namespace JB.Collections.Reactive
     {
         private IDisposable _innerListChangedRelevantListChangedEventsForwader;
 
-        protected Subject<IObservableListChange<T>> ListChangesSubject = new Subject<IObservableListChange<T>>();
+        private Subject<IObservableListChange<T>> ListChangesSubject = new Subject<IObservableListChange<T>>();
+
+        /// <summary>
+        /// Gets the list changes observer.
+        /// </summary>
+        /// <value>
+        /// The list changes observer.
+        /// </value>
+        protected IObserver<IObservableListChange<T>> ListChangesObserver { get; private set; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ObservableList{T}" /> class.
         /// </summary>
         /// <param name="list">The initial list, if any.</param>
         /// <param name="syncRoot">The object used to synchronize access to the thread-safe collection.</param>
-        /// <param name="scheduler">The scheduler to raise events on.</param>
+        /// <param name="scheduler">The scheduler to to send out observer messages & raise events on. If none is provided <see cref="System.Reactive.Concurrency.Scheduler.CurrentThread"/> will be used.</param>
         public ObservableList(IList<T> list = null, object syncRoot = null, IScheduler scheduler = null)
             : base(list, syncRoot, scheduler)
         {
@@ -47,7 +56,7 @@ namespace JB.Collections.Reactive
         /// </summary>
         private void SetupListChangedObservablesAndEvents()
         {
-            // ToDo: check whether scheduler shall / should be used for internally used RX notifications / Subjects etc and if so, where
+            ListChangesObserver = ListChangesSubject.NotifyOn(Scheduler);
 
             // then connect to InnerList's ListChanged Event
             _innerListChangedRelevantListChangedEventsForwader = Observable.FromEventPattern<ListChangedEventHandler, ListChangedEventArgs>(
@@ -62,7 +71,7 @@ namespace JB.Collections.Reactive
                     NotifyObservableListChangedSubscribersAndRaiseListChangedEvents,
                     exception =>
                     {
-                        ThrownExceptionsSubject.OnNext(exception);
+                        ThrownExceptionsObserver.OnNext(exception);
                         // ToDo: at this point this instance is practically doomed / no longer forwarding any events & therefore further usage of the instance itself should be prevented, or the observable stream should re-connect/signal-and-swallow exceptions. Either way.. not ideal.
                     });
         }
@@ -96,11 +105,11 @@ namespace JB.Collections.Reactive
             // raise events and notify about list changes
             try
             {
-                ListChangesSubject.OnNext(actualObservableListChange);
+                ListChangesObserver.OnNext(actualObservableListChange);
             }
             catch (Exception exception)
             {
-                ThrownExceptionsSubject.OnNext(exception);
+                ThrownExceptionsObserver.OnNext(exception);
             }
 
             try
@@ -109,18 +118,18 @@ namespace JB.Collections.Reactive
             }
             catch (Exception exception)
             {
-                ThrownExceptionsSubject.OnNext(exception);
+                ThrownExceptionsObserver.OnNext(exception);
             }
 
             if (actualObservableListChange.ChangeType == ObservableListChangeType.ItemMoved)
             {
                 try
                 {
-                    RaisePropertyChanged("Item[]");
+                    RaisePropertyChanged(ItemIndexerName);
                 }
                 catch (Exception exception)
                 {
-                    ThrownExceptionsSubject.OnNext(exception);
+                    ThrownExceptionsObserver.OnNext(exception);
                 }
             }
         }
@@ -452,6 +461,10 @@ namespace JB.Collections.Reactive
                     _innerListChangedRelevantListChangedEventsForwader.Dispose();
                     _innerListChangedRelevantListChangedEventsForwader = null;
                 }
+
+                var listChangesObserverAsDisposable = ListChangesObserver as IDisposable;
+                listChangesObserverAsDisposable?.Dispose();
+                ListChangesObserver = null;
 
                 if (ListChangesSubject != null)
                 {

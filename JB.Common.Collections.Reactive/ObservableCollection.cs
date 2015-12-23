@@ -20,13 +20,39 @@ namespace JB.Collections.Reactive
     [DebuggerDisplay("Count={Count}")]
     public class ObservableCollection<T> : IObservableCollection<T>, IDisposable
     {
-        private IDisposable _collectionChangesAndResetsPropertyChangeForwarder;
-        private IDisposable _countChangesPropertyChangeForwarder;
+        protected const string ItemIndexerName = "Item[]"; // taken from ObservableCollection.cs Line #421
+
         private IDisposable _innerListChangedRelevantCollectionChangedEventsForwader;
-        
-        protected Subject<IObservableCollectionChange<T>> CollectionChangesSubject = new Subject<IObservableCollectionChange<T>>();
-        protected Subject<int> CountChangesSubject = new Subject<int>();
-        protected Subject<Exception> ThrownExceptionsSubject = new Subject<Exception>();
+        private IDisposable _collectionChangesItemIndexerPropertyChangedForwarder;
+        private IDisposable _countChangesCountPropertyChangedForwarder;
+
+        private Subject<IObservableCollectionChange<T>> CollectionChangesSubject = new Subject<IObservableCollectionChange<T>>();
+        private Subject<int> CountChangesSubject = new Subject<int>();
+        private Subject<Exception> ThrownExceptionsSubject = new Subject<Exception>();
+
+        /// <summary>
+        /// Gets the count changes observer.
+        /// </summary>
+        /// <value>
+        /// The count changes observer.
+        /// </value>
+        protected IObserver<int> CountChangesObserver { get; private set; }
+
+        /// <summary>
+        /// Gets the thrown exceptions observer.
+        /// </summary>
+        /// <value>
+        /// The thrown exceptions observer.
+        /// </value>
+        protected IObserver<Exception> ThrownExceptionsObserver { get; private set; }
+
+        /// <summary>
+        /// Gets the collection changes observer.
+        /// </summary>
+        /// <value>
+        /// The collection changes observer.
+        /// </value>
+        protected IObserver<IObservableCollectionChange<T>> CollectionChangesObserver { get; private set; }
 
         /// <summary>
         ///     Gets the inner list.
@@ -49,7 +75,7 @@ namespace JB.Collections.Reactive
         /// </summary>
         /// <param name="list">The initial list, if any.</param>
         /// <param name="syncRoot">The object used to synchronize access to the thread-safe collection.</param>
-        /// <param name="scheduler">The scheduler to raise events on, if none is provided <see cref="System.Reactive.Concurrency.Scheduler.CurrentThread"/> will be used.</param>
+        /// <param name="scheduler">The scheduler to to send out observer messages & raise events on. If none is provided <see cref="System.Reactive.Concurrency.Scheduler.CurrentThread"/> will be used.</param>
         public ObservableCollection(IList<T> list = null, object syncRoot = null, IScheduler scheduler = null)
         {
             // ToDo: check whether scheduler shall / should be used for internall used RX notifications / Subjects etc
@@ -375,7 +401,7 @@ namespace JB.Collections.Reactive
 
                 if (signalCurrentCountWhenFinished)
                 {
-                    CountChangesSubject.OnNext(Count);
+                    CountChangesObserver.OnNext(Count);
                 }
             });
         }
@@ -544,7 +570,9 @@ namespace JB.Collections.Reactive
         /// </summary>
         private void SetupCollectionChangedObservablesAndEvents()
         {
-            // ToDo: check whether scheduler shall / should be used for internally used RX notifications / Subjects etc and if so, where
+            ThrownExceptionsObserver = ThrownExceptionsSubject.NotifyOn(Scheduler);
+            CollectionChangesObserver = CollectionChangesSubject.NotifyOn(Scheduler);
+            CountChangesObserver = CountChangesSubject.NotifyOn(Scheduler);
             
             // then connect to InnerList's ListChanged Event
             _innerListChangedRelevantCollectionChangedEventsForwader = Observable.FromEventPattern<ListChangedEventHandler, ListChangedEventArgs>(
@@ -559,21 +587,22 @@ namespace JB.Collections.Reactive
                     NotifyObservableCollectionChangedSubscribersAndRaiseCollectionChangedEvents,
                     exception =>
                     {
-                        ThrownExceptionsSubject.OnNext(exception);
+                        ThrownExceptionsObserver.OnNext(exception);
                         // ToDo: at this point this instance is practically doomed / no longer forwarding any events & therefore further usage of the instance itself should be prevented, or the observable stream should re-connect/signal-and-swallow exceptions. Either way.. not ideal.
                     });
 
 
             // 'Count' and 'Item[]' PropertyChanged events are used by WPF typically via / for ObservableCollections, see
             // http://referencesource.microsoft.com/#System/compmod/system/collections/objectmodel/observablecollection.cs,421
-            _countChangesPropertyChangeForwarder = CountChanges
+            _countChangesCountPropertyChangedForwarder = CountChanges
                 .ObserveOn(Scheduler)
-                .Subscribe(_ => RaisePropertyChanged("Count"));
+                .Subscribe(_ => RaisePropertyChanged(nameof(Count)));
 
             // ToDo: IObserableList must additionally handle Moves and raise Item[] changes, too
-            _collectionChangesAndResetsPropertyChangeForwarder = CollectionChanges
+            _collectionChangesItemIndexerPropertyChangedForwarder = CollectionChanges
+                .Where(collectionChange => collectionChange.ChangeType != ObservableCollectionChangeType.ItemChanged)
                 .ObserveOn(Scheduler)
-                .Subscribe(_ => RaisePropertyChanged("Item[]"));
+                .Subscribe(_ => RaisePropertyChanged(ItemIndexerName));
         }
 
         /// <summary>
@@ -621,11 +650,11 @@ namespace JB.Collections.Reactive
             // raise events and notify about collection changes
             try
             {
-                CollectionChangesSubject.OnNext(actualObservableCollectionChange);
+                CollectionChangesObserver.OnNext(actualObservableCollectionChange);
             }
             catch (Exception exception)
             {
-                ThrownExceptionsSubject.OnNext(exception);
+                ThrownExceptionsObserver.OnNext(exception);
             }
 
             if (actualObservableCollectionChange.ChangeType == ObservableCollectionChangeType.ItemAdded
@@ -634,11 +663,11 @@ namespace JB.Collections.Reactive
             {
                 try
                 {
-                    CountChangesSubject.OnNext(Count);
+                    CountChangesObserver.OnNext(Count);
                 }
                 catch (Exception exception)
                 {
-                    ThrownExceptionsSubject.OnNext(exception);
+                    ThrownExceptionsObserver.OnNext(exception);
                 }
             }
 
@@ -648,7 +677,7 @@ namespace JB.Collections.Reactive
             }
             catch (Exception exception)
             {
-                ThrownExceptionsSubject.OnNext(exception);
+                ThrownExceptionsObserver.OnNext(exception);
             }
 
             try
@@ -657,7 +686,7 @@ namespace JB.Collections.Reactive
             }
             catch (Exception exception)
             {
-                ThrownExceptionsSubject.OnNext(exception);
+                ThrownExceptionsObserver.OnNext(exception);
             }
         }
         
@@ -744,17 +773,21 @@ namespace JB.Collections.Reactive
                     _innerListChangedRelevantCollectionChangedEventsForwader = null;
                 }
 
-                if (_collectionChangesAndResetsPropertyChangeForwarder != null)
+                if (_collectionChangesItemIndexerPropertyChangedForwarder != null)
                 {
-                    _collectionChangesAndResetsPropertyChangeForwarder.Dispose();
-                    _collectionChangesAndResetsPropertyChangeForwarder = null;
+                    _collectionChangesItemIndexerPropertyChangedForwarder.Dispose();
+                    _collectionChangesItemIndexerPropertyChangedForwarder = null;
                 }
 
-                if (_countChangesPropertyChangeForwarder != null)
+                if (_countChangesCountPropertyChangedForwarder != null)
                 {
-                    _countChangesPropertyChangeForwarder.Dispose();
-                    _countChangesPropertyChangeForwarder = null;
+                    _countChangesCountPropertyChangedForwarder.Dispose();
+                    _countChangesCountPropertyChangedForwarder = null;
                 }
+
+                var countChangesObserverAsDisposable = CountChangesObserver as IDisposable;
+                countChangesObserverAsDisposable?.Dispose();
+                CountChangesObserver = null;
 
                 if (CountChangesSubject != null)
                 {
@@ -762,11 +795,19 @@ namespace JB.Collections.Reactive
                     CountChangesSubject = null;
                 }
 
+                var collectionChangesObserverAsDisposable = CollectionChangesObserver as IDisposable;
+                collectionChangesObserverAsDisposable?.Dispose();
+                CollectionChangesObserver = null;
+
                 if (CollectionChangesSubject != null)
                 {
                     CollectionChangesSubject.Dispose();
                     CollectionChangesSubject = null;
                 }
+
+                var thrownExceptionsObserverAsDisposable = ThrownExceptionsObserver as IDisposable;
+                thrownExceptionsObserverAsDisposable?.Dispose();
+                ThrownExceptionsObserver = null;
 
                 if (ThrownExceptionsSubject != null)
                 {

@@ -20,9 +20,38 @@ namespace JB.Collections.Reactive
     [DebuggerDisplay("Count={Count}")]
     public class ObservableDictionary<TKey, TValue> : IObservableDictionary<TKey, TValue>, IDisposable
     {
-        protected Subject<IObservableDictionaryChange<TKey, TValue>> DictionaryChangesSubject = null;
-        protected Subject<int> CountChangesSubject = null;
-        protected Subject<Exception> ThrownExceptionsSubject = null;
+        private const string ItemIndexerName = "Item[]"; // taken from ObservableCollection.cs Line #421
+
+        private IDisposable _dictionaryChangesItemIndexerPropertyChangedForwarder;
+        private IDisposable _countChangesCountPropertyChangedForwarder;
+
+        private Subject<int> _countChangesSubject = new Subject<int>();
+        private Subject<Exception> _thrownExceptionsSubject = new Subject<Exception>();
+        private Subject<IObservableDictionaryChange<TKey, TValue>> _dictionaryChangesSubject = new Subject<IObservableDictionaryChange<TKey, TValue>>();
+
+        /// <summary>
+        /// Gets the count changes observer.
+        /// </summary>
+        /// <value>
+        /// The count changes observer.
+        /// </value>
+        protected IObserver<int> CountChangesObserver { get; private set; }
+
+        /// <summary>
+        /// Gets the thrown exceptions observer.
+        /// </summary>
+        /// <value>
+        /// The thrown exceptions observer.
+        /// </value>
+        protected IObserver<Exception> ThrownExceptionsObserver { get; private set; }
+
+        /// <summary>
+        /// Gets the dictionary changes observer.
+        /// </summary>
+        /// <value>
+        /// The dictionary changes observer.
+        /// </value>
+        protected IObserver<IObservableDictionaryChange<TKey, TValue>> DictionaryChangesObserver { get; private set; }
 
         /// <summary>
         /// Gets the actual dictionary used - the rest in here is just fancy wrapping paper.
@@ -47,7 +76,7 @@ namespace JB.Collections.Reactive
         /// </summary>
         /// <param name="collection">The elements that are copied to this instance.</param>
         /// <param name="comparer">The <see cref="IEqualityComparer{T}" /> implementation to use when comparing keys.</param>
-        /// <param name="scheduler">The scheduler to raise events on, if none is provided <see cref="System.Reactive.Concurrency.Scheduler.CurrentThread"/> will be used.</param>
+        /// <param name="scheduler">The scheduler to to send out observer messages & raise events on. If none is provided <see cref="System.Reactive.Concurrency.Scheduler.CurrentThread"/> will be used.</param>
         public ObservableDictionary(IEnumerable<KeyValuePair<TKey, TValue>> collection = null, IEqualityComparer<TKey> comparer = null, IScheduler scheduler = null)
         {
             // ToDo: check whether scheduler shall / should be used for internall used RX notifications / Subjects etc
@@ -79,8 +108,61 @@ namespace JB.Collections.Reactive
         #region Helper Methods
 
         /// <summary>
+        /// Notifies subscribers about the given <paramref name="observableDictionaryChange"/>.
+        /// </summary>
+        /// <param name="observableDictionaryChange">The observable dictionary change.</param>
+        /// <exception cref="System.ArgumentNullException"></exception>
+        private void NotifyDictionaryChanges(IObservableDictionaryChange<TKey, TValue> observableDictionaryChange)
+        {
+            if (observableDictionaryChange == null) throw new ArgumentNullException(nameof(observableDictionaryChange));
+
+            CheckForAndThrowIfDisposed();
+
+            // go ahead and check whether a Reset or item add, -change, -move or -remove shall be signaled
+            // .. based on the ThresholdAmountWhenItemChangesAreNotifiedAsReset value
+            var actualObservableCollectionChange =
+                (observableDictionaryChange.ChangeType == ObservableDictionaryChangeType.Reset
+                 || IsItemsChangedAmountGreaterThanResetThreshold(1, ThresholdAmountWhenItemChangesAreNotifiedAsReset))
+                    ? ObservableDictionaryChange<TKey, TValue>.Reset
+                    : observableDictionaryChange;
+
+            try
+            {
+                DictionaryChangesObserver.OnNext(actualObservableCollectionChange);
+            }
+            catch (Exception exception)
+            {
+                ThrownExceptionsObserver.OnNext(exception);
+            }
+
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        ///     Determines whether the amount of changed items is greater than the reset threshold and / or the minimum amount of
+        ///     items to be considered as a reset.
+        /// </summary>
+        /// <param name="affectedItemsCount">The items changed / affected.</param>
+        /// <param name="maximumAmountOfItemsChangedToBeConsideredResetThreshold">
+        ///     The maximum amount of changed items count to
+        ///     consider a change or a range of changes a reset.
+        /// </param>
+        /// <returns></returns>
+        protected virtual bool IsItemsChangedAmountGreaterThanResetThreshold(int affectedItemsCount, int maximumAmountOfItemsChangedToBeConsideredResetThreshold)
+        {
+            if (affectedItemsCount <= 0) throw new ArgumentOutOfRangeException(nameof(affectedItemsCount));
+            if (maximumAmountOfItemsChangedToBeConsideredResetThreshold < 0) throw new ArgumentOutOfRangeException(nameof(maximumAmountOfItemsChangedToBeConsideredResetThreshold));
+
+            // check for '0' thresholds
+            if (maximumAmountOfItemsChangedToBeConsideredResetThreshold == 0)
+                return true;
+
+            return affectedItemsCount >= maximumAmountOfItemsChangedToBeConsideredResetThreshold;
+        }
+
+        /// <summary>
         /// Prepares and sets up the observables and subjects used, particularly
-        /// <see cref="DictionaryChangesSubject"/>, <see cref="CountChangesSubject"/> and <see cref="ThrownExceptionsSubject"/> and also notifications for
+        /// <see cref="_dictionaryChangesSubject"/>, <see cref="_countChangesSubject"/> and <see cref="_thrownExceptionsSubject"/> and also notifications for
         /// 'Count' and 'Items[]' <see cref="INotifyPropertyChanged"/> events on <see cref="CountChanges"/> and <see cref="CollectionChanges"/>
         /// occurrences (for WPF / Binding)
         /// </summary>
@@ -89,9 +171,9 @@ namespace JB.Collections.Reactive
             // ToDo: check whether scheduler shall / should be used for internally used RX notifications / Subjects etc and if so, where
 
             // prepare subjects for RX
-            ThrownExceptionsSubject = new Subject<Exception>();
-            DictionaryChangesSubject = new Subject<IObservableDictionaryChange<TKey, TValue>>();
-            CountChangesSubject = new Subject<int>();
+            ThrownExceptionsObserver = _thrownExceptionsSubject.NotifyOn(Scheduler);
+            DictionaryChangesObserver = _dictionaryChangesSubject.NotifyOn(Scheduler);
+            CountChangesObserver = _countChangesSubject.NotifyOn(Scheduler);
 
             //// then connect to InnerList's ListChanged Event
             //_innerListChangedForwader = Observable.FromEventPattern<ListChangedEventHandler, ListChangedEventArgs>(
@@ -113,8 +195,14 @@ namespace JB.Collections.Reactive
 
             //// 'Count' and 'Item[]' PropertyChanged events are used by WPF typically via / for ObservableCollections, see
             //// http://referencesource.microsoft.com/#System/compmod/system/collections/objectmodel/observablecollection.cs,421
-            //_countChangesPropertyChangeForwarder = CountChanges.ObserveOn(Scheduler).Subscribe(_ => RaisePropertyChanged("Count"));
-            //_collectionChangesAndResetsPropertyChangeForwarder = CollectionChanges.ObserveOn(Scheduler).Subscribe(_ => RaisePropertyChanged("Item[]"));
+            _countChangesCountPropertyChangedForwarder = CountChanges
+                .ObserveOn(Scheduler)
+                .Subscribe(_ => RaisePropertyChanged(nameof(Count)));
+
+            _dictionaryChangesItemIndexerPropertyChangedForwarder = DictionaryChanges
+                .Where(collectionChange => collectionChange.ChangeType != ObservableDictionaryChangeType.ItemChanged)
+                .ObserveOn(Scheduler)
+                .Subscribe(_ => RaisePropertyChanged(ItemIndexerName));
         }
 
         #endregion
@@ -194,22 +282,46 @@ namespace JB.Collections.Reactive
 
                 if (disposeManagedResources)
                 {
-                    if (CountChangesSubject != null)
+                    if (_dictionaryChangesItemIndexerPropertyChangedForwarder != null)
                     {
-                        CountChangesSubject.Dispose();
-                        CountChangesSubject = null;
+                        _dictionaryChangesItemIndexerPropertyChangedForwarder.Dispose();
+                        _dictionaryChangesItemIndexerPropertyChangedForwarder = null;
                     }
 
-                    if (DictionaryChangesSubject != null)
+                    if (_countChangesCountPropertyChangedForwarder != null)
                     {
-                        DictionaryChangesSubject.Dispose();
-                        DictionaryChangesSubject = null;
+                        _countChangesCountPropertyChangedForwarder.Dispose();
+                        _countChangesCountPropertyChangedForwarder = null;
                     }
 
-                    if (ThrownExceptionsSubject != null)
+                    var countChangesObserverAsDisposable = CountChangesObserver as IDisposable;
+                    countChangesObserverAsDisposable?.Dispose();
+                    CountChangesObserver = null;
+
+                    if (_countChangesSubject != null)
                     {
-                        ThrownExceptionsSubject.Dispose();
-                        ThrownExceptionsSubject = null;
+                        _countChangesSubject.Dispose();
+                        _countChangesSubject = null;
+                    }
+
+                    var dictionaryChangesObserverAsDisposable = DictionaryChangesObserver as IDisposable;
+                    dictionaryChangesObserverAsDisposable?.Dispose();
+                    DictionaryChangesObserver = null;
+
+                    if (_dictionaryChangesSubject != null)
+                    {
+                        _dictionaryChangesSubject.Dispose();
+                        _dictionaryChangesSubject = null;
+                    }
+
+                    var thrownExceptionsObserverAsDisposable = ThrownExceptionsObserver as IDisposable;
+                    thrownExceptionsObserverAsDisposable?.Dispose();
+                    ThrownExceptionsObserver = null;
+
+                    if (_thrownExceptionsSubject != null)
+                    {
+                        _thrownExceptionsSubject.Dispose();
+                        _thrownExceptionsSubject = null;
                     }
                 }
             }
@@ -227,12 +339,12 @@ namespace JB.Collections.Reactive
         {
             if (IsDisposing)
             {
-                throw new ObjectDisposedException(this.GetType().Name, "This instance is currently being disposed.");
+                throw new ObjectDisposedException(GetType().Name, "This instance is currently being disposed.");
             }
 
             if (IsDisposed)
             {
-                throw new ObjectDisposedException(this.GetType().Name);
+                throw new ObjectDisposedException(GetType().Name);
             }
         }
 
@@ -295,7 +407,7 @@ namespace JB.Collections.Reactive
                 CheckForAndThrowIfDisposed();
 
                 // not caring about IsDisposing / IsDisposed on purpose once subscribed, so corresponding Exceptions are forwarded 'til the "end" to already existing subscribers
-                return ThrownExceptionsSubject;
+                return _thrownExceptionsSubject;
             }
         }
 
@@ -355,7 +467,7 @@ namespace JB.Collections.Reactive
 
                 return DictionaryChanges
                     .Where(change => change.ChangeType == ObservableDictionaryChangeType.Reset)
-                    .SkipWhileContinuously(_ => IsTrackingResets == false)
+                    .SkipWhileContinuously(_ => !IsTrackingResets)
                     .Select(_ => Unit.Default);
             }
         }
@@ -378,7 +490,7 @@ namespace JB.Collections.Reactive
 
                 if (signalResetWhenFinished)
                 {
-                    InnerList.ResetBindings();
+                    NotifyDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.Reset);
                 }
             });
         }
@@ -428,7 +540,7 @@ namespace JB.Collections.Reactive
             {
                 CheckForAndThrowIfDisposed();
 
-                return CountChangesSubject
+                return _countChangesSubject
                     .TakeWhile(_ => !IsDisposing && !IsDisposed)
                     .SkipWhileContinuously(_ => !IsTrackingCountChanges)
                     .DistinctUntilChanged();
@@ -453,7 +565,7 @@ namespace JB.Collections.Reactive
 
                 if (signalCurrentCountWhenFinished)
                 {
-                    CountChangesSubject.OnNext(Count);
+                    CountChangesObserver.OnNext(Count);
                 }
             });
         }
@@ -480,7 +592,7 @@ namespace JB.Collections.Reactive
 
                 if (signalResetWhenFinished)
                 {
-                    InnerList.ResetBindings();
+                    NotifyDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.Reset);
                 }
             });
         }
@@ -554,7 +666,7 @@ namespace JB.Collections.Reactive
             {
                 CheckForAndThrowIfDisposed();
 
-                return DictionaryChangesSubject
+                return _dictionaryChangesSubject
                     .TakeWhile(_ => !IsDisposing && !IsDisposed)
                     .SkipWhileContinuously(change => !IsTrackingChanges)
                     .SkipWhileContinuously(change => change.ChangeType == ObservableDictionaryChangeType.ItemChanged && !IsTrackingItemChanges)
@@ -627,7 +739,7 @@ namespace JB.Collections.Reactive
 
                 if (signalResetWhenFinished)
                 {
-                    InnerList.ResetBindings();
+                    NotifyDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.Reset);
                 }
             });
         }
