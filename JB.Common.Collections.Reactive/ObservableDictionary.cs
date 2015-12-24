@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Linq;
 using System.Reactive;
 using System.Reactive.Concurrency;
 using System.Reactive.Disposables;
@@ -169,14 +170,9 @@ namespace JB.Collections.Reactive
                 // The count of this should never be 0. If it is, somehow the item has been
                 // removed from our dictionary without our knowledge.
 
-                var observableDictionaryChanges = new List<ObservableDictionaryChange<TKey, TValue>>();
-                foreach (var keyValuePair in this)
-                {
-                    if (Equals(keyValuePair.Value, item))
-                    {
-                        observableDictionaryChanges.Add(new ObservableDictionaryChange<TKey, TValue>(ObservableDictionaryChangeType.ItemChanged, keyValuePair.Key, keyValuePair.Value));
-                    }
-                }
+                var observableDictionaryChanges = GetKeysForValue(item)
+                    .Select(key => new ObservableDictionaryChange<TKey, TValue>(ObservableDictionaryChangeType.ItemChanged, key, item))
+                    .ToList();
 
                 if (observableDictionaryChanges.Count == 0)
                 {
@@ -201,6 +197,18 @@ namespace JB.Collections.Reactive
                     }
                 }
             }
+        }
+
+        /// <summary>
+        /// Gets the keys for the given value.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <returns></returns>
+        protected IList<TKey> GetKeysForValue(TValue value)
+        {
+            return (from keyValuePair in this
+                    where Equals(keyValuePair.Value, value)
+                    select keyValuePair.Key).ToList();
         }
 
         /// <summary>
