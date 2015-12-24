@@ -45,7 +45,7 @@ namespace JB.Collections.Reactive
         public ObservableList(IList<T> list = null, object syncRoot = null, IScheduler scheduler = null)
             : base(list, syncRoot, scheduler)
         {
-            SetupListChangedObservablesAndEvents();
+            SetupObservablesAndObserversAndSubjects();
         }
 
         #region Helpers
@@ -54,7 +54,7 @@ namespace JB.Collections.Reactive
         /// Prepares and sets up the observables and subjects used, particularly
         /// <see cref="ListChanges"/>, <see cref="INotifyObservableCountChanged.CountChanges"/> and <see cref="INotifyObservableExceptionsThrown.ThrownExceptions"/>.
         /// </summary>
-        private void SetupListChangedObservablesAndEvents()
+        private void SetupObservablesAndObserversAndSubjects()
         {
             ListChangesObserver = ListChangesSubject.NotifyOn(Scheduler);
 
@@ -68,7 +68,7 @@ namespace JB.Collections.Reactive
                 .Select(eventPattern => eventPattern.EventArgs.ToObservableListChange(InnerList))
                 .ObserveOn(Scheduler)
                 .Subscribe(
-                    NotifyObservableListChangedSubscribersAndRaiseListChangedEvents,
+                    NotifySubscribersAboutListChanges,
                     exception =>
                     {
                         ThrownExceptionsObserver.OnNext(exception);
@@ -81,9 +81,9 @@ namespace JB.Collections.Reactive
         ///     raises the (observable)collection changed events.
         /// </summary>
         /// <param name="observableListChange">The observable list change.</param>
-        protected virtual void NotifyObservableListChangedSubscribersAndRaiseListChangedEvents(IObservableListChange<T> observableListChange)
+        protected virtual void NotifySubscribersAboutListChanges(IObservableListChange<T> observableListChange)
         {
-            // This is similar to what ObservableCollection implements via its NotifyObservableCollectionChangedSubscribersAndRaiseCollectionChangedEvents method,
+            // This is similar to what ObservableCollection implements via its NotifySubscribersAboutCollectionChanges method,
             // however:
             // - no need to handle count-relevant changes because the underlying ObservableCollection takes care of this
             // - no (extra) (Raise)CollectionChanged call here, again.. already done by the ObservableCollection
@@ -506,7 +506,7 @@ namespace JB.Collections.Reactive
         /// <summary>
         ///     The actual <see cref="ObservableListChanged" /> event.
         /// </summary>
-        private event EventHandler<ObservableListChangedEventArgs<T>> _observableListChanged;
+        private EventHandler<ObservableListChangedEventArgs<T>> _observableListChanged;
 
         /// <summary>
         /// Occurs when the corresponding <see cref="T:JB.Collections.Reactive.IObservableList`1" /> changed.
@@ -541,6 +541,14 @@ namespace JB.Collections.Reactive
 
             if (IsDisposed || IsDisposing)
                 return;
+
+            // only raise event if it's currently allowed
+            if (!IsTrackingChanges
+                || (observableListChangedEventArgs.ChangeType == ObservableListChangeType.ItemChanged && !IsTrackingItemChanges)
+                || (observableListChangedEventArgs.ChangeType == ObservableListChangeType.Reset && !IsTrackingResets))
+            {
+                return;
+            }
 
             var eventHandler = _observableListChanged;
             if (eventHandler != null)

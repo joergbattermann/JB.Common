@@ -90,7 +90,7 @@ namespace JB.Collections.Reactive
             IsTrackingCountChanges = true;
             IsTrackingResets = true;
 
-            SetupCollectionChangedObservablesAndEvents();
+            SetupObservablesAndObserversAndSubjects();
         }
 
 
@@ -320,6 +320,14 @@ namespace JB.Collections.Reactive
 
             if (IsDisposed || IsDisposing)
                 return;
+
+            // only raise event if it's currently allowed
+            if (!IsTrackingChanges
+                || (observableCollectionChangedEventArgs.ChangeType == ObservableCollectionChangeType.ItemChanged && !IsTrackingItemChanges)
+                || (observableCollectionChangedEventArgs.ChangeType == ObservableCollectionChangeType.Reset && !IsTrackingResets))
+            {
+                return;
+            }
 
             var eventHandler = _observableCollectionChanged;
             if (eventHandler != null)
@@ -568,7 +576,7 @@ namespace JB.Collections.Reactive
         /// 'Count' and 'Items[]' <see cref="INotifyPropertyChanged"/> events on <see cref="CountChanges"/> and <see cref="CollectionChanges"/>
         /// occurrences (for WPF / Binding)
         /// </summary>
-        private void SetupCollectionChangedObservablesAndEvents()
+        private void SetupObservablesAndObserversAndSubjects()
         {
             ThrownExceptionsObserver = ThrownExceptionsSubject.NotifyOn(Scheduler);
             CollectionChangesObserver = CollectionChangesSubject.NotifyOn(Scheduler);
@@ -584,7 +592,7 @@ namespace JB.Collections.Reactive
                 .SelectMany(eventPattern => eventPattern.EventArgs.ToObservableCollectionChanges(InnerList))
                 .ObserveOn(Scheduler)
                 .Subscribe(
-                    NotifyObservableCollectionChangedSubscribersAndRaiseCollectionChangedEvents,
+                    NotifySubscribersAboutCollectionChanges,
                     exception =>
                     {
                         ThrownExceptionsObserver.OnNext(exception);
@@ -598,9 +606,7 @@ namespace JB.Collections.Reactive
                 .ObserveOn(Scheduler)
                 .Subscribe(_ => RaisePropertyChanged(nameof(Count)));
 
-            // ToDo: IObserableList must additionally handle Moves and raise Item[] changes, too
             _collectionChangesItemIndexerPropertyChangedForwarder = CollectionChanges
-                .Where(collectionChange => collectionChange.ChangeType != ObservableCollectionChangeType.ItemChanged)
                 .ObserveOn(Scheduler)
                 .Subscribe(_ => RaisePropertyChanged(ItemIndexerName));
         }
@@ -632,7 +638,7 @@ namespace JB.Collections.Reactive
         ///     raises the (observable)collection changed events.
         /// </summary>
         /// <param name="observableCollectionChange">The observable collection change.</param>
-        protected virtual void NotifyObservableCollectionChangedSubscribersAndRaiseCollectionChangedEvents(IObservableCollectionChange<T> observableCollectionChange)
+        protected virtual void NotifySubscribersAboutCollectionChanges(IObservableCollectionChange<T> observableCollectionChange)
         {
             if (observableCollectionChange == null)
                 throw new ArgumentNullException(nameof(observableCollectionChange));
@@ -657,6 +663,24 @@ namespace JB.Collections.Reactive
                 ThrownExceptionsObserver.OnNext(exception);
             }
 
+            try
+            {
+                RaiseObservableCollectionChanged(new ObservableCollectionChangedEventArgs<T>(actualObservableCollectionChange));
+            }
+            catch (Exception exception)
+            {
+                ThrownExceptionsObserver.OnNext(exception);
+            }
+
+            try
+            {
+                RaiseCollectionChanged(actualObservableCollectionChange.ToNotifyCollectionChangedEventArgs());
+            }
+            catch (Exception exception)
+            {
+                ThrownExceptionsObserver.OnNext(exception);
+            }
+            
             if (actualObservableCollectionChange.ChangeType == ObservableCollectionChangeType.ItemAdded
                 || actualObservableCollectionChange.ChangeType == ObservableCollectionChangeType.ItemRemoved
                 || actualObservableCollectionChange.ChangeType == ObservableCollectionChangeType.Reset)
@@ -669,24 +693,6 @@ namespace JB.Collections.Reactive
                 {
                     ThrownExceptionsObserver.OnNext(exception);
                 }
-            }
-
-            try
-            {
-                RaiseCollectionChanged(actualObservableCollectionChange.ToNotifyCollectionChangedEventArgs());
-            }
-            catch (Exception exception)
-            {
-                ThrownExceptionsObserver.OnNext(exception);
-            }
-
-            try
-            {
-                RaiseObservableCollectionChanged(new ObservableCollectionChangedEventArgs<T>(actualObservableCollectionChange));
-            }
-            catch (Exception exception)
-            {
-                ThrownExceptionsObserver.OnNext(exception);
             }
         }
         
@@ -872,6 +878,14 @@ namespace JB.Collections.Reactive
 
             if (IsDisposed || IsDisposing)
                 return;
+
+            // only raise event if it's currently allowed
+            if (!IsTrackingChanges
+                || (notifyCollectionChangedEventArgs.Action == NotifyCollectionChangedAction.Replace && !IsTrackingItemChanges)
+                || (notifyCollectionChangedEventArgs.Action == NotifyCollectionChangedAction.Reset && !IsTrackingResets))
+            {
+                return;
+            }
 
             var eventHandler = _collectionChanged;
             if (eventHandler != null)

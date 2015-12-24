@@ -22,12 +22,24 @@ namespace JB.Collections.Reactive
     {
         private const string ItemIndexerName = "Item[]"; // taken from ObservableCollection.cs Line #421
 
+        private static Lazy<bool> _valueTypeImplementsINotifyPropertyChangedBuilder = new Lazy<bool>(() => typeof (INotifyPropertyChanged).IsAssignableFrom(typeof (TValue)));
+
         private IDisposable _dictionaryChangesItemIndexerPropertyChangedForwarder;
         private IDisposable _countChangesCountPropertyChangedForwarder;
 
         private Subject<int> _countChangesSubject = new Subject<int>();
         private Subject<Exception> _thrownExceptionsSubject = new Subject<Exception>();
         private Subject<IObservableDictionaryChange<TKey, TValue>> _dictionaryChangesSubject = new Subject<IObservableDictionaryChange<TKey, TValue>>();
+
+        /// <summary>
+        /// Gets the <see cref="Values"/> property changed handler.
+        /// If <typeparamref name="TValue"/> implements <see cref="INotifyPropertyChanged"/>, this event handler will handle
+        /// the events and forward them to <see cref="DictionaryChanges"/> and <see cref="CollectionChanges"/> correspondingly.
+        /// </summary>
+        /// <value>
+        /// The values property changed handler.
+        /// </value>
+        protected PropertyChangedEventHandler ValuesPropertyChangedHandler { get; private set; }
 
         /// <summary>
         /// Gets the count changes observer.
@@ -101,18 +113,134 @@ namespace JB.Collections.Reactive
             IsTrackingItemChanges = true;
             IsTrackingCountChanges = true;
             IsTrackingResets = true;
+            
+            // hook up INPC handling for values handed in on .ctor
+            foreach (var value in InnerDictionary.Values)
+            {
+                AddValueToPropertyChangedHandling(value);
+            }
 
-            SetupRxObservablesAndSubjects();
+            SetupObservablesAndObserversAndSubjects();
         }
 
         #region Helper Methods
+
+        /// <summary>
+        /// Handles <see cref="INotifyPropertyChanged.PropertyChanged"/> events for <typeparamref name="TValue"/> instances
+        /// - if that type implements <see cref="INotifyPropertyChanged"/>.
+        /// </summary>
+        /// <param name="sender">The sender.</param>
+        /// <param name="e">The <see cref="PropertyChangedEventArgs"/> instance containing the event data.</param>
+        protected virtual void OnValuePropertyChanged(object sender, PropertyChangedEventArgs e)
+        {
+            CheckForAndThrowIfDisposed();
+
+            if (!IsTrackingItemChanges)
+                return;
+
+            // inspiration taken from BindingList, see http://referencesource.microsoft.com/#System/compmod/system/componentmodel/BindingList.cs,560
+            if (sender == null || e == null || string.IsNullOrWhiteSpace(e.PropertyName))
+            {
+                // Fire reset event (per INotifyPropertyChanged spec)
+                NotifySubscribersAboutDictionaryChanges(ObservableDictionaryChange<TKey,TValue>.Reset);
+            }
+            else
+            {
+                // The change event is broken should someone pass an item to us that is not
+                // of type TValue.  Still, if they do so, detect it and ignore.  It is an incorrect
+                // and rare enough occurrence that we do not want to slow the mainline path
+                // with "is" checks.
+                TValue item;
+
+                try
+                {
+                    item = (TValue)sender;
+                }
+                catch (InvalidCastException)
+                {
+                    NotifySubscribersAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.Reset);
+                    return;
+                }
+
+                // else go ahead and get the keys for the item / value that changed.
+                // It can be more than one key as the same value can be added to the dictionary for multiple, different keys
+
+                // First identify the keys of the item and build notifications for them.
+                // The count of this should never be 0. If it is, somehow the item has been
+                // removed from our dictionary without our knowledge.
+
+                var observableDictionaryChanges = new List<ObservableDictionaryChange<TKey, TValue>>();
+                foreach (var keyValuePair in this)
+                {
+                    if (Equals(keyValuePair.Value, item))
+                    {
+                        observableDictionaryChanges.Add(new ObservableDictionaryChange<TKey, TValue>(ObservableDictionaryChangeType.ItemChanged, keyValuePair.Key, keyValuePair.Value));
+                    }
+                }
+
+                if (observableDictionaryChanges.Count == 0)
+                {
+                    // well that should not happen, but if it does, remove INPC tracking from the element and send, much like BindingList, a Reset message to observers
+                    RemoveValueFromPropertyChangedHandling(item);
+                    NotifySubscribersAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.Reset);
+                }
+                else
+                {
+                    // otherwise check whether the amount of notifications would be greater than the individual messages threshold
+                    if(IsItemsChangedAmountGreaterThanResetThreshold(observableDictionaryChanges.Count, ThresholdAmountWhenItemChangesAreNotifiedAsReset))
+                    {
+                        NotifySubscribersAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.Reset);
+                    }
+                    else
+                    {
+                        // if not, send out individual item changed notifications
+                        foreach (var observableDictionaryChange in observableDictionaryChanges)
+                        {
+                            NotifySubscribersAboutDictionaryChanges(observableDictionaryChange);
+                        }
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Adds up <see cref="OnValuePropertyChanged"/> as event handler for <paramref name="value"/>'s <see cref="INotifyPropertyChanged.PropertyChanged"/> event.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        private void AddValueToPropertyChangedHandling(TValue value)
+        {
+            CheckForAndThrowIfDisposed();
+            
+            var valueAsINotifyPropertyChanged = (value as INotifyPropertyChanged);
+
+            if (valueAsINotifyPropertyChanged != null)
+            {
+                valueAsINotifyPropertyChanged.PropertyChanged += OnValuePropertyChanged;
+            }
+        }
+
+        /// <summary>
+        /// Removes <see cref="OnValuePropertyChanged"/> as event handler for <paramref name="value"/>'s <see cref="INotifyPropertyChanged.PropertyChanged"/> event.
+        /// </summary>
+        /// <param name="value">The value.</param>
+        private void RemoveValueFromPropertyChangedHandling(TValue value)
+        {
+            CheckForAndThrowIfDisposed();
+            
+            var valueAsINotifyPropertyChanged = (value as INotifyPropertyChanged);
+
+            if (valueAsINotifyPropertyChanged != null)
+            {
+                valueAsINotifyPropertyChanged.PropertyChanged += OnValuePropertyChanged;
+            }
+        }
 
         /// <summary>
         /// Notifies subscribers about the given <paramref name="observableDictionaryChange"/>.
         /// </summary>
         /// <param name="observableDictionaryChange">The observable dictionary change.</param>
         /// <exception cref="System.ArgumentNullException"></exception>
-        private void NotifyDictionaryChanges(IObservableDictionaryChange<TKey, TValue> observableDictionaryChange)
+        protected virtual void NotifySubscribersAboutDictionaryChanges(IObservableDictionaryChange<TKey, TValue> observableDictionaryChange)
         {
             if (observableDictionaryChange == null) throw new ArgumentNullException(nameof(observableDictionaryChange));
 
@@ -120,7 +248,7 @@ namespace JB.Collections.Reactive
 
             // go ahead and check whether a Reset or item add, -change, -move or -remove shall be signaled
             // .. based on the ThresholdAmountWhenItemChangesAreNotifiedAsReset value
-            var actualObservableCollectionChange =
+            var actualObservableDictionaryChange =
                 (observableDictionaryChange.ChangeType == ObservableDictionaryChangeType.Reset
                  || IsItemsChangedAmountGreaterThanResetThreshold(1, ThresholdAmountWhenItemChangesAreNotifiedAsReset))
                     ? ObservableDictionaryChange<TKey, TValue>.Reset
@@ -128,14 +256,45 @@ namespace JB.Collections.Reactive
 
             try
             {
-                DictionaryChangesObserver.OnNext(actualObservableCollectionChange);
+                DictionaryChangesObserver.OnNext(actualObservableDictionaryChange);
             }
             catch (Exception exception)
             {
                 ThrownExceptionsObserver.OnNext(exception);
             }
 
-            throw new NotImplementedException();
+            var observableCollectionChange = actualObservableDictionaryChange.ToObservableCollectionChange();
+            try
+            {
+                RaiseObservableCollectionChanged(new ObservableCollectionChangedEventArgs<KeyValuePair<TKey, TValue>>(observableCollectionChange));
+            }
+            catch (Exception exception)
+            {
+                ThrownExceptionsObserver.OnNext(exception);
+            }
+
+            try
+            {
+                RaiseCollectionChanged(observableCollectionChange.ToNotifyCollectionChangedEventArgs());
+            }
+            catch (Exception exception)
+            {
+                ThrownExceptionsObserver.OnNext(exception);
+            }
+
+            if (actualObservableDictionaryChange.ChangeType == ObservableDictionaryChangeType.ItemAdded
+                || actualObservableDictionaryChange.ChangeType == ObservableDictionaryChangeType.ItemRemoved
+                || actualObservableDictionaryChange.ChangeType == ObservableDictionaryChangeType.Reset)
+            {
+                try
+                {
+                    CountChangesObserver.OnNext(Count);
+                }
+                catch (Exception exception)
+                {
+                    ThrownExceptionsObserver.OnNext(exception);
+                }
+            }
         }
 
         /// <summary>
@@ -166,33 +325,13 @@ namespace JB.Collections.Reactive
         /// 'Count' and 'Items[]' <see cref="INotifyPropertyChanged"/> events on <see cref="CountChanges"/> and <see cref="CollectionChanges"/>
         /// occurrences (for WPF / Binding)
         /// </summary>
-        private void SetupRxObservablesAndSubjects()
+        private void SetupObservablesAndObserversAndSubjects()
         {
-            // ToDo: check whether scheduler shall / should be used for internally used RX notifications / Subjects etc and if so, where
-
             // prepare subjects for RX
             ThrownExceptionsObserver = _thrownExceptionsSubject.NotifyOn(Scheduler);
             DictionaryChangesObserver = _dictionaryChangesSubject.NotifyOn(Scheduler);
             CountChangesObserver = _countChangesSubject.NotifyOn(Scheduler);
-
-            //// then connect to InnerList's ListChanged Event
-            //_innerListChangedForwader = Observable.FromEventPattern<ListChangedEventHandler, ListChangedEventArgs>(
-            //    handler => InnerList.ListChanged += handler,
-            //    handler => InnerList.ListChanged -= handler)
-            //    .TakeWhile(_ => !IsDisposing && !IsDisposed)
-            //    .SkipWhileContinuously(_ => !IsTrackingChanges)
-            //    .Where(eventPattern => eventPattern?.EventArgs != null)
-            //    .Select(eventPattern => eventPattern.EventArgs.ToObservableCollectionChanges(InnerList))
-            //    .ObserveOn(Scheduler)
-            //.Subscribe(
-            //NotifyObservableCollectionChangedSubscribersAndRaiseCollectionChangedEvents,
-            //exception =>
-            //{
-            //    ThrownExceptionsSubject.OnNext(exception);
-            //    // ToDo: at this point this instance is practically doomed / no longer forwarding any events & therefore further usage of the instance itself should be prevented, or the observable stream should re-connect/signal-and-swallow exceptions. Either way.. not ideal.
-            //});
-
-
+            
             //// 'Count' and 'Item[]' PropertyChanged events are used by WPF typically via / for ObservableCollections, see
             //// http://referencesource.microsoft.com/#System/compmod/system/collections/objectmodel/observablecollection.cs,421
             _countChangesCountPropertyChangedForwarder = CountChanges
@@ -200,7 +339,6 @@ namespace JB.Collections.Reactive
                 .Subscribe(_ => RaisePropertyChanged(nameof(Count)));
 
             _dictionaryChangesItemIndexerPropertyChangedForwarder = DictionaryChanges
-                .Where(collectionChange => collectionChange.ChangeType != ObservableDictionaryChangeType.ItemChanged)
                 .ObserveOn(Scheduler)
                 .Subscribe(_ => RaisePropertyChanged(ItemIndexerName));
         }
@@ -490,7 +628,7 @@ namespace JB.Collections.Reactive
 
                 if (signalResetWhenFinished)
                 {
-                    NotifyDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.Reset);
+                    NotifySubscribersAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.Reset);
                 }
             });
         }
@@ -592,7 +730,7 @@ namespace JB.Collections.Reactive
 
                 if (signalResetWhenFinished)
                 {
-                    NotifyDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.Reset);
+                    NotifySubscribersAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.Reset);
                 }
             });
         }
@@ -709,6 +847,14 @@ namespace JB.Collections.Reactive
 
             if (IsDisposed || IsDisposing)
                 return;
+            
+            // only raise event if it's currently allowed
+            if (!IsTrackingChanges
+                || (observableDictionaryChangedEventArgs.ChangeType == ObservableDictionaryChangeType.ItemChanged && !IsTrackingItemChanges)
+                || (observableDictionaryChangedEventArgs.ChangeType == ObservableDictionaryChangeType.Reset && !IsTrackingResets))
+            {
+                return;
+            }
 
             var eventHandler = _observableDictionaryChanged;
             if (eventHandler != null)
@@ -739,7 +885,7 @@ namespace JB.Collections.Reactive
 
                 if (signalResetWhenFinished)
                 {
-                    NotifyDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.Reset);
+                    NotifySubscribersAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.Reset);
                 }
             });
         }
@@ -850,6 +996,14 @@ namespace JB.Collections.Reactive
 
             if (IsDisposed || IsDisposing)
                 return;
+
+            // only raise event if it's currently allowed
+            if (!IsTrackingChanges
+                || (notifyCollectionChangedEventArgs.Action == NotifyCollectionChangedAction.Replace && !IsTrackingItemChanges)
+                || (notifyCollectionChangedEventArgs.Action == NotifyCollectionChangedAction.Reset && !IsTrackingResets))
+            {
+                return;
+            }
 
             var eventHandler = _collectionChanged;
             if (eventHandler != null)
@@ -1066,6 +1220,14 @@ namespace JB.Collections.Reactive
 
             if (IsDisposed || IsDisposing)
                 return;
+
+            // only raise event if it's currently allowed
+            if (!IsTrackingChanges
+                || (observableCollectionChangedEventArgs.ChangeType == ObservableCollectionChangeType.ItemChanged && !IsTrackingItemChanges)
+                || (observableCollectionChangedEventArgs.ChangeType == ObservableCollectionChangeType.Reset && !IsTrackingResets))
+            {
+                return;
+            }
 
             var eventHandler = _observableCollectionChanged;
             if (eventHandler != null)
