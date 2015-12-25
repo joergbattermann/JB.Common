@@ -33,12 +33,21 @@ namespace JB.Collections.Reactive
         public TKey Key { get; }
 
         /// <summary>
-        /// Gets the value that was added, changed or removed.
+        /// Gets the value that was added or if it was a <see cref="F:JB.Collections.Reactive.ObservableDictionaryChangeType.ItemChanged" />, this is the new value.
         /// </summary>
         /// <value>
-        /// The affected value, if any.
+        /// The affected value.
         /// </value>
         public TValue Value { get; }
+
+        /// <summary>
+        /// Gets the old value, if any. If it was a <see cref="F:JB.Collections.Reactive.ObservableDictionaryChangeType.ItemChanged" />, this is the old value,
+        /// for <see cref="F:JB.Collections.Reactive.ObservableDictionaryChangeType.ItemRemoved" />, this will contain the value removed for the <see cref="P:JB.Collections.Reactive.IObservableDictionaryChange`2.Key" />.
+        /// </summary>
+        /// <value>
+        /// The old value, if any
+        /// </value>
+        public TValue OldValue { get; }
 
         #endregion
 
@@ -47,28 +56,26 @@ namespace JB.Collections.Reactive
         /// </summary>
         /// <param name="changeType">Type of the change.</param>
         /// <param name="key">The key of the changed value.</param>
-        /// <param name="value">The (changed) value.</param>
-        public ObservableDictionaryChange(ObservableDictionaryChangeType changeType, TKey key = default(TKey), TValue value = default(TValue))
+        /// <param name="value">The added or changed, new value.</param>
+        /// <param name="oldValue">The removed or changed, old value.</param>
+        public ObservableDictionaryChange(ObservableDictionaryChangeType changeType, TKey key = default(TKey), TValue value = default(TValue), TValue oldValue = default(TValue))
         {
-            if ((changeType == ObservableDictionaryChangeType.ItemAdded
-                 || changeType == ObservableDictionaryChangeType.ItemChanged
-                 || changeType == ObservableDictionaryChangeType.ItemRemoved)
+            if ((changeType != ObservableDictionaryChangeType.Reset)
                 && (KeyIsValueType.Value == false && Equals(key, default(TKey))))
-                throw new ArgumentOutOfRangeException(nameof(key), $"Item Adds, Changes, Moves and Removes must have a (non-default) {nameof(key)}");
-
-            if ((changeType == ObservableDictionaryChangeType.ItemAdded
-                 || changeType == ObservableDictionaryChangeType.ItemChanged
-                 || changeType == ObservableDictionaryChangeType.ItemRemoved)
-                && (ValueIsValueType.Value == false && Equals(value, default(TValue))))
-                throw new ArgumentOutOfRangeException(nameof(value), $"Item Adds, Changes, Moves and Removes must have a (non-default) {nameof(value)}");
+                throw new ArgumentOutOfRangeException(nameof(key), $"Item Adds, Changes or Removes must have a (non-default) {nameof(key)}");
 
             if (changeType == ObservableDictionaryChangeType.Reset && (ValueIsValueType.Value == false && !Equals(value, default(TValue))))
                 throw new ArgumentOutOfRangeException(nameof(value), $"Resets must not have a {nameof(value)}");
 
+            if (changeType == ObservableDictionaryChangeType.Reset && (ValueIsValueType.Value == false && !Equals(oldValue, default(TValue))))
+                throw new ArgumentOutOfRangeException(nameof(oldValue), $"Resets must not have a {nameof(oldValue)}");
+
             ChangeType = changeType;
 
             Key = key;
+
             Value = value;
+            OldValue = oldValue;
         }
 
         /// <summary>

@@ -21,22 +21,20 @@ namespace JB.Collections.Reactive.ExtensionMethods
         {
             if (observableDictionaryChange == null) throw new ArgumentNullException(nameof(observableDictionaryChange));
 
-            var keyValuePair = new KeyValuePair<TKey, TValue>(observableDictionaryChange.Key, observableDictionaryChange.Value);
-
             switch (observableDictionaryChange.ChangeType)
             {
                 case ObservableDictionaryChangeType.ItemAdded:
                     return new ObservableCollectionChange<KeyValuePair<TKey, TValue>>(
                         ObservableCollectionChangeType.ItemAdded,
-                        keyValuePair);
+                        new KeyValuePair<TKey, TValue>(observableDictionaryChange.Key, observableDictionaryChange.Value));
                 case ObservableDictionaryChangeType.ItemChanged:
                     return new ObservableCollectionChange<KeyValuePair<TKey, TValue>>(
                         ObservableCollectionChangeType.ItemChanged,
-                        keyValuePair);
+                        new KeyValuePair<TKey, TValue>(observableDictionaryChange.Key, observableDictionaryChange.Value));
                 case ObservableDictionaryChangeType.ItemRemoved:
                     return new ObservableCollectionChange<KeyValuePair<TKey, TValue>>(
                         ObservableCollectionChangeType.ItemRemoved,
-                        keyValuePair);
+                        new KeyValuePair<TKey, TValue>(observableDictionaryChange.Key, observableDictionaryChange.OldValue));
                 case ObservableDictionaryChangeType.Reset:
                     return new ObservableCollectionChange<KeyValuePair<TKey, TValue>>(
                         ObservableCollectionChangeType.Reset);

@@ -19,11 +19,20 @@ namespace JB.Collections.Reactive
         TKey Key { get; }
 
         /// <summary>
-        /// Gets the value that was added, changed or removed.
+        /// Gets the value that was added or if it was a <see cref="ObservableDictionaryChangeType.ItemChanged"/>, this is the new value.
         /// </summary>
         /// <value>
-        /// The affected value, if any.
+        /// The affected value.
         /// </value>
         TValue Value { get; }
+
+        /// <summary>
+        /// Gets the old value, if any. If it was a <see cref="ObservableDictionaryChangeType.ItemChanged"/>, this is the old value,
+        /// for <see cref="ObservableDictionaryChangeType.ItemRemoved"/>, this will contain the value removed for the <see cref="Key"/>.
+        /// </summary>
+        /// <value>
+        /// The old value, if any
+        /// </value>
+        TValue OldValue { get; }
     }
 }

@@ -29,7 +29,15 @@ namespace JB.Collections.Reactive
     {
         private const string ItemIndexerName = "Item[]"; // taken from ObservableCollection.cs Line #421
 
-        private static Lazy<bool> _valueTypeImplementsINotifyPropertyChangedBuilder = new Lazy<bool>(() => typeof (INotifyPropertyChanged).IsAssignableFrom(typeof (TValue)));
+        /// <summary>
+        /// The <typeparam name="TKey">key type</typeparam> is a value type. or not.
+        /// </summary>
+        private static readonly Lazy<bool> _keyTypeParameterIsValueType = new Lazy<bool>(() => typeof(TKey).IsValueType);
+
+        /// <summary>
+        /// The <typeparam name="TValue">value type</typeparam> is a.. err.. value type. or not.
+        /// </summary>
+        private static readonly Lazy<bool> _valueTypeParameterIsValueType = new Lazy<bool>(() => typeof(TValue).IsValueType);
 
         private IDisposable _dictionaryChangesItemIndexerPropertyChangedForwarder;
         private IDisposable _countChangesCountPropertyChangedForwarder;
@@ -37,6 +45,22 @@ namespace JB.Collections.Reactive
         private Subject<int> _countChangesSubject = new Subject<int>();
         private Subject<Exception> _thrownExceptionsSubject = new Subject<Exception>();
         private Subject<IObservableDictionaryChange<TKey, TValue>> _dictionaryChangesSubject = new Subject<IObservableDictionaryChange<TKey, TValue>>();
+
+        /// <summary>
+        /// Gets a value indicating whether <typeparamref name="TKey"/> is a value type.
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if <typeparamref name="TKey"/> is a value type; otherwise, <c>false</c> if it is a reference type.
+        /// </value>
+        protected bool KeyTypeParameterIsValueType => _keyTypeParameterIsValueType.Value;
+
+        /// <summary>
+        /// Gets a value indicating whether <typeparamref name="TValue"/> is a value type.
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if <typeparamref name="TValue"/> is a value type; otherwise, <c>false</c> if it is a reference type.
+        /// </value>
+        protected bool ValueTypeParameterIsValueType => _valueTypeParameterIsValueType.Value;
 
         /// <summary>
         /// Gets the count changes observer.
@@ -121,6 +145,22 @@ namespace JB.Collections.Reactive
         }
 
         #region Helper Methods
+
+        /// <summary>
+        /// Determines whether <paramref name="value1"/> and <paramref name="value2"/> are the same value.
+        /// If <typeparamref name="TValue"/> is a value type, <see cref="object.Equals(object,object)"/> will be used,
+        /// for reference types <see cref="object.ReferenceEquals"/> will be used.
+        /// </summary>
+        /// <param name="value1">The first value.</param>
+        /// <param name="value2">The second value.</param>
+        /// <returns></returns>
+        protected virtual bool AreTheSameValue(TValue value1, TValue value2)
+        {
+            // see http://stackoverflow.com/questions/3869601/c-sharp-equals-referenceequals-and-operator
+            return ValueTypeParameterIsValueType
+                ? Equals(value1, value2)
+                : ReferenceEquals(value1, value2);
+        }
 
         /// <summary>
         /// Handles <see cref="INotifyPropertyChanged.PropertyChanged"/> events for <typeparamref name="TValue"/> instances
@@ -235,7 +275,7 @@ namespace JB.Collections.Reactive
 
             if (valueAsINotifyPropertyChanged != null)
             {
-                valueAsINotifyPropertyChanged.PropertyChanged += OnValuePropertyChanged;
+                valueAsINotifyPropertyChanged.PropertyChanged -= OnValuePropertyChanged;
             }
         }
 
@@ -989,14 +1029,22 @@ namespace JB.Collections.Reactive
                 return ((ICollection) InnerDictionary).IsSynchronized;
             }
         }
-        
+
         /// <summary>
         /// Gets an <see cref="T:System.Collections.Generic.ICollection`1"/> containing the values in the <see cref="T:System.Collections.Generic.IDictionary`2"/>.
         /// </summary>
         /// <returns>
         /// An <see cref="T:System.Collections.Generic.ICollection`1"/> containing the values in the object that implements <see cref="T:System.Collections.Generic.IDictionary`2"/>.
         /// </returns>
-        ICollection<TValue> IDictionary<TKey, TValue>.Values { get; }
+        public virtual ICollection<TValue> Values
+        {
+            get
+            {
+                CheckForAndThrowIfDisposed();
+
+                return InnerDictionary.Values;
+            }
+        }
 
         /// <summary>
         /// Gets an <see cref="T:System.Collections.Generic.ICollection`1"/> containing the keys of the <see cref="T:System.Collections.Generic.IDictionary`2"/>.
@@ -1004,8 +1052,16 @@ namespace JB.Collections.Reactive
         /// <returns>
         /// An <see cref="T:System.Collections.Generic.ICollection`1"/> containing the keys of the object that implements <see cref="T:System.Collections.Generic.IDictionary`2"/>.
         /// </returns>
-        ICollection<TKey> IDictionary<TKey, TValue>.Keys { get; }
-        
+        public virtual ICollection<TKey> Keys
+        {
+            get
+            {
+                CheckForAndThrowIfDisposed();
+
+                return InnerDictionary.Keys;
+            }
+        }
+
         #endregion
 
         #region Implementation of IReadOnlyCollection<out KeyValuePair<TKey,TValue>>
@@ -1021,6 +1077,7 @@ namespace JB.Collections.Reactive
             get
             {
                 CheckForAndThrowIfDisposed();
+
                 return InnerDictionary.Count;
             }
         }
@@ -1036,7 +1093,7 @@ namespace JB.Collections.Reactive
         /// true if the <see cref="T:System.Collections.IDictionary"/> contains an element with the key; otherwise, false.
         /// </returns>
         /// <param name="key">The key to locate in the <see cref="T:System.Collections.IDictionary"/> object.</param><exception cref="T:System.ArgumentNullException"><paramref name="key"/> is null. </exception>
-        public virtual bool Contains(object key)
+        bool IDictionary.Contains(object key)
         {
             if (key == null) throw new ArgumentNullException(nameof(key));
 
@@ -1134,7 +1191,10 @@ namespace JB.Collections.Reactive
 
                 CheckForAndThrowIfDisposed();
 
-                throw new NotImplementedException();
+                if (key is TKey)
+                    return this[(TKey) key];
+
+                return (object)null;
             }
             set
             {
@@ -1142,7 +1202,13 @@ namespace JB.Collections.Reactive
 
                 CheckForAndThrowIfDisposed();
 
-                throw new NotImplementedException();
+                if (!(key is TKey))
+                    throw new ArgumentOutOfRangeException(nameof(key), $"Must be an instance of {typeof(TKey).Name}");
+
+                if (!(value is TValue))
+                    throw new ArgumentOutOfRangeException(nameof(value), $"Must be an instance of {typeof(TValue).Name}");
+
+                this[(TKey)key] = (TValue)value;
             }
         }
 
@@ -1256,8 +1322,10 @@ namespace JB.Collections.Reactive
         /// Adds an element with the provided key and value to the <see cref="T:System.Collections.Generic.IDictionary`2"/>.
         /// </summary>
         /// <param name="key">The object to use as the key of the element to add.</param><param name="value">The object to use as the value of the element to add.</param><exception cref="T:System.ArgumentNullException"><paramref name="key"/> is null.</exception><exception cref="T:System.ArgumentException">An element with the same key already exists in the <see cref="T:System.Collections.Generic.IDictionary`2"/>.</exception><exception cref="T:System.NotSupportedException">The <see cref="T:System.Collections.Generic.IDictionary`2"/> is read-only.</exception>
-        public void Add(TKey key, TValue value)
+        public virtual void Add(TKey key, TValue value)
         {
+            CheckForAndThrowIfDisposed();
+
             throw new NotImplementedException();
         }
 
@@ -1268,15 +1336,15 @@ namespace JB.Collections.Reactive
         /// true if the element is successfully removed; otherwise, false.  This method also returns false if <paramref name="key"/> was not found in the original <see cref="T:System.Collections.Generic.IDictionary`2"/>.
         /// </returns>
         /// <param name="key">The key of the element to remove.</param><exception cref="T:System.ArgumentNullException"><paramref name="key"/> is null.</exception><exception cref="T:System.NotSupportedException">The <see cref="T:System.Collections.Generic.IDictionary`2"/> is read-only.</exception>
-        public bool Remove(TKey key)
+        public virtual bool Remove(TKey key)
         {
             try
             {
                 TValue valueForKey;
-                if (InnerDictionary.TryGetValue(key, out valueForKey))
+                if (InnerDictionary.TryRemove(key, out valueForKey))
                     return false;
-
-                ((IDictionary)InnerDictionary).Remove(key);
+                
+                RemoveValueFromPropertyChangedHandling(valueForKey);
 
                 NotifySubscribersAboutDictionaryChanges(new ObservableDictionaryChange<TKey, TValue>(ObservableDictionaryChangeType.ItemRemoved, key, valueForKey));
 
@@ -1295,26 +1363,19 @@ namespace JB.Collections.Reactive
         /// </summary>
         public virtual void Clear()
         {
-            throw new NotImplementedException();
-        }
+            CheckForAndThrowIfDisposed();
 
-
-        /// <summary>
-        /// Gets or sets the element with the specified key.
-        /// </summary>
-        /// <returns>
-        /// The element with the specified key.
-        /// </returns>
-        /// <param name="key">The key of the element to get or set.</param><exception cref="T:System.ArgumentNullException"><paramref name="key"/> is null.</exception><exception cref="T:System.Collections.Generic.KeyNotFoundException">The property is retrieved and <paramref name="key"/> is not found.</exception><exception cref="T:System.NotSupportedException">The property is set and the <see cref="T:System.Collections.Generic.IDictionary`2"/> is read-only.</exception>
-        TValue IDictionary<TKey, TValue>.this[TKey key]
-        {
-            get
+            try
             {
-                throw new NotImplementedException();
+                InnerDictionary.Clear();
+
+                NotifySubscribersAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.Reset);
             }
-            set
+            catch (Exception exception)
             {
-                throw new NotImplementedException();
+                ThrownExceptionsObserver.OnNext(exception);
+
+                throw;
             }
         }
 
@@ -1356,6 +1417,54 @@ namespace JB.Collections.Reactive
                     throw;
                 }
             }
+            set
+            {
+                CheckForAndThrowIfDisposed();
+
+                try
+                {
+                    TValue oldValueIfReplaced = default(TValue);
+                    var wasReplaced = false;
+
+                    InnerDictionary.AddOrUpdate(key, value, (usedKey, oldValue) =>
+                    {
+                        // in case we get in here, which means the inner dictionary did already contain a value for the given key,
+                        // remove the old value from property changed handling first at any circumstance as INPC hook will be (re-)added
+                        // in the next step after AddOrUpdate (again)
+
+                        RemoveValueFromPropertyChangedHandling(oldValue);
+
+                        // check whether we already have the same value for the given key in the inner dictionary so we signal
+                        // add or changed/replaced correspondingly
+                        if (!AreTheSameValue(oldValue, value))
+                        {
+                            oldValueIfReplaced = oldValue;
+                            wasReplaced = true;
+                        }
+
+                        return value; // always return the 'new' value here as the old value shall never be kept.
+                    });
+
+                    // hook up INPC handling to the value
+                    AddValueToPropertyChangedHandling(value);
+
+                    // signal change to dictionary to subscribers
+                    if (wasReplaced)
+                    {
+                        NotifySubscribersAboutDictionaryChanges(new ObservableDictionaryChange<TKey, TValue>(ObservableDictionaryChangeType.ItemChanged, key, value, oldValueIfReplaced));
+                    }
+                    else
+                    {
+                        NotifySubscribersAboutDictionaryChanges(new ObservableDictionaryChange<TKey, TValue>(ObservableDictionaryChangeType.ItemAdded, key, value));
+                    }
+                }
+                catch (Exception exception)
+                {
+                    ThrownExceptionsObserver.OnNext(exception);
+
+                    throw;
+                }
+            }
         }
 
         /// <summary>
@@ -1364,7 +1473,7 @@ namespace JB.Collections.Reactive
         /// <returns>
         /// An enumerable collection that contains the keys in the read-only dictionary.
         /// </returns>
-        public virtual IEnumerable<TKey> Keys
+        IEnumerable<TKey> IReadOnlyDictionary<TKey, TValue>.Keys
         {
             get
             {
@@ -1380,7 +1489,7 @@ namespace JB.Collections.Reactive
         /// <returns>
         /// An enumerable collection that contains the values in the read-only dictionary.
         /// </returns>
-        public virtual IEnumerable<TValue> Values
+        IEnumerable<TValue> IReadOnlyDictionary<TKey, TValue>.Values
         {
             get
             {

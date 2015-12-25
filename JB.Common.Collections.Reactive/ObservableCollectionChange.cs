@@ -47,11 +47,6 @@ namespace JB.Collections.Reactive
             if (changeType == ObservableCollectionChangeType.Reset && (TypeIsValueType.Value == false && !Equals(item, default(T))))
                 throw new ArgumentOutOfRangeException(nameof(item), $"Resets must not have an {nameof(item)}");
 
-            if ((changeType == ObservableCollectionChangeType.ItemAdded
-                || changeType == ObservableCollectionChangeType.ItemChanged)
-                && (TypeIsValueType.Value == false && Equals(item, default(T))))
-                throw new ArgumentOutOfRangeException(nameof(item), $"Item Adds and Changes MUST have have an {nameof(item)}, Removes SHOULD have one, if available.");
-
             ChangeType = changeType;
             Item = item;
         }
