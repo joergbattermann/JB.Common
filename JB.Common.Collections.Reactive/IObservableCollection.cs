@@ -18,7 +18,8 @@ namespace JB.Collections.Reactive
         INotifyPropertyChanged
 	{
 		/// <summary>
-		/// Resets this instance and signals subscribers / binding consumers accordingly.
+		/// Signals subscribers that they should reset their and local state about this instance by
+		/// signaling a <see cref="ObservableCollectionChangeType.Reset"/> message and event.
 		/// </summary>
 		void Reset();
     }

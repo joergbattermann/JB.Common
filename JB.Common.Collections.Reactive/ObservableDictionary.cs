@@ -18,6 +18,12 @@ using JB.Reactive.Linq;
 
 namespace JB.Collections.Reactive
 {
+    /// <summary>
+    /// Represents a thread-safe collection of key/value pairs that can be accessed by multiple threads concurrently
+    /// that notifies subscribers about changes to its containing list of key/value pairs.
+    /// </summary>
+    /// <typeparam name="TKey">The type of the keys in the dictionary.</typeparam>
+    /// <typeparam name="TValue">The type of the values in the dictionary.</typeparam>
     [DebuggerDisplay("Count={Count}")]
     public class ObservableDictionary<TKey, TValue> : IObservableDictionary<TKey, TValue>, IDisposable
     {
@@ -31,16 +37,6 @@ namespace JB.Collections.Reactive
         private Subject<int> _countChangesSubject = new Subject<int>();
         private Subject<Exception> _thrownExceptionsSubject = new Subject<Exception>();
         private Subject<IObservableDictionaryChange<TKey, TValue>> _dictionaryChangesSubject = new Subject<IObservableDictionaryChange<TKey, TValue>>();
-
-        /// <summary>
-        /// Gets the <see cref="Values"/> property changed handler.
-        /// If <typeparamref name="TValue"/> implements <see cref="INotifyPropertyChanged"/>, this event handler will handle
-        /// the events and forward them to <see cref="DictionaryChanges"/> and <see cref="CollectionChanges"/> correspondingly.
-        /// </summary>
-        /// <value>
-        /// The values property changed handler.
-        /// </value>
-        protected PropertyChangedEventHandler ValuesPropertyChangedHandler { get; private set; }
 
         /// <summary>
         /// Gets the count changes observer.
@@ -643,6 +639,25 @@ namespace JB.Collections.Reactive
 
         #endregion
 
+        #region Implementation of IObservableCollection<T>
+
+        /// <summary>
+		/// Signals subscribers that they should reset their and local state about this instance by
+		/// signaling a <see cref="ObservableCollectionChangeType.Reset"/> message and event.
+		/// </summary>
+        public virtual void Reset()
+        {
+            CheckForAndThrowIfDisposed();
+
+            if (IsTrackingResets == false)
+                return;
+
+            // else
+            NotifySubscribersAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.Reset);
+        }
+
+        #endregion
+
         #region Implementation of INotifyObservableCountChanged
 
         private readonly object _isTrackingCountChangesLocker = new object();
@@ -938,6 +953,8 @@ namespace JB.Collections.Reactive
         /// <param name="array">The one-dimensional <see cref="T:System.Array"/> that is the destination of the elements copied from <see cref="T:System.Collections.ICollection"/>. The <see cref="T:System.Array"/> must have zero-based indexing. </param><param name="index">The zero-based index in <paramref name="array"/> at which copying begins. </param><exception cref="T:System.ArgumentNullException"><paramref name="array"/> is null. </exception><exception cref="T:System.ArgumentOutOfRangeException"><paramref name="index"/> is less than zero. </exception><exception cref="T:System.ArgumentException"><paramref name="array"/> is multidimensional.-or- The number of elements in the source <see cref="T:System.Collections.ICollection"/> is greater than the available space from <paramref name="index"/> to the end of the destination <paramref name="array"/>.-or-The type of the source <see cref="T:System.Collections.ICollection"/> cannot be cast automatically to the type of the destination <paramref name="array"/>.</exception>
         void ICollection.CopyTo(Array array, int index)
         {
+            CheckForAndThrowIfDisposed();
+
             ((ICollection) InnerDictionary).CopyTo(array, index);
         }
 
@@ -947,7 +964,15 @@ namespace JB.Collections.Reactive
         /// <returns>
         /// An object that can be used to synchronize access to the <see cref="T:System.Collections.ICollection"/>.
         /// </returns>
-        object ICollection.SyncRoot => ((ICollection)InnerDictionary).SyncRoot;
+        object ICollection.SyncRoot
+        {
+            get
+            {
+                CheckForAndThrowIfDisposed();
+
+                return ((ICollection) InnerDictionary).SyncRoot;
+            }
+        }
 
         /// <summary>
         /// Gets a value indicating whether access to the <see cref="T:System.Collections.ICollection"/> is synchronized (thread safe).
@@ -955,8 +980,32 @@ namespace JB.Collections.Reactive
         /// <returns>
         /// true if access to the <see cref="T:System.Collections.ICollection"/> is synchronized (thread safe); otherwise, false.
         /// </returns>
-        bool ICollection.IsSynchronized => ((ICollection)InnerDictionary).IsSynchronized;
+        bool ICollection.IsSynchronized
+        {
+            get
+            {
+                CheckForAndThrowIfDisposed();
 
+                return ((ICollection) InnerDictionary).IsSynchronized;
+            }
+        }
+        
+        /// <summary>
+        /// Gets an <see cref="T:System.Collections.Generic.ICollection`1"/> containing the values in the <see cref="T:System.Collections.Generic.IDictionary`2"/>.
+        /// </summary>
+        /// <returns>
+        /// An <see cref="T:System.Collections.Generic.ICollection`1"/> containing the values in the object that implements <see cref="T:System.Collections.Generic.IDictionary`2"/>.
+        /// </returns>
+        ICollection<TValue> IDictionary<TKey, TValue>.Values { get; }
+
+        /// <summary>
+        /// Gets an <see cref="T:System.Collections.Generic.ICollection`1"/> containing the keys of the <see cref="T:System.Collections.Generic.IDictionary`2"/>.
+        /// </summary>
+        /// <returns>
+        /// An <see cref="T:System.Collections.Generic.ICollection`1"/> containing the keys of the object that implements <see cref="T:System.Collections.Generic.IDictionary`2"/>.
+        /// </returns>
+        ICollection<TKey> IDictionary<TKey, TValue>.Keys { get; }
+        
         #endregion
 
         #region Implementation of IReadOnlyCollection<out KeyValuePair<TKey,TValue>>
@@ -975,7 +1024,128 @@ namespace JB.Collections.Reactive
                 return InnerDictionary.Count;
             }
         }
+
+        #endregion
         
+        #region Implementation of IDictionary
+
+        /// <summary>
+        /// Determines whether the <see cref="T:System.Collections.IDictionary"/> object contains an element with the specified key.
+        /// </summary>
+        /// <returns>
+        /// true if the <see cref="T:System.Collections.IDictionary"/> contains an element with the key; otherwise, false.
+        /// </returns>
+        /// <param name="key">The key to locate in the <see cref="T:System.Collections.IDictionary"/> object.</param><exception cref="T:System.ArgumentNullException"><paramref name="key"/> is null. </exception>
+        public virtual bool Contains(object key)
+        {
+            if (key == null) throw new ArgumentNullException(nameof(key));
+
+            CheckForAndThrowIfDisposed();
+
+            return ((IDictionary) InnerDictionary).Contains(key);
+        }
+
+        /// <summary>
+        /// Adds an element with the provided key and value to the <see cref="T:System.Collections.IDictionary"/> object.
+        /// </summary>
+        /// <param name="key">The <see cref="T:System.Object"/> to use as the key of the element to add. </param><param name="value">The <see cref="T:System.Object"/> to use as the value of the element to add. </param><exception cref="T:System.ArgumentNullException"><paramref name="key"/> is null. </exception><exception cref="T:System.ArgumentException">An element with the same key already exists in the <see cref="T:System.Collections.IDictionary"/> object. </exception><exception cref="T:System.NotSupportedException">The <see cref="T:System.Collections.IDictionary"/> is read-only.-or- The <see cref="T:System.Collections.IDictionary"/> has a fixed size. </exception>
+        void IDictionary.Add(object key, object value)
+        {
+            throw new NotImplementedException();
+        }
+        
+        /// <summary>
+        /// Gets a value indicating whether the <see cref="T:System.Collections.IDictionary"/> object has a fixed size.
+        /// </summary>
+        /// <returns>
+        /// true if the <see cref="T:System.Collections.IDictionary"/> object has a fixed size; otherwise, false.
+        /// </returns>
+        bool IDictionary.IsFixedSize { get; }
+
+        /// <summary>
+        /// Gets a value indicating whether the <see cref="T:System.Collections.IDictionary"/> object is read-only.
+        /// </summary>
+        /// 
+        /// <returns>
+        /// true if the <see cref="T:System.Collections.IDictionary"/> object is read-only; otherwise, false.
+        /// </returns>
+        bool IDictionary.IsReadOnly { get; }
+
+        /// <summary>
+        /// Gets an <see cref="T:System.Collections.ICollection"/> object containing the values in the <see cref="T:System.Collections.IDictionary"/> object.
+        /// </summary>
+        /// <returns>
+        /// An <see cref="T:System.Collections.ICollection"/> object containing the values in the <see cref="T:System.Collections.IDictionary"/> object.
+        /// </returns>
+        ICollection IDictionary.Values { get; }
+
+
+        /// <summary>
+        /// Gets an <see cref="T:System.Collections.ICollection"/> object containing the keys of the <see cref="T:System.Collections.IDictionary"/> object.
+        /// </summary>
+        /// <returns>
+        /// An <see cref="T:System.Collections.ICollection"/> object containing the keys of the <see cref="T:System.Collections.IDictionary"/> object.
+        /// </returns>
+        ICollection IDictionary.Keys { get; }
+
+        /// <summary>
+        /// Returns an <see cref="T:System.Collections.IDictionaryEnumerator"/> object for the <see cref="T:System.Collections.IDictionary"/> object.
+        /// </summary>
+        /// <returns>
+        /// An <see cref="T:System.Collections.IDictionaryEnumerator"/> object for the <see cref="T:System.Collections.IDictionary"/> object.
+        /// </returns>
+        IDictionaryEnumerator IDictionary.GetEnumerator()
+        {
+            CheckForAndThrowIfDisposed();
+
+            return ((IDictionary)InnerDictionary).GetEnumerator();
+        }
+
+        /// <summary>
+        /// Removes the element with the specified key from the <see cref="T:System.Collections.IDictionary"/> object.
+        /// </summary>
+        /// <param name="key">The key of the element to remove. </param><exception cref="T:System.ArgumentNullException"><paramref name="key"/> is null. </exception><exception cref="T:System.NotSupportedException">The <see cref="T:System.Collections.IDictionary"/> object is read-only.-or- The <see cref="T:System.Collections.IDictionary"/> has a fixed size. </exception>
+        void IDictionary.Remove(object key)
+        {
+            if (key == null) throw new ArgumentNullException(nameof(key));
+
+            CheckForAndThrowIfDisposed();
+
+            if (!(key is TKey))
+                return;
+
+            var keyAsTKey = (TKey)key;
+
+            Remove(keyAsTKey);
+        }
+
+        /// <summary>
+        /// Gets or sets the element with the specified key.
+        /// </summary>
+        /// <returns>
+        /// The element with the specified key, or null if the key does not exist.
+        /// </returns>
+        /// <param name="key">The key of the element to get or set. </param><exception cref="T:System.ArgumentNullException"><paramref name="key"/> is null. </exception><exception cref="T:System.NotSupportedException">The property is set and the <see cref="T:System.Collections.IDictionary"/> object is read-only.-or- The property is set, <paramref name="key"/> does not exist in the collection, and the <see cref="T:System.Collections.IDictionary"/> has a fixed size. </exception>
+        object IDictionary.this[object key]
+        {
+            get
+            {
+                if (key == null) throw new ArgumentNullException(nameof(key));
+
+                CheckForAndThrowIfDisposed();
+
+                throw new NotImplementedException();
+            }
+            set
+            {
+                if (key == null) throw new ArgumentNullException(nameof(key));
+
+                CheckForAndThrowIfDisposed();
+
+                throw new NotImplementedException();
+            }
+        }
+
         #endregion
 
         #region Implementation of IEnumerable<out KeyValuePair<TKey,TValue>>
@@ -1083,6 +1253,72 @@ namespace JB.Collections.Reactive
         }
 
         /// <summary>
+        /// Adds an element with the provided key and value to the <see cref="T:System.Collections.Generic.IDictionary`2"/>.
+        /// </summary>
+        /// <param name="key">The object to use as the key of the element to add.</param><param name="value">The object to use as the value of the element to add.</param><exception cref="T:System.ArgumentNullException"><paramref name="key"/> is null.</exception><exception cref="T:System.ArgumentException">An element with the same key already exists in the <see cref="T:System.Collections.Generic.IDictionary`2"/>.</exception><exception cref="T:System.NotSupportedException">The <see cref="T:System.Collections.Generic.IDictionary`2"/> is read-only.</exception>
+        public void Add(TKey key, TValue value)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// Removes the element with the specified key from the <see cref="T:System.Collections.Generic.IDictionary`2"/>.
+        /// </summary>
+        /// <returns>
+        /// true if the element is successfully removed; otherwise, false.  This method also returns false if <paramref name="key"/> was not found in the original <see cref="T:System.Collections.Generic.IDictionary`2"/>.
+        /// </returns>
+        /// <param name="key">The key of the element to remove.</param><exception cref="T:System.ArgumentNullException"><paramref name="key"/> is null.</exception><exception cref="T:System.NotSupportedException">The <see cref="T:System.Collections.Generic.IDictionary`2"/> is read-only.</exception>
+        public bool Remove(TKey key)
+        {
+            try
+            {
+                TValue valueForKey;
+                if (InnerDictionary.TryGetValue(key, out valueForKey))
+                    return false;
+
+                ((IDictionary)InnerDictionary).Remove(key);
+
+                NotifySubscribersAboutDictionaryChanges(new ObservableDictionaryChange<TKey, TValue>(ObservableDictionaryChangeType.ItemRemoved, key, valueForKey));
+
+                return true;
+            }
+            catch (Exception exception)
+            {
+                ThrownExceptionsObserver.OnNext(exception);
+
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Removes all items from the <see cref="T:System.Collections.Generic.ICollection`1"/> / <see cref="T:System.Collections.IDictionary"/>.
+        /// </summary>
+        public virtual void Clear()
+        {
+            throw new NotImplementedException();
+        }
+
+
+        /// <summary>
+        /// Gets or sets the element with the specified key.
+        /// </summary>
+        /// <returns>
+        /// The element with the specified key.
+        /// </returns>
+        /// <param name="key">The key of the element to get or set.</param><exception cref="T:System.ArgumentNullException"><paramref name="key"/> is null.</exception><exception cref="T:System.Collections.Generic.KeyNotFoundException">The property is retrieved and <paramref name="key"/> is not found.</exception><exception cref="T:System.NotSupportedException">The property is set and the <see cref="T:System.Collections.Generic.IDictionary`2"/> is read-only.</exception>
+        TValue IDictionary<TKey, TValue>.this[TKey key]
+        {
+            get
+            {
+                throw new NotImplementedException();
+            }
+            set
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        /// <summary>
         /// Gets the value that is associated with the specified key.
         /// </summary>
         /// <returns>
@@ -1109,7 +1345,16 @@ namespace JB.Collections.Reactive
             {
                 CheckForAndThrowIfDisposed();
 
-                return InnerDictionary[key];
+                try
+                {
+                    return InnerDictionary[key];
+                }
+                catch (Exception exception)
+                {
+                    ThrownExceptionsObserver.OnNext(exception);
+
+                    throw;
+                }
             }
         }
 
@@ -1128,7 +1373,7 @@ namespace JB.Collections.Reactive
                 return InnerDictionary.Keys;
             }
         }
-
+        
         /// <summary>
         /// Gets an enumerable collection that contains the values in the read-only dictionary.
         /// </summary>
