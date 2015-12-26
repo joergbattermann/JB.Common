@@ -196,6 +196,57 @@ namespace JB.Collections.Reactive
         }
 
         /// <summary>
+        /// Adds an element with the provided key and value to the <see cref="T:System.Collections.Generic.IDictionary`2" /> and if successful it optionally signals observers
+        /// about the change.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="value">The value.</param>
+        /// <param name="notifyObserversAboutChange">if set to <c>true</c> observers will be notified about the change.</param>
+        protected virtual void Add(TKey key, TValue value, bool notifyObserversAboutChange)
+        {
+            if (key == null) throw new ArgumentNullException(nameof(key));
+
+            CheckForAndThrowIfDisposed();
+
+            ((IDictionary<TKey, TValue>)InnerDictionary).Add(key, value);
+
+            AddValueToPropertyChangedHandling(value);
+
+            if (notifyObserversAboutChange)
+                NotifySubscribersAboutDictionaryChanges(new ObservableDictionaryChange<TKey, TValue>(ObservableDictionaryChangeType.ItemAdded, key, value));
+        }
+
+        /// <summary>
+        /// Removes the element with the specified key from the <see cref="T:System.Collections.Generic.IDictionary`2" /> and if successful it optionally signals observers
+        /// about the change.
+        /// </summary>
+        /// <param name="key">The key of the element to remove.</param>
+        /// <param name="notifyObserversAboutChange">if set to <c>true</c> observers will be notified about the change.</param>
+        /// <returns>
+        /// true if the element is successfully removed; otherwise, false.  This method also returns false if <paramref name="key" /> was not found in the original <see cref="T:System.Collections.Generic.IDictionary`2" />.
+        /// </returns>
+        /// <exception cref="T:System.ArgumentNullException">
+        ///   <paramref name="key" /> is null.</exception>
+        /// <exception cref="T:System.NotSupportedException">The <see cref="T:System.Collections.Generic.IDictionary`2" /> is read-only.</exception>
+        protected virtual bool Remove(TKey key, bool notifyObserversAboutChange)
+        {
+            if (key == null) throw new ArgumentNullException(nameof(key));
+
+            CheckForAndThrowIfDisposed();
+
+            TValue valueForKey;
+            if (InnerDictionary.TryRemove(key, out valueForKey))
+                return false;
+
+            RemoveValueFromPropertyChangedHandling(valueForKey);
+
+            if (notifyObserversAboutChange)
+                NotifySubscribersAboutDictionaryChanges(new ObservableDictionaryChange<TKey, TValue>(ObservableDictionaryChangeType.ItemRemoved, key, valueForKey));
+
+            return true;
+        }
+
+        /// <summary>
         /// Attempts to add the specified key and value to the <see cref="ObservableDictionary{TKey,TValue}"/>.
         /// </summary>
         /// 
@@ -1108,12 +1159,12 @@ namespace JB.Collections.Reactive
         private long _isTrackingChanges = 0;
 
         /// <summary>
-        /// Gets a value indicating whether this instance is currently suppressing observable collection changed notifications.
+        /// Gets a value indicating whether this instance is currently suppressing observable change notifications of any kind.
         /// </summary>
         /// <value>
-        /// <c>true</c> if this instance is suppressing observable collection changed notifications; otherwise, <c>false</c>.
+        /// <c>true</c> if this instance is suppressing observable change notifications; otherwise, <c>false</c>.
         /// </value>
-        /// <exception cref="System.InvalidOperationException">A Collection Change Notification Suppression is currently already ongoing, multiple concurrent suppressions are not supported.</exception>
+        /// <exception cref="System.InvalidOperationException">A Change Notification Suppression is currently already ongoing, multiple concurrent suppressions are not supported.</exception>
         public bool IsTrackingChanges
         {
             get { return Interlocked.Read(ref _isTrackingChanges) == 1; }
@@ -1232,6 +1283,14 @@ namespace JB.Collections.Reactive
                 return InnerDictionary.Count;
             }
         }
+
+        /// <summary>
+        /// Gets a value indicating whether the <see cref="T:System.Collections.Generic.ICollection`1"/> is read-only.
+        /// </summary>
+        /// <returns>
+        /// true if the <see cref="T:System.Collections.Generic.ICollection`1"/> is read-only; otherwise, false.
+        /// </returns>
+        public bool IsReadOnly { get; }
 
         #endregion
         
@@ -1504,6 +1563,8 @@ namespace JB.Collections.Reactive
         /// <param name="key">The key to locate.</param><exception cref="T:System.ArgumentNullException"><paramref name="key"/> is null.</exception>
         public virtual bool ContainsKey(TKey key)
         {
+            if (key == null) throw new ArgumentNullException(nameof(key));
+
             CheckForAndThrowIfDisposed();
 
             return InnerDictionary.ContainsKey(key);
@@ -1515,13 +1576,11 @@ namespace JB.Collections.Reactive
         /// <param name="key">The object to use as the key of the element to add.</param><param name="value">The object to use as the value of the element to add.</param><exception cref="T:System.ArgumentNullException"><paramref name="key"/> is null.</exception><exception cref="T:System.ArgumentException">An element with the same key already exists in the <see cref="T:System.Collections.Generic.IDictionary`2"/>.</exception><exception cref="T:System.NotSupportedException">The <see cref="T:System.Collections.Generic.IDictionary`2"/> is read-only.</exception>
         public virtual void Add(TKey key, TValue value)
         {
+            if (key == null) throw new ArgumentNullException(nameof(key));
+
             CheckForAndThrowIfDisposed();
 
-            ((IDictionary<TKey, TValue>)InnerDictionary).Add(key, value);
-
-            AddValueToPropertyChangedHandling(value);
-
-            NotifySubscribersAboutDictionaryChanges(new ObservableDictionaryChange<TKey, TValue>(ObservableDictionaryChangeType.ItemAdded, key, value));
+            Add(key, value, IsTrackingChanges);
         }
 
         /// <summary>
@@ -1530,18 +1589,16 @@ namespace JB.Collections.Reactive
         /// <returns>
         /// true if the element is successfully removed; otherwise, false.  This method also returns false if <paramref name="key"/> was not found in the original <see cref="T:System.Collections.Generic.IDictionary`2"/>.
         /// </returns>
-        /// <param name="key">The key of the element to remove.</param><exception cref="T:System.ArgumentNullException"><paramref name="key"/> is null.</exception><exception cref="T:System.NotSupportedException">The <see cref="T:System.Collections.Generic.IDictionary`2"/> is read-only.</exception>
+        /// <param name="key">The key of the element to remove.</param>
+        /// <exception cref="T:System.ArgumentNullException"><paramref name="key"/> is null.</exception>
+        /// <exception cref="T:System.NotSupportedException">The <see cref="T:System.Collections.Generic.IDictionary`2"/> is read-only.</exception>
         public virtual bool Remove(TKey key)
         {
-            TValue valueForKey;
-            if (InnerDictionary.TryRemove(key, out valueForKey))
-                return false;
+            if (key == null) throw new ArgumentNullException(nameof(key));
 
-            RemoveValueFromPropertyChangedHandling(valueForKey);
+            CheckForAndThrowIfDisposed();
 
-            NotifySubscribersAboutDictionaryChanges(new ObservableDictionaryChange<TKey, TValue>(ObservableDictionaryChangeType.ItemRemoved, key, valueForKey));
-
-            return true;
+            return Remove(key, IsTrackingChanges);
         }
 
         /// <summary>
@@ -1625,9 +1682,9 @@ namespace JB.Collections.Reactive
             }
         }
 
-        #endregion
+#endregion
 
-        #region Implementation of INotifyObservableDictionaryItemChanged<out TKey,out TValue>
+#region Implementation of INotifyObservableDictionaryItemChanged<out TKey,out TValue>
 
         /// <summary>
         /// Gets the observable streams of item changes, however these will only have their
@@ -1649,9 +1706,9 @@ namespace JB.Collections.Reactive
             }
         }
 
-        #endregion
+#endregion
 
-        #region Implementation of INotifyObservableItemChanged<out KeyValuePair<TKey,TValue>>
+#region Implementation of INotifyObservableItemChanged<out KeyValuePair<TKey,TValue>>
 
         /// <summary>
         /// Gets the observable streams of item changes, however these will only have their
@@ -1675,9 +1732,9 @@ namespace JB.Collections.Reactive
             }
         }
 
-        #endregion
+#endregion
 
-        #region Implementation of INotifyObservableCollectionChanged<KeyValuePair<TKey,TValue>>
+#region Implementation of INotifyObservableCollectionChanged<KeyValuePair<TKey,TValue>>
 
         /// <summary>
         /// Gets the collection changes as an observable stream.
@@ -1753,9 +1810,9 @@ namespace JB.Collections.Reactive
             }
         }
 
-        #endregion
+#endregion
 
-        #region Implementation of IObservableReadOnlyDictionary<TKey,TValue>
+#region Implementation of IObservableReadOnlyDictionary<TKey,TValue>
 
         /// <summary>
         /// Gets a value indicating whether this instance is empty.
@@ -1773,6 +1830,161 @@ namespace JB.Collections.Reactive
             }
         }
 
-        #endregion
+#endregion
+
+#region Implementation of ICollection<KeyValuePair<TKey,TValue>>
+
+        /// <summary>
+        /// Adds an item to the <see cref="T:System.Collections.Generic.ICollection`1"/>.
+        /// </summary>
+        /// <param name="item">The object to add to the <see cref="T:System.Collections.Generic.ICollection`1"/>.</param><exception cref="T:System.NotSupportedException">The <see cref="T:System.Collections.Generic.ICollection`1"/> is read-only.</exception>
+        void ICollection<KeyValuePair<TKey, TValue>>.Add(KeyValuePair<TKey, TValue> item)
+        {
+            CheckForAndThrowIfDisposed();
+
+            Add(item.Key, item.Value);
+        }
+
+        /// <summary>
+        /// Determines whether the <see cref="T:System.Collections.Generic.ICollection`1"/> contains a specific value.
+        /// </summary>
+        /// <returns>
+        /// true if <paramref name="item"/> is found in the <see cref="T:System.Collections.Generic.ICollection`1"/>; otherwise, false.
+        /// </returns>
+        /// <param name="item">The object to locate in the <see cref="T:System.Collections.Generic.ICollection`1"/>.</param>
+        bool ICollection<KeyValuePair<TKey, TValue>>.Contains(KeyValuePair<TKey, TValue> item)
+        {
+            CheckForAndThrowIfDisposed();
+
+            return ((ICollection<KeyValuePair<TKey, TValue>>) InnerDictionary).Contains(item);
+        }
+
+        /// <summary>
+        /// Copies the elements of the <see cref="T:System.Collections.Generic.ICollection`1"/> to an <see cref="T:System.Array"/>, starting at a particular <see cref="T:System.Array"/> index.
+        /// </summary>
+        /// <param name="array">The one-dimensional <see cref="T:System.Array"/> that is the destination of the elements copied from <see cref="T:System.Collections.Generic.ICollection`1"/>. The <see cref="T:System.Array"/> must have zero-based indexing.</param><param name="arrayIndex">The zero-based index in <paramref name="array"/> at which copying begins.</param><exception cref="T:System.ArgumentNullException"><paramref name="array"/> is null.</exception><exception cref="T:System.ArgumentOutOfRangeException"><paramref name="arrayIndex"/> is less than 0.</exception><exception cref="T:System.ArgumentException">The number of elements in the source <see cref="T:System.Collections.Generic.ICollection`1"/> is greater than the available space from <paramref name="arrayIndex"/> to the end of the destination <paramref name="array"/>.</exception>
+        void ICollection<KeyValuePair<TKey, TValue>>.CopyTo(KeyValuePair<TKey, TValue>[] array, int arrayIndex)
+        {
+            CheckForAndThrowIfDisposed();
+
+            ((ICollection<KeyValuePair<TKey, TValue>>)InnerDictionary).CopyTo(array, arrayIndex);
+        }
+
+        /// <summary>
+        /// Removes the first occurrence of a specific object from the <see cref="T:System.Collections.Generic.ICollection`1"/>.
+        /// </summary>
+        /// <returns>
+        /// true if <paramref name="item"/> was successfully removed from the <see cref="T:System.Collections.Generic.ICollection`1"/>; otherwise, false. This method also returns false if <paramref name="item"/> is not found in the original <see cref="T:System.Collections.Generic.ICollection`1"/>.
+        /// </returns>
+        /// <param name="item">The object to remove from the <see cref="T:System.Collections.Generic.ICollection`1"/>.</param><exception cref="T:System.NotSupportedException">The <see cref="T:System.Collections.Generic.ICollection`1"/> is read-only.</exception>
+        bool ICollection<KeyValuePair<TKey, TValue>>.Remove(KeyValuePair<TKey, TValue> item)
+        {
+            CheckForAndThrowIfDisposed();
+
+            var wasRemoved = ((ICollection<KeyValuePair<TKey, TValue>>)InnerDictionary).Remove(item);
+            if (wasRemoved)
+            {
+                RemoveValueFromPropertyChangedHandling(item.Value);
+                NotifySubscribersAboutDictionaryChanges(new ObservableDictionaryChange<TKey, TValue>(ObservableDictionaryChangeType.ItemRemoved, item.Key, item.Value));
+            }
+
+            return wasRemoved;
+        }
+
+#endregion
+
+#region Implementation of IBulkModifiableDictionary<TKey,TValue>
+
+        /// <summary>
+        /// Adds a range of items.
+        /// </summary>
+        /// <param name="items">The items to add.</param>
+        public virtual void AddRange(ICollection<KeyValuePair<TKey, TValue>> items)
+        {
+            if (items == null) throw new ArgumentNullException(nameof(items));
+
+            CheckForAndThrowIfDisposed();
+
+            var itemsAsList = items.ToList();
+
+            if (itemsAsList.Count == 0)
+                return;
+
+            // check whether change(s) shall be notified as individual changes OR as one final reset at the end
+            var useResetInsteadOfIndividualChanges = IsItemsChangedAmountGreaterThanResetThreshold(itemsAsList.Count, ThresholdAmountWhenItemChangesAreNotifiedAsReset);
+            var signalIndividualItemChanges = !useResetInsteadOfIndividualChanges;
+
+            // then perform change itself
+            foreach (var keyValuePair in items)
+            {
+                // ... and only notify observers if 'currently' desired
+                Add(keyValuePair.Key, keyValuePair.Value, signalIndividualItemChanges && IsTrackingChanges);
+            }
+
+            // finally and if originally determined (and currently wanted), signal a reset
+            if(useResetInsteadOfIndividualChanges && IsTrackingResets)
+                NotifySubscribersAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.Reset);
+        }
+
+        /// <summary>
+        /// Removes the specified items.
+        /// </summary>
+        /// <param name="items">The items to remove.</param>
+        public virtual void RemoveRange(ICollection<KeyValuePair<TKey, TValue>> items)
+        {
+            CheckForAndThrowIfDisposed();
+
+            var itemsAsList = items.ToList();
+
+            if (itemsAsList.Count == 0)
+                return;
+
+            // check whether change(s) shall be notified as individual changes OR as one final reset at the end
+            var useResetInsteadOfIndividualChanges = IsItemsChangedAmountGreaterThanResetThreshold(itemsAsList.Count, ThresholdAmountWhenItemChangesAreNotifiedAsReset);
+            var signalIndividualItemChanges = !useResetInsteadOfIndividualChanges;
+
+            // then perform change itself
+            foreach (var keyValuePair in items)
+            {
+                // ... and only notify observers if 'currently' desired
+                Remove(keyValuePair.Key, signalIndividualItemChanges && IsTrackingChanges);
+            }
+
+            // finally and if originally determined (and currently wanted), signal a reset
+            if (useResetInsteadOfIndividualChanges && IsTrackingResets)
+                NotifySubscribersAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.Reset);
+        }
+
+#endregion
+
+#region Implementation of IBulkModifiableCollection<KeyValuePair<TKey,TValue>>
+
+        /// <summary>
+        /// Adds a range of items.
+        /// </summary>
+        /// <param name="items">The items.</param>
+        void IBulkModifiableCollection<KeyValuePair<TKey, TValue>>.AddRange(IEnumerable<KeyValuePair<TKey, TValue>> items)
+        {
+            if (items == null) throw new ArgumentNullException(nameof(items));
+
+            CheckForAndThrowIfDisposed();
+
+            AddRange(items.ToList());
+        }
+
+        /// <summary>
+        /// Removes the specified items.
+        /// </summary>
+        /// <param name="items">The items.</param>
+        void IBulkModifiableCollection<KeyValuePair<TKey, TValue>>.RemoveRange(IEnumerable<KeyValuePair<TKey, TValue>> items)
+        {
+            if (items == null) throw new ArgumentNullException(nameof(items));
+
+            CheckForAndThrowIfDisposed();
+
+            RemoveRange(items.ToList());
+        }
+
+#endregion
     }
 }

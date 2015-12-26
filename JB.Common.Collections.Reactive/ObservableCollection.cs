@@ -1095,6 +1095,8 @@ namespace JB.Collections.Reactive
         {
             if (items == null) throw new ArgumentNullException(nameof(items));
 
+            // ToDo: this needs (more) unit tests... something seems fishy in here.
+
             CheckForAndThrowIfDisposed();
 
             var itemsAsList = items.ToList();
@@ -1102,23 +1104,27 @@ namespace JB.Collections.Reactive
             if (itemsAsList.Count == 0)
                 return;
 
-            // only use the Suppress & Reset mechanism if possible
-            var suppressItemChangesWhileAdding =
-                IsItemsChangedAmountGreaterThanResetThreshold(itemsAsList.Count, ThresholdAmountWhenItemChangesAreNotifiedAsReset)
-                && IsTrackingChanges;
-
-            // we use an IDisposable either way, but in case of not sending a reset, an empty Disposable will be used to simplify the logic here
-            using (suppressItemChangesWhileAdding ? SuppressChangeNotifications(true) : Disposable.Empty)
+            // check whether change(s) shall be notified as individual changes OR as one final reset at the end
+            var useResetInsteadOfIndividualChanges = IsItemsChangedAmountGreaterThanResetThreshold(itemsAsList.Count, ThresholdAmountWhenItemChangesAreNotifiedAsReset);
+            var signalIndividualItemChanges = !useResetInsteadOfIndividualChanges;
+            
+            var originalRaiseListChangedEvents = InnerList.RaiseListChangedEvents;
+            try
             {
-                var originalRaiseListChangedEvents = InnerList.RaiseListChangedEvents;
-                try
+                // signal or suppress list changed events.. depending on check above and whether the collection currently IS tracking changes, at all
+                InnerList.RaiseListChangedEvents = signalIndividualItemChanges && IsTrackingChanges;
+
+                // perform the actual range-add call but suppress raising of reset even explicitly
+                InnerList.AddRange(itemsAsList, false);
+            }
+            finally
+            {
+                InnerList.RaiseListChangedEvents = originalRaiseListChangedEvents;
+
+                // after resetting the InnerList.RaiseListChangedEvents property, raise Reset event, if 'still' desired
+                if (useResetInsteadOfIndividualChanges && IsTrackingResets)
                 {
-                    InnerList.RaiseListChangedEvents = !suppressItemChangesWhileAdding;
-                    InnerList.AddRange(itemsAsList);
-                }
-                finally
-                {
-                    InnerList.RaiseListChangedEvents = originalRaiseListChangedEvents;
+                    NotifySubscribersAboutCollectionChanges(ObservableCollectionChange<T>.Reset);
                 }
             }
         }
@@ -1131,6 +1137,8 @@ namespace JB.Collections.Reactive
         {
             if (items == null) throw new ArgumentNullException(nameof(items));
 
+            // ToDo: this needs (more) unit tests... something seems fishy in here.
+
             CheckForAndThrowIfDisposed();
 
             var itemsAsList = items.ToList();
@@ -1138,23 +1146,27 @@ namespace JB.Collections.Reactive
             if (itemsAsList.Count == 0)
                 return;
 
-            // only use the Suppress & Reset mechanism if possible
-            var suppressionItemChanges =
-                IsItemsChangedAmountGreaterThanResetThreshold(itemsAsList.Count, ThresholdAmountWhenItemChangesAreNotifiedAsReset)
-                && IsTrackingChanges;
+            // check whether change(s) shall be notified as individual changes OR as one final reset at the end
+            var useResetInsteadOfIndividualChanges = IsItemsChangedAmountGreaterThanResetThreshold(itemsAsList.Count, ThresholdAmountWhenItemChangesAreNotifiedAsReset);
+            var signalIndividualItemChanges = !useResetInsteadOfIndividualChanges;
 
-            // we use an IDisposable either way, but in case of not sending a reset, an empty Disposable will be used to simplify the logic here
-            using (suppressionItemChanges ? SuppressChangeNotifications(true) : Disposable.Empty)
+            var originalRaiseListChangedEvents = InnerList.RaiseListChangedEvents;
+            try
             {
-                var originalRaiseListChangedEvents = InnerList.RaiseListChangedEvents;
-                try
+                // signal or suppress list changed events.. depending on check above and whether the collection currently IS tracking changes, at all
+                InnerList.RaiseListChangedEvents = signalIndividualItemChanges && IsTrackingChanges;
+
+                // perform the actual range-remove call but suppress raising of reset even explicitly
+                InnerList.RemoveRange(itemsAsList, false);
+            }
+            finally
+            {
+                InnerList.RaiseListChangedEvents = originalRaiseListChangedEvents;
+
+                // after resetting the InnerList.RaiseListChangedEvents property, raise Reset event, if 'still' desired
+                if (useResetInsteadOfIndividualChanges && IsTrackingResets)
                 {
-                    InnerList.RaiseListChangedEvents = !suppressionItemChanges;
-                    InnerList.RemoveRange(itemsAsList);
-                }
-                finally
-                {
-                    InnerList.RaiseListChangedEvents = originalRaiseListChangedEvents;
+                    NotifySubscribersAboutCollectionChanges(ObservableCollectionChange<T>.Reset);
                 }
             }
         }

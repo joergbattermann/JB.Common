@@ -50,7 +50,7 @@ namespace JB.Collections
         /// <param name="signalResetWhenFinished">if set to <c>true</c> a <see cref="ListChangedType.Reset"/> will be signaled when finished.
         /// This and <see cref="BindingList{T}.RaiseListChangedEvents"/> control if and what <see cref="IBindingList.ListChanged" />
         /// event will be raised while / after adding the <paramref name="items"/>.</param>
-        public void AddRange(IEnumerable<T> items, bool signalResetWhenFinished)
+        public virtual void AddRange(IEnumerable<T> items, bool signalResetWhenFinished)
 		{
 			if (items == null)
 				return;
@@ -72,7 +72,7 @@ namespace JB.Collections
         /// <param name="signalResetWhenFinished">if set to <c>true</c> a <see cref="ListChangedType.Reset"/> will be signaled when finished.
         /// This and <see cref="BindingList{T}.RaiseListChangedEvents"/> control if and what <see cref="IBindingList.ListChanged" />
         /// event will be raised while / after adding the <paramref name="items"/>.</param>
-        public void RemoveRange(IEnumerable<T> items, bool signalResetWhenFinished)
+        public virtual void RemoveRange(IEnumerable<T> items, bool signalResetWhenFinished)
         {
             if (items == null)
                 return;
@@ -97,7 +97,7 @@ namespace JB.Collections
         /// will be shifted upwards (logically by -1).
         /// Depending on whether the caller intends to move the item strictly or logically to the <paramref name="newIndex"/> position, correction might be useful.</param>
         /// <exception cref="ArgumentOutOfRangeException">item</exception>
-        public void Move(int itemIndex, int newIndex, bool correctNewIndexOnIndexShift = true)
+        public virtual void Move(int itemIndex, int newIndex, bool correctNewIndexOnIndexShift = true)
 		{
 			Move(this[itemIndex], newIndex, correctNewIndexOnIndexShift);
 		}
@@ -113,7 +113,7 @@ namespace JB.Collections
 		/// will be shifted upwards (logically by -1).
 		/// Depending on whether the caller intends to move the item strictly or logically to the <paramref name="newIndex"/> position, correction might be useful.</param>
 		/// <exception cref="ArgumentOutOfRangeException">item</exception>
-		public void Move(T item, int newIndex, bool correctNewIndexOnIndexShift = true)
+		public virtual void Move(T item, int newIndex, bool correctNewIndexOnIndexShift = true)
 		{
 			// temporarily disabling event notifications to prevent a second, duplicate ListChanged event by the underlying bindinglist itself
 			var originalRaiseListChangedEventsValue = RaiseListChangedEvents;
@@ -213,7 +213,7 @@ namespace JB.Collections
 	    /// Adds a range of items.
 	    /// </summary>
 	    /// <param name="items">The items.</param>
-	    public void AddRange(IEnumerable<T> items)
+	    public virtual void AddRange(IEnumerable<T> items)
 	    {
 	        this.AddRange(items, false);
 	    }
@@ -222,7 +222,7 @@ namespace JB.Collections
 	    /// Removes the specified items.
 	    /// </summary>
 	    /// <param name="items">The items.</param>
-	    public void RemoveRange(IEnumerable<T> items)
+	    public virtual void RemoveRange(IEnumerable<T> items)
 	    {
             this.RemoveRange(items, false);
         }

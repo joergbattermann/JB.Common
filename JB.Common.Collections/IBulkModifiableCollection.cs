@@ -11,9 +11,9 @@ using System.Collections.Generic;
 namespace JB.Collections
 {
     /// <summary>
-    /// A <see cref="ICollection{T}"/> that probides bulk / range add- and remove modifications.
+    /// A <see cref="ICollection{T}"/> that provides bulk add- and remove modifications.
     /// </summary>
-    /// <typeparam name="T"></typeparam>
+    /// <typeparam name="T">The type of the items in the collection</typeparam>
     public interface IBulkModifiableCollection<T> : ICollection<T>
     {
         /// <summary>
