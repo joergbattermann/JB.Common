@@ -144,6 +144,157 @@ namespace JB.Collections.Reactive
             SetupObservablesAndObserversAndSubjects();
         }
 
+        #region Implementation of ObservableDictionary<TKey, TValue>
+        
+        /// <summary>
+        /// Adds a key/value pair if the key does not already exist, or performs an update by replacing the existing, old value with the new one.
+        /// </summary>
+        /// <param name="key">The key to be added or whose value should be updated</param>
+        /// <param name="value">The value to be added or used to update if the key is already present.</param>
+        /// <exception cref="T:System.ArgumentNullException"><paramref name="key"/>is null.</exception>
+        /// <exception cref="T:System.OverflowException">The dictionary already contains the maximum number of elements (<see cref="F:System.Int32.MaxValue"/>).</exception>
+        public virtual void AddOrUpdate(TKey key, TValue value)
+        {
+            if (key == null) throw new ArgumentNullException(nameof(key));
+
+            CheckForAndThrowIfDisposed();
+
+            TValue oldValueIfReplaced = default(TValue);
+            var wasReplaced = false;
+
+            InnerDictionary.AddOrUpdate(key, value, (usedKey, oldValue) =>
+            {
+                // in case we get in here, which means the inner dictionary did already contain a value for the given key,
+                // remove the old value from property changed handling first at any circumstance as INPC hook will be (re-)added
+                // in the next step after AddOrUpdate (again)
+
+                RemoveValueFromPropertyChangedHandling(oldValue);
+
+                // check whether we already have the same value for the given key in the inner dictionary so we signal
+                // add or changed/replaced correspondingly
+                if (!AreTheSameValue(oldValue, value))
+                {
+                    oldValueIfReplaced = oldValue;
+                    wasReplaced = true;
+                }
+
+                return value; // always return the 'new' value here as the old value shall never be kept.
+            });
+
+            // hook up INPC handling to the value
+            AddValueToPropertyChangedHandling(value);
+
+            // signal change to dictionary to subscribers
+            if (wasReplaced)
+            {
+                NotifySubscribersAboutDictionaryChanges(new ObservableDictionaryChange<TKey, TValue>(ObservableDictionaryChangeType.ItemChanged, key, value, oldValueIfReplaced));
+            }
+            else
+            {
+                NotifySubscribersAboutDictionaryChanges(new ObservableDictionaryChange<TKey, TValue>(ObservableDictionaryChangeType.ItemAdded, key, value));
+            }
+        }
+
+        /// <summary>
+        /// Attempts to add the specified key and value to the <see cref="ObservableDictionary{TKey,TValue}"/>.
+        /// </summary>
+        /// 
+        /// <returns>
+        /// true if the key/value pair was added to the <see cref="ObservableDictionary{TKey,TValue}"/> successfully; false if the key already exists.
+        /// </returns>
+        /// <param name="key">The key of the element to add.</param><param name="value">The value of the element to add. The value can be  null for reference types.</param>
+        /// <exception cref="T:System.ArgumentNullException"><paramref name="key"/> is  null.</exception>
+        /// <exception cref="T:System.OverflowException">The dictionary already contains the maximum number of elements (<see cref="F:System.Int32.MaxValue"/>).</exception>
+        public virtual bool TryAdd(TKey key, TValue value)
+        {
+            if (key == null) throw new ArgumentNullException(nameof(key));
+
+            CheckForAndThrowIfDisposed();
+
+            var wasAdded = InnerDictionary.TryAdd(key, value);
+            if (wasAdded)
+            {
+                AddValueToPropertyChangedHandling(value);
+                NotifySubscribersAboutDictionaryChanges(new ObservableDictionaryChange<TKey, TValue>(ObservableDictionaryChangeType.ItemAdded, key, value));
+            }
+
+            return wasAdded;
+        }
+
+        /// <summary>
+        /// Attempts to remove and return the value that has the specified key from the <see cref="ObservableDictionary{TKey,TValue}"/>.
+        /// </summary>
+        /// <returns>
+        /// true if the object was removed successfully; otherwise, false.
+        /// </returns>
+        /// <param name="key">The key of the element to remove and return.</param>
+        /// <param name="value">This contains the object removed from the <see cref="ObservableDictionary{TKey,TValue}"/>, or the default value of the TValue type if <paramref name="key"/> does not exist.</param>
+        /// <exception cref="T:System.ArgumentNullException"><paramref name="key"/> is null.</exception>
+        public virtual bool TryRemove(TKey key, out TValue value)
+        {
+            if (key == null) throw new ArgumentNullException(nameof(key));
+
+            CheckForAndThrowIfDisposed();
+
+            var wasRemoved = InnerDictionary.TryRemove(key, out value);
+            if (wasRemoved)
+            {
+                RemoveValueFromPropertyChangedHandling(value);
+                NotifySubscribersAboutDictionaryChanges(new ObservableDictionaryChange<TKey, TValue>(ObservableDictionaryChangeType.ItemRemoved, key, value));
+            }
+
+            return wasRemoved;
+        }
+
+        /// <summary>
+        /// Attempts to remove the value that has the specified key from the <see cref="ObservableDictionary{TKey,TValue}"/>.
+        /// </summary>
+        /// <returns>
+        /// true if the object was removed successfully; otherwise, false.
+        /// </returns>
+        /// <param name="key">The key of the element to remove and return.</param>
+        /// <exception cref="T:System.ArgumentNullException"><paramref name="key"/> is null.</exception>
+        public virtual bool TryRemove(TKey key)
+        {
+            if (key == null) throw new ArgumentNullException(nameof(key));
+
+            CheckForAndThrowIfDisposed();
+
+            TValue removedValue;
+            return TryRemove(key, out removedValue);
+        }
+
+        /// <summary>
+        /// Attempts to update the value that has the specified key from the <see cref="ObservableDictionary{TKey,TValue}"/>.
+        /// </summary>
+        /// <returns>
+        /// true if the object was updated successfully; otherwise, false.
+        /// </returns>
+        /// <param name="key">The key of the element to remove and return.</param>
+        /// <exception cref="T:System.ArgumentNullException"><paramref name="key"/> is null.</exception>
+        public virtual bool TryUpdate(TKey key, TValue newValue)
+        {
+            if (key == null) throw new ArgumentNullException(nameof(key));
+
+            CheckForAndThrowIfDisposed();
+
+            if (!ContainsKey(key))
+                return false;
+
+            // else
+            try
+            {
+                this[key] = newValue;
+                return true;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
+
+        #endregion
+
         #region Helper Methods
 
         /// <summary>
@@ -1108,16 +1259,34 @@ namespace JB.Collections.Reactive
         /// <param name="key">The <see cref="T:System.Object"/> to use as the key of the element to add. </param><param name="value">The <see cref="T:System.Object"/> to use as the value of the element to add. </param><exception cref="T:System.ArgumentNullException"><paramref name="key"/> is null. </exception><exception cref="T:System.ArgumentException">An element with the same key already exists in the <see cref="T:System.Collections.IDictionary"/> object. </exception><exception cref="T:System.NotSupportedException">The <see cref="T:System.Collections.IDictionary"/> is read-only.-or- The <see cref="T:System.Collections.IDictionary"/> has a fixed size. </exception>
         void IDictionary.Add(object key, object value)
         {
-            throw new NotImplementedException();
+            if (key == null) throw new ArgumentNullException(nameof(key));
+
+            CheckForAndThrowIfDisposed();
+
+            if (!(key is TKey))
+                throw new ArgumentOutOfRangeException(nameof(key), $"Must be an instance of {typeof(TKey).Name}");
+
+            if (!(value is TValue))
+                throw new ArgumentOutOfRangeException(nameof(value), $"Must be an instance of {typeof(TValue).Name}");
+
+            Add((TKey)key, (TValue)value);
         }
-        
+
         /// <summary>
         /// Gets a value indicating whether the <see cref="T:System.Collections.IDictionary"/> object has a fixed size.
         /// </summary>
         /// <returns>
         /// true if the <see cref="T:System.Collections.IDictionary"/> object has a fixed size; otherwise, false.
         /// </returns>
-        bool IDictionary.IsFixedSize { get; }
+        bool IDictionary.IsFixedSize
+        {
+            get
+            {
+                CheckForAndThrowIfDisposed();
+
+                return ((IDictionary) InnerDictionary).IsFixedSize;
+            }
+        }
 
         /// <summary>
         /// Gets a value indicating whether the <see cref="T:System.Collections.IDictionary"/> object is read-only.
@@ -1126,7 +1295,15 @@ namespace JB.Collections.Reactive
         /// <returns>
         /// true if the <see cref="T:System.Collections.IDictionary"/> object is read-only; otherwise, false.
         /// </returns>
-        bool IDictionary.IsReadOnly { get; }
+        bool IDictionary.IsReadOnly
+        {
+            get
+            {
+                CheckForAndThrowIfDisposed();
+
+                return ((IDictionary)InnerDictionary).IsReadOnly;
+            }
+        }
 
         /// <summary>
         /// Gets an <see cref="T:System.Collections.ICollection"/> object containing the values in the <see cref="T:System.Collections.IDictionary"/> object.
@@ -1134,7 +1311,15 @@ namespace JB.Collections.Reactive
         /// <returns>
         /// An <see cref="T:System.Collections.ICollection"/> object containing the values in the <see cref="T:System.Collections.IDictionary"/> object.
         /// </returns>
-        ICollection IDictionary.Values { get; }
+        ICollection IDictionary.Values
+        {
+            get
+            {
+                CheckForAndThrowIfDisposed();
+
+                return ((IDictionary)InnerDictionary).Values;
+            }
+        }
 
 
         /// <summary>
@@ -1143,7 +1328,15 @@ namespace JB.Collections.Reactive
         /// <returns>
         /// An <see cref="T:System.Collections.ICollection"/> object containing the keys of the <see cref="T:System.Collections.IDictionary"/> object.
         /// </returns>
-        ICollection IDictionary.Keys { get; }
+        ICollection IDictionary.Keys
+        {
+            get
+            {
+                CheckForAndThrowIfDisposed();
+
+                return ((IDictionary)InnerDictionary).Keys;
+            }
+        }
 
         /// <summary>
         /// Returns an <see cref="T:System.Collections.IDictionaryEnumerator"/> object for the <see cref="T:System.Collections.IDictionary"/> object.
@@ -1171,9 +1364,7 @@ namespace JB.Collections.Reactive
             if (!(key is TKey))
                 return;
 
-            var keyAsTKey = (TKey)key;
-
-            Remove(keyAsTKey);
+            Remove((TKey)key);
         }
 
         /// <summary>
@@ -1326,7 +1517,11 @@ namespace JB.Collections.Reactive
         {
             CheckForAndThrowIfDisposed();
 
-            throw new NotImplementedException();
+            ((IDictionary<TKey, TValue>)InnerDictionary).Add(key, value);
+
+            AddValueToPropertyChangedHandling(value);
+
+            NotifySubscribersAboutDictionaryChanges(new ObservableDictionaryChange<TKey, TValue>(ObservableDictionaryChangeType.ItemAdded, key, value));
         }
 
         /// <summary>
@@ -1338,24 +1533,15 @@ namespace JB.Collections.Reactive
         /// <param name="key">The key of the element to remove.</param><exception cref="T:System.ArgumentNullException"><paramref name="key"/> is null.</exception><exception cref="T:System.NotSupportedException">The <see cref="T:System.Collections.Generic.IDictionary`2"/> is read-only.</exception>
         public virtual bool Remove(TKey key)
         {
-            try
-            {
-                TValue valueForKey;
-                if (InnerDictionary.TryRemove(key, out valueForKey))
-                    return false;
-                
-                RemoveValueFromPropertyChangedHandling(valueForKey);
+            TValue valueForKey;
+            if (InnerDictionary.TryRemove(key, out valueForKey))
+                return false;
 
-                NotifySubscribersAboutDictionaryChanges(new ObservableDictionaryChange<TKey, TValue>(ObservableDictionaryChangeType.ItemRemoved, key, valueForKey));
+            RemoveValueFromPropertyChangedHandling(valueForKey);
 
-                return true;
-            }
-            catch (Exception exception)
-            {
-                ThrownExceptionsObserver.OnNext(exception);
+            NotifySubscribersAboutDictionaryChanges(new ObservableDictionaryChange<TKey, TValue>(ObservableDictionaryChangeType.ItemRemoved, key, valueForKey));
 
-                throw;
-            }
+            return true;
         }
 
         /// <summary>
@@ -1365,18 +1551,9 @@ namespace JB.Collections.Reactive
         {
             CheckForAndThrowIfDisposed();
 
-            try
-            {
-                InnerDictionary.Clear();
+            InnerDictionary.Clear();
 
-                NotifySubscribersAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.Reset);
-            }
-            catch (Exception exception)
-            {
-                ThrownExceptionsObserver.OnNext(exception);
-
-                throw;
-            }
+            NotifySubscribersAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.Reset);
         }
 
         /// <summary>
@@ -1406,67 +1583,16 @@ namespace JB.Collections.Reactive
             {
                 CheckForAndThrowIfDisposed();
 
-                try
-                {
-                    return InnerDictionary[key];
-                }
-                catch (Exception exception)
-                {
-                    ThrownExceptionsObserver.OnNext(exception);
-
-                    throw;
-                }
+                return InnerDictionary[key];
             }
             set
             {
                 CheckForAndThrowIfDisposed();
 
-                try
-                {
-                    TValue oldValueIfReplaced = default(TValue);
-                    var wasReplaced = false;
-
-                    InnerDictionary.AddOrUpdate(key, value, (usedKey, oldValue) =>
-                    {
-                        // in case we get in here, which means the inner dictionary did already contain a value for the given key,
-                        // remove the old value from property changed handling first at any circumstance as INPC hook will be (re-)added
-                        // in the next step after AddOrUpdate (again)
-
-                        RemoveValueFromPropertyChangedHandling(oldValue);
-
-                        // check whether we already have the same value for the given key in the inner dictionary so we signal
-                        // add or changed/replaced correspondingly
-                        if (!AreTheSameValue(oldValue, value))
-                        {
-                            oldValueIfReplaced = oldValue;
-                            wasReplaced = true;
-                        }
-
-                        return value; // always return the 'new' value here as the old value shall never be kept.
-                    });
-
-                    // hook up INPC handling to the value
-                    AddValueToPropertyChangedHandling(value);
-
-                    // signal change to dictionary to subscribers
-                    if (wasReplaced)
-                    {
-                        NotifySubscribersAboutDictionaryChanges(new ObservableDictionaryChange<TKey, TValue>(ObservableDictionaryChangeType.ItemChanged, key, value, oldValueIfReplaced));
-                    }
-                    else
-                    {
-                        NotifySubscribersAboutDictionaryChanges(new ObservableDictionaryChange<TKey, TValue>(ObservableDictionaryChangeType.ItemAdded, key, value));
-                    }
-                }
-                catch (Exception exception)
-                {
-                    ThrownExceptionsObserver.OnNext(exception);
-
-                    throw;
-                }
+                AddOrUpdate(key, value);
             }
         }
-
+        
         /// <summary>
         /// Gets an enumerable collection that contains the keys in the read-only dictionary. 
         /// </summary>
@@ -1624,6 +1750,26 @@ namespace JB.Collections.Reactive
             if (eventHandler != null)
             {
                 Scheduler.Schedule(() => eventHandler.Invoke(this, observableCollectionChangedEventArgs));
+            }
+        }
+
+        #endregion
+
+        #region Implementation of IObservableReadOnlyDictionary<TKey,TValue>
+
+        /// <summary>
+        /// Gets a value indicating whether this instance is empty.
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if this instance is empty; otherwise, <c>false</c>.
+        /// </value>
+        public virtual bool IsEmpty
+        {
+            get
+            {
+                CheckForAndThrowIfDisposed();
+
+                return InnerDictionary.IsEmpty;
             }
         }
 

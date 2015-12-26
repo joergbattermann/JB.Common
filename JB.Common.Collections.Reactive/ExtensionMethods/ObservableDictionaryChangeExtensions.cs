@@ -34,7 +34,7 @@ namespace JB.Collections.Reactive.ExtensionMethods
                 case ObservableDictionaryChangeType.ItemRemoved:
                     return new ObservableCollectionChange<KeyValuePair<TKey, TValue>>(
                         ObservableCollectionChangeType.ItemRemoved,
-                        new KeyValuePair<TKey, TValue>(observableDictionaryChange.Key, observableDictionaryChange.OldValue));
+                        new KeyValuePair<TKey, TValue>(observableDictionaryChange.Key, observableDictionaryChange.Value));
                 case ObservableDictionaryChangeType.Reset:
                     return new ObservableCollectionChange<KeyValuePair<TKey, TValue>>(
                         ObservableCollectionChangeType.Reset);

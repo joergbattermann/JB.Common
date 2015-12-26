@@ -595,8 +595,8 @@ namespace JB.Collections.Reactive
                     NotifySubscribersAboutCollectionChanges,
                     exception =>
                     {
-                        ThrownExceptionsObserver.OnNext(exception);
                         // ToDo: at this point this instance is practically doomed / no longer forwarding any events & therefore further usage of the instance itself should be prevented, or the observable stream should re-connect/signal-and-swallow exceptions. Either way.. not ideal.
+                        ThrownExceptionsObserver.OnNext(exception);
                     });
 
 

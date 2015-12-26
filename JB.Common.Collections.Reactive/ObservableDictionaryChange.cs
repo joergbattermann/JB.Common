@@ -56,8 +56,8 @@ namespace JB.Collections.Reactive
         /// </summary>
         /// <param name="changeType">Type of the change.</param>
         /// <param name="key">The key of the changed value.</param>
-        /// <param name="value">The added or changed, new value.</param>
-        /// <param name="oldValue">The removed or changed, old value.</param>
+        /// <param name="value">The added, removed or changed, new value.</param>
+        /// <param name="oldValue">The changed, old value.</param>
         public ObservableDictionaryChange(ObservableDictionaryChangeType changeType, TKey key = default(TKey), TValue value = default(TValue), TValue oldValue = default(TValue))
         {
             if ((changeType != ObservableDictionaryChangeType.Reset)
