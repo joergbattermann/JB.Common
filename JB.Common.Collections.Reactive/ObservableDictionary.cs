@@ -235,15 +235,7 @@ namespace JB.Collections.Reactive
             CheckForAndThrowIfDisposed();
 
             TValue valueForKey;
-            if (!TryRemove(key, out valueForKey))
-                return false;
-
-            RemoveValueFromPropertyChangedHandling(valueForKey);
-
-            if (notifyObserversAboutChange)
-                NotifySubscribersAboutDictionaryChanges(new ObservableDictionaryChange<TKey, TValue>(ObservableDictionaryChangeType.ItemRemoved, key, valueForKey));
-
-            return true;
+            return TryRemove(key, out valueForKey, notifyObserversAboutChange);
         }
 
         /// <summary>
@@ -286,12 +278,36 @@ namespace JB.Collections.Reactive
             if (key == null) throw new ArgumentNullException(nameof(key));
 
             CheckForAndThrowIfDisposed();
+            
+            return TryRemove(key, out value, IsTrackingChanges);
+        }
+
+        /// <summary>
+        /// Attempts to remove and return the value that has the specified key from the <see cref="ObservableDictionary{TKey,TValue}" />.
+        /// </summary>
+        /// <param name="key">The key of the element to remove and return.</param>
+        /// <param name="value">This contains the object removed from the <see cref="ObservableDictionary{TKey,TValue}" />, or the default value of the TValue type if <paramref name="key" /> does not exist.</param>
+        /// <param name="notifyObserversAboutChange">if set to <c>true</c> [notify observers about change].</param>
+        /// <returns>
+        /// true if the object was removed successfully; otherwise, false.
+        /// </returns>
+        /// <exception cref="T:System.ArgumentNullException">
+        ///   <paramref name="key" /> is null.</exception>
+        protected virtual bool TryRemove(TKey key, out TValue value, bool notifyObserversAboutChange)
+        {
+            if (key == null) throw new ArgumentNullException(nameof(key));
+
+            CheckForAndThrowIfDisposed();
 
             var wasRemoved = InnerDictionary.TryRemove(key, out value);
             if (wasRemoved)
             {
                 RemoveValueFromPropertyChangedHandling(value);
-                NotifySubscribersAboutDictionaryChanges(new ObservableDictionaryChange<TKey, TValue>(ObservableDictionaryChangeType.ItemRemoved, key, value));
+
+                if (notifyObserversAboutChange && IsTrackingChanges)
+                {
+                    NotifySubscribersAboutDictionaryChanges(new ObservableDictionaryChange<TKey, TValue>(ObservableDictionaryChangeType.ItemRemoved, key, value));
+                }
             }
 
             return wasRemoved;
