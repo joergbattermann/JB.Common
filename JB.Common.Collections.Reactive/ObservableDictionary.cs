@@ -235,7 +235,7 @@ namespace JB.Collections.Reactive
             CheckForAndThrowIfDisposed();
 
             TValue valueForKey;
-            if (InnerDictionary.TryRemove(key, out valueForKey))
+            if (!TryRemove(key, out valueForKey))
                 return false;
 
             RemoveValueFromPropertyChangedHandling(valueForKey);

@@ -89,11 +89,13 @@
     <Compile Include="..\CommonAssemblyInfo.cs">
       <Link>Properties\CommonAssemblyInfo.cs</Link>
     </Compile>
+    <Compile Include="ObservableCollectionInitializationTests.cs" />
     <Compile Include="ObservableDictionarySingleItemModificationsTests.cs" />
     <Compile Include="ObservableDictionaryInitializationTests.cs" />
+    <Compile Include="ObservableListSingleItemModificationsTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ObservableListAddMultipleItemsTests.cs" />
-    <Compile Include="ObservableListSingleItemModificationsTests.cs" />
+    <Compile Include="ObservableCollectionSingleItemModificationsTests.cs" />
     <Compile Include="ObservableListInitializationTests.cs" />
   </ItemGroup>
   <ItemGroup>

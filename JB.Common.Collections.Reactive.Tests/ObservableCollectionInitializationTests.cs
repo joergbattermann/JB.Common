@@ -1,11 +1,10 @@
 using System.Collections.Generic;
 using FluentAssertions;
-using Microsoft.Reactive.Testing;
 using Xunit;
 
 namespace JB.Collections.Reactive.Tests
 {
-    public class ObservableListInitializationTests
+    public class ObservableCollectionInitializationTests
     {
         [Fact]
         public void ShouldContainAllInitiallyProvidedElements()
@@ -14,14 +13,14 @@ namespace JB.Collections.Reactive.Tests
             var initialList = new List<int>() { 1, 2, 3 };
 
             // when
-            using (var observableList = new ObservableList<int>(initialList))
+            using (var observableCollection = new ObservableCollection<int>(initialList))
             {
                 // then
-                observableList.Count.Should().Be(initialList.Count);
-                observableList.ShouldAllBeEquivalentTo(initialList);
+                observableCollection.Count.Should().Be(initialList.Count);
+                observableCollection.ShouldAllBeEquivalentTo(initialList);
             }
         }
-        
+
         [Fact]
         public void ShouldUseProvidedSyncRoot()
         {
@@ -29,10 +28,10 @@ namespace JB.Collections.Reactive.Tests
             var syncRoot = new object();
 
             // when
-            using (var observableList = new ObservableList<int>(syncRoot: syncRoot))
+            using (var observableCollection = new ObservableCollection<int>(syncRoot: syncRoot))
             {
                 // then
-                observableList.SyncRoot.Should().BeSameAs(syncRoot);
+                observableCollection.SyncRoot.Should().BeSameAs(syncRoot);
             }
         }
     }
