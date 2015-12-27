@@ -191,13 +191,18 @@ namespace JB.Collections
 			try
 			{
 				RaiseListChangedEvents = false;
-				base.RemoveItem(index);
+                
+                // capture item at index prior to removal from list
+			    var removedItem = this[index];
+
+                // remove it
+                base.RemoveItem(index);
 
 				// check whether this list shall actually raise events, at all
 				if (originalRaiseListChangedEventsValue)
 				{
 					// only if removal was performed, raise corresponding even here
-					OnListChanged(new ItemDeletedListChangedEventArgs<T>(this[index], index));
+					OnListChanged(new ItemDeletedListChangedEventArgs<T>(removedItem, index));
 				}
 			}
 			finally
