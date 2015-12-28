@@ -26,7 +26,7 @@ namespace JB.Collections.Reactive
     {
         private IDisposable _innerListChangedRelevantListChangedEventsForwader;
 
-        private Subject<IObservableListChange<T>> ListChangesSubject = new Subject<IObservableListChange<T>>();
+        private Subject<IObservableListChange<T>> _listChangesSubject = new Subject<IObservableListChange<T>>();
 
         /// <summary>
         /// Gets the list changes observer.
@@ -52,18 +52,18 @@ namespace JB.Collections.Reactive
 
         /// <summary>
         /// Prepares and sets up the observables and subjects used, particularly
-        /// <see cref="ListChanges"/>, <see cref="INotifyObservableCountChanged.CountChanges"/> and <see cref="INotifyObservableExceptionsThrown.ThrownExceptions"/>.
+        /// <see cref="ListChanges"/>, <see cref="INotifyObservableCountChanged.CountChanges"/> and <see cref="INotifyUnhandledObserverExceptions.UnhandledObserverExceptions"/>.
         /// </summary>
         private void SetupObservablesAndObserversAndSubjects()
         {
-            ListChangesObserver = ListChangesSubject.NotifyOn(Scheduler);
+            ListChangesObserver = _listChangesSubject.NotifyOn(Scheduler);
 
             // then connect to InnerList's ListChanged Event
             _innerListChangedRelevantListChangedEventsForwader = Observable.FromEventPattern<ListChangedEventHandler, ListChangedEventArgs>(
                 handler => InnerList.ListChanged += handler,
                 handler => InnerList.ListChanged -= handler)
                 .TakeWhile(_ => !IsDisposing && !IsDisposed)
-                .SkipWhileContinuously(_ => !IsTrackingChanges)
+                .SkipContinuouslyWhile(_ => !IsTrackingChanges)
                 .Where(eventPattern => eventPattern?.EventArgs != null)
                 .Select(eventPattern => eventPattern.EventArgs.ToObservableListChange(InnerList))
                 .ObserveOn(Scheduler)
@@ -71,7 +71,7 @@ namespace JB.Collections.Reactive
                     NotifySubscribersAboutListChanges,
                     exception =>
                     {
-                        ThrownExceptionsObserver.OnNext(exception);
+                        UnhandledObserverExceptionsObserver.OnNext(exception);
                         // ToDo: at this point this instance is practically doomed / no longer forwarding any events & therefore further usage of the instance itself should be prevented, or the observable stream should re-connect/signal-and-swallow exceptions. Either way.. not ideal.
                     });
         }
@@ -109,7 +109,10 @@ namespace JB.Collections.Reactive
             }
             catch (Exception exception)
             {
-                ThrownExceptionsObserver.OnNext(exception);
+                UnhandledObserverExceptionsObserver.OnNext(exception);
+
+                if (IsThrowingUnhandledObserverExceptions)
+                    throw;
             }
 
             try
@@ -118,7 +121,10 @@ namespace JB.Collections.Reactive
             }
             catch (Exception exception)
             {
-                ThrownExceptionsObserver.OnNext(exception);
+                UnhandledObserverExceptionsObserver.OnNext(exception);
+
+                if (IsThrowingUnhandledObserverExceptions)
+                    throw;
             }
 
             if (actualObservableListChange.ChangeType == ObservableListChangeType.ItemMoved)
@@ -129,7 +135,10 @@ namespace JB.Collections.Reactive
                 }
                 catch (Exception exception)
                 {
-                    ThrownExceptionsObserver.OnNext(exception);
+                    UnhandledObserverExceptionsObserver.OnNext(exception);
+
+                    if (IsThrowingUnhandledObserverExceptions)
+                        throw;
                 }
             }
         }
@@ -466,10 +475,10 @@ namespace JB.Collections.Reactive
                 listChangesObserverAsDisposable?.Dispose();
                 ListChangesObserver = null;
 
-                if (ListChangesSubject != null)
+                if (_listChangesSubject != null)
                 {
-                    ListChangesSubject.Dispose();
-                    ListChangesSubject = null;
+                    _listChangesSubject.Dispose();
+                    _listChangesSubject = null;
                 }
             }
 
@@ -495,11 +504,11 @@ namespace JB.Collections.Reactive
             {
                 CheckForAndThrowIfDisposed();
                 
-                return ListChangesSubject
+                return _listChangesSubject
                     .TakeWhile(_ => !IsDisposing && !IsDisposed)
-                    .SkipWhileContinuously(change => !IsTrackingChanges)
-                    .SkipWhileContinuously(change => change.ChangeType == ObservableListChangeType.ItemChanged&& !IsTrackingItemChanges)
-                    .SkipWhileContinuously(change => change.ChangeType == ObservableListChangeType.Reset && !IsTrackingResets);
+                    .SkipContinuouslyWhile(change => !IsTrackingChanges)
+                    .SkipContinuouslyWhile(change => change.ChangeType == ObservableListChangeType.ItemChanged&& !IsTrackingItemChanges)
+                    .SkipContinuouslyWhile(change => change.ChangeType == ObservableListChangeType.Reset && !IsTrackingResets);
             }
         }
 

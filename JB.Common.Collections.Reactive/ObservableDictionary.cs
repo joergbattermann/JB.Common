@@ -30,20 +30,20 @@ namespace JB.Collections.Reactive
         private const string ItemIndexerName = "Item[]"; // taken from ObservableCollection.cs Line #421
 
         /// <summary>
-        /// The <typeparam name="TKey">key type</typeparam> is a value type. or not.
+        /// Determines whether the <typeparam name="TKey">key type</typeparam> is a value type. or not.
         /// </summary>
-        private static readonly Lazy<bool> _keyTypeParameterIsValueType = new Lazy<bool>(() => typeof(TKey).IsValueType);
+        private static readonly Lazy<bool> TypeParameterKeyIsValueType = new Lazy<bool>(() => typeof(TKey).IsValueType);
 
         /// <summary>
-        /// The <typeparam name="TValue">value type</typeparam> is a.. err.. value type. or not.
+        /// Determines whether the <typeparam name="TValue">value type</typeparam> is a.. well.. value type. or not.
         /// </summary>
-        private static readonly Lazy<bool> _valueTypeParameterIsValueType = new Lazy<bool>(() => typeof(TValue).IsValueType);
+        private static readonly Lazy<bool> TypeParameterValueIsValueType = new Lazy<bool>(() => typeof(TValue).IsValueType);
 
         private IDisposable _dictionaryChangesItemIndexerPropertyChangedForwarder;
         private IDisposable _countChangesCountPropertyChangedForwarder;
 
         private Subject<int> _countChangesSubject = new Subject<int>();
-        private Subject<Exception> _thrownExceptionsSubject = new Subject<Exception>();
+        private Subject<Exception> _unhandledObserverExceptionsSubject = new Subject<Exception>();
         private Subject<IObservableDictionaryChange<TKey, TValue>> _dictionaryChangesSubject = new Subject<IObservableDictionaryChange<TKey, TValue>>();
 
         /// <summary>
@@ -52,7 +52,7 @@ namespace JB.Collections.Reactive
         /// <value>
         ///   <c>true</c> if <typeparamref name="TKey"/> is a value type; otherwise, <c>false</c> if it is a reference type.
         /// </value>
-        protected bool KeyTypeParameterIsValueType => _keyTypeParameterIsValueType.Value;
+        protected bool KeyTypeParameterIsValueType => TypeParameterKeyIsValueType.Value;
 
         /// <summary>
         /// Gets a value indicating whether <typeparamref name="TValue"/> is a value type.
@@ -60,7 +60,7 @@ namespace JB.Collections.Reactive
         /// <value>
         ///   <c>true</c> if <typeparamref name="TValue"/> is a value type; otherwise, <c>false</c> if it is a reference type.
         /// </value>
-        protected bool ValueTypeParameterIsValueType => _valueTypeParameterIsValueType.Value;
+        protected bool ValueTypeParameterIsValueType => TypeParameterValueIsValueType.Value;
 
         /// <summary>
         /// Gets the count changes observer.
@@ -76,7 +76,7 @@ namespace JB.Collections.Reactive
         /// <value>
         /// The thrown exceptions observer.
         /// </value>
-        protected IObserver<Exception> ThrownExceptionsObserver { get; private set; }
+        protected IObserver<Exception> UnhandledObserverExceptionsObserver { get; private set; }
 
         /// <summary>
         /// Gets the dictionary changes observer.
@@ -524,7 +524,10 @@ namespace JB.Collections.Reactive
             }
             catch (Exception exception)
             {
-                ThrownExceptionsObserver.OnNext(exception);
+                UnhandledObserverExceptionsObserver.OnNext(exception);
+
+                if (IsThrowingUnhandledObserverExceptions)
+                    throw;
             }
 
             var observableCollectionChange = actualObservableDictionaryChange.ToObservableCollectionChange();
@@ -534,7 +537,10 @@ namespace JB.Collections.Reactive
             }
             catch (Exception exception)
             {
-                ThrownExceptionsObserver.OnNext(exception);
+                UnhandledObserverExceptionsObserver.OnNext(exception);
+
+                if (IsThrowingUnhandledObserverExceptions)
+                    throw;
             }
 
             try
@@ -543,7 +549,10 @@ namespace JB.Collections.Reactive
             }
             catch (Exception exception)
             {
-                ThrownExceptionsObserver.OnNext(exception);
+                UnhandledObserverExceptionsObserver.OnNext(exception);
+
+                if (IsThrowingUnhandledObserverExceptions)
+                    throw;
             }
 
             if (actualObservableDictionaryChange.ChangeType == ObservableDictionaryChangeType.ItemAdded
@@ -556,7 +565,10 @@ namespace JB.Collections.Reactive
                 }
                 catch (Exception exception)
                 {
-                    ThrownExceptionsObserver.OnNext(exception);
+                    UnhandledObserverExceptionsObserver.OnNext(exception);
+
+                    if (IsThrowingUnhandledObserverExceptions)
+                        throw;
                 }
             }
         }
@@ -585,14 +597,14 @@ namespace JB.Collections.Reactive
 
         /// <summary>
         /// Prepares and sets up the observables and subjects used, particularly
-        /// <see cref="_dictionaryChangesSubject"/>, <see cref="_countChangesSubject"/> and <see cref="_thrownExceptionsSubject"/> and also notifications for
+        /// <see cref="_dictionaryChangesSubject"/>, <see cref="_countChangesSubject"/> and <see cref="_unhandledObserverExceptionsSubject"/> and also notifications for
         /// 'Count' and 'Items[]' <see cref="INotifyPropertyChanged"/> events on <see cref="CountChanges"/> and <see cref="CollectionChanges"/>
         /// occurrences (for WPF / Binding)
         /// </summary>
         private void SetupObservablesAndObserversAndSubjects()
         {
             // prepare subjects for RX
-            ThrownExceptionsObserver = _thrownExceptionsSubject.NotifyOn(Scheduler);
+            UnhandledObserverExceptionsObserver = _unhandledObserverExceptionsSubject.NotifyOn(Scheduler);
             DictionaryChangesObserver = _dictionaryChangesSubject.NotifyOn(Scheduler);
             CountChangesObserver = _countChangesSubject.NotifyOn(Scheduler);
             
@@ -716,14 +728,14 @@ namespace JB.Collections.Reactive
                         _dictionaryChangesSubject = null;
                     }
 
-                    var thrownExceptionsObserverAsDisposable = ThrownExceptionsObserver as IDisposable;
+                    var thrownExceptionsObserverAsDisposable = UnhandledObserverExceptionsObserver as IDisposable;
                     thrownExceptionsObserverAsDisposable?.Dispose();
-                    ThrownExceptionsObserver = null;
+                    UnhandledObserverExceptionsObserver = null;
 
-                    if (_thrownExceptionsSubject != null)
+                    if (_unhandledObserverExceptionsSubject != null)
                     {
-                        _thrownExceptionsSubject.Dispose();
-                        _thrownExceptionsSubject = null;
+                        _unhandledObserverExceptionsSubject.Dispose();
+                        _unhandledObserverExceptionsSubject = null;
                     }
                 }
             }
@@ -794,7 +806,35 @@ namespace JB.Collections.Reactive
 
         #endregion
 
-        #region Implementation of INotifyObservableExceptionsThrown
+        #region Implementation of INotifyUnhandledObserverExceptions
+
+        private long _isThrowingUnhandledObserverExceptions = 0;
+        
+        /// <summary>
+        /// Gets a value indicating whether this instance is notifying about unhandled observer exceptions via <see cref="INotifyUnhandledObserverExceptions.UnhandledObserverExceptions"/>.
+        /// </summary>
+        /// <remarks>
+        /// If this is set to [false], all unhandled Observer exceptions will be forwarded to <see cref="INotifyUnhandledObserverExceptions.UnhandledObserverExceptions"/>
+        /// and will not be thrown any further. If set to [true] however, the Exceptions will also be (re-)thrown where they are caught.
+        /// </remarks>
+        /// <value>
+        /// <c>true</c> if this instance is notifying about unhandled observer exceptions; otherwise, <c>false</c>.
+        /// </value>
+        public virtual bool IsThrowingUnhandledObserverExceptions
+        {
+            get
+            {
+                return Interlocked.Read(ref _isThrowingUnhandledObserverExceptions) == 1;
+            }
+            set
+            {
+                var potentialNewValue = (value ? 1 : 0);
+                var oldValue = Interlocked.CompareExchange(ref _isThrowingUnhandledObserverExceptions, potentialNewValue, (IsThrowingUnhandledObserverExceptions ? 1 : 0));
+
+                if(oldValue != potentialNewValue)
+                    RaisePropertyChanged();
+            }
+        }
 
         /// <summary>
         /// Provides an observable sequence of exceptions thrown.
@@ -802,14 +842,14 @@ namespace JB.Collections.Reactive
         /// <value>
         /// The thrown exceptions.
         /// </value>
-        public virtual IObservable<Exception> ThrownExceptions
+        public virtual IObservable<Exception> UnhandledObserverExceptions
         {
             get
             {
                 CheckForAndThrowIfDisposed();
 
                 // not caring about IsDisposing / IsDisposed on purpose once subscribed, so corresponding Exceptions are forwarded 'til the "end" to already existing subscribers
-                return _thrownExceptionsSubject;
+                return _unhandledObserverExceptionsSubject;
             }
         }
 
@@ -869,7 +909,7 @@ namespace JB.Collections.Reactive
 
                 return DictionaryChanges
                     .Where(change => change.ChangeType == ObservableDictionaryChangeType.Reset)
-                    .SkipWhileContinuously(_ => !IsTrackingResets)
+                    .SkipContinuouslyWhile(_ => !IsTrackingResets)
                     .Select(_ => Unit.Default);
             }
         }
@@ -963,7 +1003,7 @@ namespace JB.Collections.Reactive
 
                 return _countChangesSubject
                     .TakeWhile(_ => !IsDisposing && !IsDisposed)
-                    .SkipWhileContinuously(_ => !IsTrackingCountChanges)
+                    .SkipContinuouslyWhile(_ => !IsTrackingCountChanges)
                     .DistinctUntilChanged();
             }
         }
@@ -1089,9 +1129,9 @@ namespace JB.Collections.Reactive
 
                 return _dictionaryChangesSubject
                     .TakeWhile(_ => !IsDisposing && !IsDisposed)
-                    .SkipWhileContinuously(change => !IsTrackingChanges)
-                    .SkipWhileContinuously(change => change.ChangeType == ObservableDictionaryChangeType.ItemChanged && !IsTrackingItemChanges)
-                    .SkipWhileContinuously(change => change.ChangeType == ObservableDictionaryChangeType.Reset && !IsTrackingResets);
+                    .SkipContinuouslyWhile(change => !IsTrackingChanges)
+                    .SkipContinuouslyWhile(change => change.ChangeType == ObservableDictionaryChangeType.ItemChanged && !IsTrackingItemChanges)
+                    .SkipContinuouslyWhile(change => change.ChangeType == ObservableDictionaryChangeType.Reset && !IsTrackingResets);
             }
         }
 
@@ -1503,14 +1543,14 @@ namespace JB.Collections.Reactive
 
 
         /// <summary>
-        ///     The actual <see cref="CollectionChanged" /> event.
+        ///     The actual <see cref="INotifyCollectionChanged.CollectionChanged" /> event.
         /// </summary>
         private NotifyCollectionChangedEventHandler _collectionChanged;
 
         /// <summary>
         ///     Occurs when the collection changed.
         /// </summary>
-        public virtual event NotifyCollectionChangedEventHandler CollectionChanged
+        event NotifyCollectionChangedEventHandler INotifyCollectionChanged.CollectionChanged
         {
             add
             {
@@ -1719,14 +1759,14 @@ namespace JB.Collections.Reactive
 
                 return DictionaryChanges
                     .TakeWhile(_ => !IsDisposing && !IsDisposed)
-                    .SkipWhileContinuously(change => !IsTrackingChanges)
+                    .SkipContinuouslyWhile(change => !IsTrackingChanges)
                     .Where(change => change.ChangeType == ObservableDictionaryChangeType.ItemChanged);
             }
         }
 
-#endregion
+        #endregion
 
-#region Implementation of INotifyObservableItemChanged<out KeyValuePair<TKey,TValue>>
+        #region Implementation of INotifyObservableCollectionItemChanged<out KeyValuePair<TKey,TValue>>
 
         /// <summary>
         /// Gets the observable streams of item changes, however these will only have their
@@ -1735,7 +1775,7 @@ namespace JB.Collections.Reactive
         /// <value>
         /// The item changes.
         /// </value>
-        public IObservable<IObservableCollectionChange<KeyValuePair<TKey, TValue>>> CollectionItemChanges
+        IObservable<IObservableCollectionChange<KeyValuePair<TKey, TValue>>> INotifyObservableCollectionItemChanged<KeyValuePair<TKey, TValue>>.CollectionItemChanges
         {
             get
             {
@@ -1743,16 +1783,16 @@ namespace JB.Collections.Reactive
 
                 return DictionaryChanges
                     .TakeWhile(_ => !IsDisposing && !IsDisposed)
-                    .SkipWhileContinuously(change => !IsTrackingChanges)
-                    .SkipWhileContinuously(change => change.ChangeType == ObservableDictionaryChangeType.ItemChanged && !IsTrackingItemChanges)
-                    .SkipWhileContinuously(change => change.ChangeType == ObservableDictionaryChangeType.Reset && !IsTrackingResets)
+                    .SkipContinuouslyWhile(change => !IsTrackingChanges)
+                    .SkipContinuouslyWhile(change => change.ChangeType == ObservableDictionaryChangeType.ItemChanged && !IsTrackingItemChanges)
+                    .SkipContinuouslyWhile(change => change.ChangeType == ObservableDictionaryChangeType.Reset && !IsTrackingResets)
                     .Select(change => change.ToObservableCollectionChange());
             }
         }
 
-#endregion
+        #endregion
 
-#region Implementation of INotifyObservableCollectionChanged<KeyValuePair<TKey,TValue>>
+        #region Implementation of INotifyObservableCollectionChanged<KeyValuePair<TKey,TValue>>
 
         /// <summary>
         /// Gets the collection changes as an observable stream.
@@ -1760,7 +1800,7 @@ namespace JB.Collections.Reactive
         /// <value>
         /// The collection changes.
         /// </value>
-        public IObservable<IObservableCollectionChange<KeyValuePair<TKey, TValue>>> CollectionChanges
+        IObservable<IObservableCollectionChange<KeyValuePair<TKey, TValue>>> INotifyObservableCollectionChanged<KeyValuePair<TKey, TValue>>.CollectionChanges
         {
             get
             {
@@ -1768,9 +1808,9 @@ namespace JB.Collections.Reactive
 
                 return DictionaryChanges
                     .TakeWhile(_ => !IsDisposing && !IsDisposed)
-                    .SkipWhileContinuously(change => !IsTrackingChanges)
-                    .SkipWhileContinuously(change => change.ChangeType == ObservableDictionaryChangeType.ItemChanged && !IsTrackingItemChanges)
-                    .SkipWhileContinuously(change => change.ChangeType == ObservableDictionaryChangeType.Reset && !IsTrackingResets)
+                    .SkipContinuouslyWhile(change => !IsTrackingChanges)
+                    .SkipContinuouslyWhile(change => change.ChangeType == ObservableDictionaryChangeType.ItemChanged && !IsTrackingItemChanges)
+                    .SkipContinuouslyWhile(change => change.ChangeType == ObservableDictionaryChangeType.Reset && !IsTrackingResets)
                     .Select(dictionaryChange => dictionaryChange.ToObservableCollectionChange());
             }
         }
@@ -1783,7 +1823,7 @@ namespace JB.Collections.Reactive
         /// <summary>
         ///     Occurs when the corresponding <see cref="IObservableCollection{T}" /> changed.
         /// </summary>
-        public event EventHandler<ObservableCollectionChangedEventArgs<KeyValuePair<TKey, TValue>>> ObservableCollectionChanged
+        event EventHandler<ObservableCollectionChangedEventArgs<KeyValuePair<TKey, TValue>>> INotifyObservableCollectionChanged<KeyValuePair<TKey,TValue>>.ObservableCollectionChanged
         {
             add
             {
@@ -1918,7 +1958,7 @@ namespace JB.Collections.Reactive
         /// Adds a range of items.
         /// </summary>
         /// <param name="items">The items to add.</param>
-        public virtual void AddRange(ICollection<KeyValuePair<TKey, TValue>> items)
+        public virtual void AddRange(IEnumerable<KeyValuePair<TKey, TValue>> items)
         {
             if (items == null) throw new ArgumentNullException(nameof(items));
 
@@ -1934,7 +1974,7 @@ namespace JB.Collections.Reactive
             var signalIndividualItemChanges = !useResetInsteadOfIndividualChanges;
 
             // then perform change itself
-            foreach (var keyValuePair in items)
+            foreach (var keyValuePair in itemsAsList)
             {
                 // ... and only notify observers if 'currently' desired
                 Add(keyValuePair.Key, keyValuePair.Value, signalIndividualItemChanges && IsTrackingChanges);
@@ -1949,7 +1989,7 @@ namespace JB.Collections.Reactive
         /// Removes the specified items.
         /// </summary>
         /// <param name="items">The items to remove.</param>
-        public virtual void RemoveRange(ICollection<KeyValuePair<TKey, TValue>> items)
+        public virtual void RemoveRange(IEnumerable<KeyValuePair<TKey, TValue>> items)
         {
             CheckForAndThrowIfDisposed();
 
@@ -1963,7 +2003,7 @@ namespace JB.Collections.Reactive
             var signalIndividualItemChanges = !useResetInsteadOfIndividualChanges;
 
             // then perform change itself
-            foreach (var keyValuePair in items)
+            foreach (var keyValuePair in itemsAsList)
             {
                 // ... and only notify observers if 'currently' desired
                 Remove(keyValuePair.Key, signalIndividualItemChanges && IsTrackingChanges);
@@ -1988,7 +2028,7 @@ namespace JB.Collections.Reactive
 
             CheckForAndThrowIfDisposed();
 
-            AddRange(items.ToList());
+            AddRange(items);
         }
 
         /// <summary>
@@ -2001,7 +2041,7 @@ namespace JB.Collections.Reactive
 
             CheckForAndThrowIfDisposed();
 
-            RemoveRange(items.ToList());
+            RemoveRange(items);
         }
 
 #endregion

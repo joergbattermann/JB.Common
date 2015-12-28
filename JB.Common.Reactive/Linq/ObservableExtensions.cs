@@ -268,7 +268,7 @@ namespace JB.Reactive.Linq
         /// <returns>A new <see cref="IObservable{TSource}"/> providing the full <paramref name="source"/> sequence</returns>
         /// <exception cref="System.ArgumentNullException">
         /// </exception>
-        public static IObservable<TSource> Forward<TSource>(this IObservable<TSource> source, params IObserver<TSource>[] targetObservers)
+        public static IObservable<TSource> ForwardTo<TSource>(this IObservable<TSource> source, params IObserver<TSource>[] targetObservers)
         {
             if (source == null) throw new ArgumentNullException(nameof(source));
             if (targetObservers == null) throw new ArgumentNullException(nameof(targetObservers));
@@ -319,7 +319,7 @@ namespace JB.Reactive.Linq
         /// </returns>
         /// <exception cref="System.ArgumentNullException">
         /// </exception>
-        public static IObservable<TSource> Forward<TSource>(this IObservable<TSource> source, IScheduler scheduler, params IObserver<TSource>[] targetObservers)
+        public static IObservable<TSource> ForwardTo<TSource>(this IObservable<TSource> source, IScheduler scheduler, params IObserver<TSource>[] targetObservers)
         {
             if (source == null) throw new ArgumentNullException(nameof(source));
             if (scheduler == null) throw new ArgumentNullException(nameof(scheduler));
@@ -372,7 +372,7 @@ namespace JB.Reactive.Linq
         /// </returns>
         /// <exception cref="System.ArgumentNullException">
         /// </exception>
-        public static IObservable<TSource> Forward<TSource>(this IObservable<TSource> source, IEnumerable<IObserver<TSource>> targetObservers, IScheduler scheduler = null)
+        public static IObservable<TSource> ForwardTo<TSource>(this IObservable<TSource> source, IEnumerable<IObserver<TSource>> targetObservers, IScheduler scheduler = null)
         {
             if (source == null) throw new ArgumentNullException(nameof(source));
             if (targetObservers == null) throw new ArgumentNullException(nameof(targetObservers));
@@ -417,7 +417,8 @@ namespace JB.Reactive.Linq
 
         /// <summary>
         /// Projects each element of an observable sequence into consecutive non-overlapping buffers which are produced based a specified condition OR when it is full.
-        /// While the test is [true], the buffer will filled until the the source produces an element at the same time the condition is [false], the current buffer will be released.
+        /// While the test is [true], the buffer will filled until the the source produces an element at the same time the condition is [false],
+        /// then or whenever the <paramref name="count"/> is reach, the current buffer will be released.
         /// </summary>
         /// <typeparam name="TSource">The type of the elements in the source sequence, and in the lists in the result sequence.</typeparam>
         /// <param name="source">Source sequence to produce buffers over.</param>
@@ -502,7 +503,8 @@ namespace JB.Reactive.Linq
 
         /// <summary>
         /// Projects each element of an observable sequence into consecutive non-overlapping buffers which are produced based a specified condition OR when it is full.
-        /// While the test is [true], the buffer will filled until the the source produces an element at the same time the condition is [false], the current buffer will be released.
+        /// While the test is [true], the buffer will filled until the the source produces an element at the same time the condition is [false],
+        /// then or whenever the <paramref name="count"/> is reach, the current buffer will be released.
         /// </summary>
         /// <typeparam name="TSource">The type of the elements in the source sequence, and in the lists in the result sequence.</typeparam>
         /// <param name="source">Source sequence to produce buffers over.</param>
@@ -587,7 +589,8 @@ namespace JB.Reactive.Linq
 
         /// <summary>
         /// Projects each element of an observable sequence into consecutive non-overlapping buffers which are produced based a specified condition.
-        /// While the test is [true], the buffer will filled until the the source produces an element at the same time the condition is [false], the current buffer will be released.
+        /// While the test is [true], the buffer will be filled until the the source produces an element at the same time the condition is [false],
+        /// then the current buffer will be released.
         /// </summary>
         /// <typeparam name="TSource">The type of the elements in the source sequence, and in the lists in the result sequence.</typeparam>
         /// <param name="source">Source sequence to produce buffers over.</param>
@@ -760,7 +763,7 @@ namespace JB.Reactive.Linq
         /// An observable sequence that contains the elements from the input sequence that occur while the test specified by predicate does not pass.
         /// </returns>
         /// <exception cref="T:System.ArgumentNullException"><paramref name="source"/> or <paramref name="predicate"/> is null.</exception>
-        public static IObservable<TSource> SkipWhileContinuously<TSource>(this IObservable<TSource> source, Func<TSource, bool> predicate)
+        public static IObservable<TSource> SkipContinuouslyWhile<TSource>(this IObservable<TSource> source, Func<TSource, bool> predicate)
         {
             if (source == null) throw new ArgumentNullException(nameof(source));
             if (predicate == null) throw new ArgumentNullException(nameof(predicate));
@@ -772,8 +775,8 @@ namespace JB.Reactive.Linq
                     if (predicate.Invoke(value) == false)
                         observer.OnNext(value);
                 },
-                exception => observer.OnError(exception),
-                () => observer.OnCompleted());
+                observer.OnError,
+                observer.OnCompleted);
 
                 return () => subscription.Dispose();
             });
@@ -790,7 +793,7 @@ namespace JB.Reactive.Linq
         /// An observable sequence that contains the elements from the input sequence that occur while the test specified by predicate does not pass.
         /// </returns>
         /// <exception cref="T:System.ArgumentNullException"><paramref name="source"/> or <paramref name="predicate"/> is null.</exception>
-        public static IObservable<TSource> SkipWhileContinuously<TSource>(this IObservable<TSource> source, Func<bool> predicate)
+        public static IObservable<TSource> SkipContinuouslyWhile<TSource>(this IObservable<TSource> source, Func<bool> predicate)
         {
             return Observable.Create<TSource>(observer =>
             {
@@ -799,8 +802,8 @@ namespace JB.Reactive.Linq
                     if (predicate.Invoke() == false)
                         observer.OnNext(value);
                 },
-                exception => observer.OnError(exception),
-                () => observer.OnCompleted());
+                observer.OnError,
+                observer.OnCompleted);
 
                 return () => subscription.Dispose();
             });
@@ -817,7 +820,7 @@ namespace JB.Reactive.Linq
         /// An observable sequence that contains the elements from the input sequence that occur while the test specified by predicate passes.
         /// </returns>
         /// <exception cref="T:System.ArgumentNullException"><paramref name="source"/> or <paramref name="predicate"/> is null.</exception>
-        public static IObservable<TSource> TakeWhileContinuously<TSource>(this IObservable<TSource> source, Func<TSource, bool> predicate)
+        public static IObservable<TSource> TakeContinuouslyWhile<TSource>(this IObservable<TSource> source, Func<TSource, bool> predicate)
         {
             if (source == null) throw new ArgumentNullException(nameof(source));
             if (predicate == null) throw new ArgumentNullException(nameof(predicate));
@@ -829,8 +832,8 @@ namespace JB.Reactive.Linq
                     if (predicate.Invoke(value))
                         observer.OnNext(value);
                 },
-                exception => observer.OnError(exception),
-                () => observer.OnCompleted());
+                observer.OnError,
+                observer.OnCompleted);
 
                 return () => subscription.Dispose();
             });
@@ -847,8 +850,11 @@ namespace JB.Reactive.Linq
         /// An observable sequence that contains the elements from the input sequence that occur while the test specified by predicate passes.
         /// </returns>
         /// <exception cref="T:System.ArgumentNullException"><paramref name="source"/> or <paramref name="predicate"/> is null.</exception>
-        public static IObservable<TSource> TakeWhileContinuously<TSource>(this IObservable<TSource> source, Func<bool> predicate)
+        public static IObservable<TSource> TakeContinuouslyWhile<TSource>(this IObservable<TSource> source, Func<bool> predicate)
         {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            if (predicate == null) throw new ArgumentNullException(nameof(predicate));
+
             return Observable.Create<TSource>(observer =>
             {
                 var subscription = source.Subscribe(value =>
@@ -856,8 +862,8 @@ namespace JB.Reactive.Linq
                     if (predicate.Invoke())
                         observer.OnNext(value);
                 },
-                exception => observer.OnError(exception),
-                () => observer.OnCompleted());
+                observer.OnError,
+                observer.OnCompleted);
 
                 return () => subscription.Dispose();
             });

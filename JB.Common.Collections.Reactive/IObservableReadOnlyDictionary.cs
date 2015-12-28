@@ -8,7 +8,7 @@ namespace JB.Collections.Reactive
         INotifyObservableDictionaryChanged<TKey, TValue>,
         INotifyObservableDictionaryItemChanged<TKey, TValue>,
         INotifyObservableResets,
-        INotifyObservableExceptionsThrown,
+        INotifyUnhandledObserverExceptions,
         IReadOnlyDictionary<TKey, TValue>,
         IEnumerable,
         ICollection

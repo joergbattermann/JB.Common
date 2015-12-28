@@ -13,12 +13,12 @@ namespace JB.Collections
         /// Adds a range of items.
         /// </summary>
         /// <param name="items">The items to add.</param>
-        void AddRange(ICollection<KeyValuePair<TKey, TValue>> items);
+        void AddRange(IEnumerable<KeyValuePair<TKey, TValue>> items);
 
         /// <summary>
         /// Removes the specified items.
         /// </summary>
         /// <param name="items">The items to remove.</param>
-        void RemoveRange(ICollection<KeyValuePair<TKey, TValue>> items);
+        void RemoveRange(IEnumerable<KeyValuePair<TKey, TValue>> items);
     }
 }

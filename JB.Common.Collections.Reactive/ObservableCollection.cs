@@ -26,9 +26,9 @@ namespace JB.Collections.Reactive
         private IDisposable _collectionChangesItemIndexerPropertyChangedForwarder;
         private IDisposable _countChangesCountPropertyChangedForwarder;
 
-        private Subject<IObservableCollectionChange<T>> CollectionChangesSubject = new Subject<IObservableCollectionChange<T>>();
-        private Subject<int> CountChangesSubject = new Subject<int>();
-        private Subject<Exception> ThrownExceptionsSubject = new Subject<Exception>();
+        private Subject<IObservableCollectionChange<T>> _collectionChangesSubject = new Subject<IObservableCollectionChange<T>>();
+        private Subject<int> _countChangesSubject = new Subject<int>();
+        private Subject<Exception> _unhandledObserverExceptionsSubject = new Subject<Exception>();
 
         /// <summary>
         /// Gets the count changes observer.
@@ -44,7 +44,7 @@ namespace JB.Collections.Reactive
         /// <value>
         /// The thrown exceptions observer.
         /// </value>
-        protected IObserver<Exception> ThrownExceptionsObserver { get; private set; }
+        protected IObserver<Exception> UnhandledObserverExceptionsObserver { get; private set; }
 
         /// <summary>
         /// Gets the collection changes observer.
@@ -110,7 +110,7 @@ namespace JB.Collections.Reactive
 
                 return CollectionChanges
                     .TakeWhile(_ => !IsDisposing && !IsDisposed)
-                    .SkipWhileContinuously(change => !IsTrackingChanges)
+                    .SkipContinuouslyWhile(change => !IsTrackingChanges)
                     .Where(change => change.ChangeType == ObservableCollectionChangeType.ItemChanged);
             }
         }
@@ -238,11 +238,11 @@ namespace JB.Collections.Reactive
             {
                 CheckForAndThrowIfDisposed();
 
-                return CollectionChangesSubject
+                return _collectionChangesSubject
                     .TakeWhile(_ => !IsDisposing && !IsDisposed)
-                    .SkipWhileContinuously(change => !IsTrackingChanges)
-                    .SkipWhileContinuously(change => change.ChangeType == ObservableCollectionChangeType.ItemChanged && !IsTrackingItemChanges)
-                    .SkipWhileContinuously(change => change.ChangeType == ObservableCollectionChangeType.Reset && !IsTrackingResets);
+                    .SkipContinuouslyWhile(change => !IsTrackingChanges)
+                    .SkipContinuouslyWhile(change => change.ChangeType == ObservableCollectionChangeType.ItemChanged && !IsTrackingItemChanges)
+                    .SkipContinuouslyWhile(change => change.ChangeType == ObservableCollectionChangeType.Reset && !IsTrackingResets);
             }
         }
 
@@ -262,25 +262,53 @@ namespace JB.Collections.Reactive
 
                 return CollectionChanges
                     .Where(change => change.ChangeType == ObservableCollectionChangeType.Reset)
-                    .SkipWhileContinuously(_ => IsTrackingResets == false)
+                    .SkipContinuouslyWhile(_ => IsTrackingResets == false)
                     .Select(_ => Unit.Default);
             }
         }
 
         /// <summary>
-        /// Provides an observable sequence of exceptions thrown.
+        /// Provides an observable sequence of unhandled <see cref="Exception">exceptions</see> thrown by observers.
         /// </summary>
         /// <value>
-        /// The thrown exceptions.
+        /// An observable stream of unhandled exceptions.
         /// </value>
-        public virtual IObservable<Exception> ThrownExceptions
+        public virtual IObservable<Exception> UnhandledObserverExceptions
         {
             get
             {
                 CheckForAndThrowIfDisposed();
 
                 // not caring about IsDisposing / IsDisposed on purpose once subscribed, so corresponding Exceptions are forwarded 'til the "end" to already existing subscribers
-                return ThrownExceptionsSubject;
+                return _unhandledObserverExceptionsSubject;
+            }
+        }
+
+        private long _isThrowingUnhandledObserverExceptions = 0;
+
+        /// <summary>
+        /// Gets a value indicating whether this instance is notifying about unhandled observer exceptions via <see cref="INotifyUnhandledObserverExceptions.UnhandledObserverExceptions"/>.
+        /// </summary>
+        /// <remarks>
+        /// If this is set to [false], all unhandled Observer exceptions will be forwarded to <see cref="INotifyUnhandledObserverExceptions.UnhandledObserverExceptions"/>
+        /// and will not be thrown any further. If set to [true] however, the Exceptions will also be (re-)thrown where they are caught.
+        /// </remarks>
+        /// <value>
+        /// <c>true</c> if this instance is notifying about unhandled observer exceptions; otherwise, <c>false</c>.
+        /// </value>
+        public virtual bool IsThrowingUnhandledObserverExceptions
+        {
+            get
+            {
+                return Interlocked.Read(ref _isThrowingUnhandledObserverExceptions) == 1;
+            }
+            set
+            {
+                var potentialNewValue = (value ? 1 : 0);
+                var oldValue = Interlocked.CompareExchange(ref _isThrowingUnhandledObserverExceptions, potentialNewValue, (IsThrowingUnhandledObserverExceptions ? 1 : 0));
+
+                if (oldValue != potentialNewValue)
+                    RaisePropertyChanged();
             }
         }
 
@@ -380,9 +408,9 @@ namespace JB.Collections.Reactive
             {
                 CheckForAndThrowIfDisposed();
 
-                return CountChangesSubject
+                return _countChangesSubject
                     .TakeWhile(_ => !IsDisposing && !IsDisposed)
-                    .SkipWhileContinuously(_ => !IsTrackingCountChanges)
+                    .SkipContinuouslyWhile(_ => !IsTrackingCountChanges)
                     .DistinctUntilChanged();
             }
         }
@@ -571,23 +599,23 @@ namespace JB.Collections.Reactive
 
         /// <summary>
         /// Prepares and sets up the observables and subjects used, particularly
-        /// <see cref="CollectionChangesSubject"/>, <see cref="CountChangesSubject"/> and <see cref="ThrownExceptionsSubject"/>
+        /// <see cref="_collectionChangesSubject"/>, <see cref="_countChangesSubject"/> and <see cref="_unhandledObserverExceptionsSubject"/>
         /// but also internally used RX subscriptions for <see cref="IBindingList.ListChanged"/> and somewhat hack-ish
         /// 'Count' and 'Items[]' <see cref="INotifyPropertyChanged"/> events on <see cref="CountChanges"/> and <see cref="CollectionChanges"/>
         /// occurrences (for WPF / Binding)
         /// </summary>
         private void SetupObservablesAndObserversAndSubjects()
         {
-            ThrownExceptionsObserver = ThrownExceptionsSubject.NotifyOn(Scheduler);
-            CollectionChangesObserver = CollectionChangesSubject.NotifyOn(Scheduler);
-            CountChangesObserver = CountChangesSubject.NotifyOn(Scheduler);
+            UnhandledObserverExceptionsObserver = _unhandledObserverExceptionsSubject.NotifyOn(Scheduler);
+            CollectionChangesObserver = _collectionChangesSubject.NotifyOn(Scheduler);
+            CountChangesObserver = _countChangesSubject.NotifyOn(Scheduler);
             
             // then connect to InnerList's ListChanged Event
             _innerListChangedRelevantCollectionChangedEventsForwader = Observable.FromEventPattern<ListChangedEventHandler, ListChangedEventArgs>(
                 handler => InnerList.ListChanged += handler,
                 handler => InnerList.ListChanged -= handler)
                 .TakeWhile(_ => !IsDisposing && !IsDisposed)
-                .SkipWhileContinuously(_ => !IsTrackingChanges)
+                .SkipContinuouslyWhile(_ => !IsTrackingChanges)
                 .Where(eventPattern => eventPattern?.EventArgs != null)
                 .SelectMany(eventPattern => eventPattern.EventArgs.ToObservableCollectionChanges(InnerList))
                 .ObserveOn(Scheduler)
@@ -596,7 +624,7 @@ namespace JB.Collections.Reactive
                     exception =>
                     {
                         // ToDo: at this point this instance is practically doomed / no longer forwarding any events & therefore further usage of the instance itself should be prevented, or the observable stream should re-connect/signal-and-swallow exceptions. Either way.. not ideal.
-                        ThrownExceptionsObserver.OnNext(exception);
+                        UnhandledObserverExceptionsObserver.OnNext(exception);
                     });
 
 
@@ -660,7 +688,10 @@ namespace JB.Collections.Reactive
             }
             catch (Exception exception)
             {
-                ThrownExceptionsObserver.OnNext(exception);
+                UnhandledObserverExceptionsObserver.OnNext(exception);
+
+                if (IsThrowingUnhandledObserverExceptions)
+                    throw;
             }
 
             try
@@ -669,7 +700,10 @@ namespace JB.Collections.Reactive
             }
             catch (Exception exception)
             {
-                ThrownExceptionsObserver.OnNext(exception);
+                UnhandledObserverExceptionsObserver.OnNext(exception);
+
+                if (IsThrowingUnhandledObserverExceptions)
+                    throw;
             }
 
             try
@@ -678,7 +712,10 @@ namespace JB.Collections.Reactive
             }
             catch (Exception exception)
             {
-                ThrownExceptionsObserver.OnNext(exception);
+                UnhandledObserverExceptionsObserver.OnNext(exception);
+
+                if (IsThrowingUnhandledObserverExceptions)
+                    throw;
             }
             
             if (actualObservableCollectionChange.ChangeType == ObservableCollectionChangeType.ItemAdded
@@ -691,7 +728,10 @@ namespace JB.Collections.Reactive
                 }
                 catch (Exception exception)
                 {
-                    ThrownExceptionsObserver.OnNext(exception);
+                    UnhandledObserverExceptionsObserver.OnNext(exception);
+
+                    if (IsThrowingUnhandledObserverExceptions)
+                        throw;
                 }
             }
         }
@@ -795,30 +835,30 @@ namespace JB.Collections.Reactive
                 countChangesObserverAsDisposable?.Dispose();
                 CountChangesObserver = null;
 
-                if (CountChangesSubject != null)
+                if (_countChangesSubject != null)
                 {
-                    CountChangesSubject.Dispose();
-                    CountChangesSubject = null;
+                    _countChangesSubject.Dispose();
+                    _countChangesSubject = null;
                 }
 
                 var collectionChangesObserverAsDisposable = CollectionChangesObserver as IDisposable;
                 collectionChangesObserverAsDisposable?.Dispose();
                 CollectionChangesObserver = null;
 
-                if (CollectionChangesSubject != null)
+                if (_collectionChangesSubject != null)
                 {
-                    CollectionChangesSubject.Dispose();
-                    CollectionChangesSubject = null;
+                    _collectionChangesSubject.Dispose();
+                    _collectionChangesSubject = null;
                 }
 
-                var thrownExceptionsObserverAsDisposable = ThrownExceptionsObserver as IDisposable;
+                var thrownExceptionsObserverAsDisposable = UnhandledObserverExceptionsObserver as IDisposable;
                 thrownExceptionsObserverAsDisposable?.Dispose();
-                ThrownExceptionsObserver = null;
+                UnhandledObserverExceptionsObserver = null;
 
-                if (ThrownExceptionsSubject != null)
+                if (_unhandledObserverExceptionsSubject != null)
                 {
-                    ThrownExceptionsSubject.Dispose();
-                    ThrownExceptionsSubject = null;
+                    _unhandledObserverExceptionsSubject.Dispose();
+                    _unhandledObserverExceptionsSubject = null;
                 }
             }
         }

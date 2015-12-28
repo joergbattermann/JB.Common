@@ -10,7 +10,7 @@ namespace JB.Collections.Reactive
         INotifyObservableCountChanged,
         INotifyCollectionChanged,
         INotifyObservableResets,
-        INotifyObservableExceptionsThrown,
+        INotifyUnhandledObserverExceptions,
         INotifyPropertyChanged,
         IReadOnlyCollection<T>,
         IEnumerable<T>,

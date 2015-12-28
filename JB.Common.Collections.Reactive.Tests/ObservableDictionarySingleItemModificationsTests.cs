@@ -188,7 +188,7 @@ namespace JB.Collections.Reactive.Tests
             {
                 // when
                 observableDictionary.ThresholdAmountWhenItemChangesAreNotifiedAsReset = int.MaxValue;
-
+                
                 using (observableDictionary.DictionaryChanges.Subscribe(observer))
                 {
                     var addedKeyValuePairs = new List<KeyValuePair<int, string>>();

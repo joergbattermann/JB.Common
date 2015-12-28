@@ -34,7 +34,10 @@ namespace JB.Collections.Reactive
             }
             catch (Exception exception)
             {
-                ThrownExceptionsObserver.OnNext(exception);
+                UnhandledObserverExceptionsObserver.OnNext(exception);
+
+                if (IsThrowingUnhandledObserverExceptions)
+                    throw;
             }
         }
 
