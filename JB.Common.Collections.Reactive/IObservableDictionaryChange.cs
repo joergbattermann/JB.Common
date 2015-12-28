@@ -1,3 +1,5 @@
+using System.ComponentModel;
+
 namespace JB.Collections.Reactive
 {
     public interface IObservableDictionaryChange<out TKey, out TValue>
@@ -27,12 +29,22 @@ namespace JB.Collections.Reactive
         TValue Value { get; }
 
         /// <summary>
-        /// Gets the old value, if any. If it was a <see cref="ObservableDictionaryChangeType.ItemChanged"/>, this is the old value,
-        /// for <see cref="ObservableDictionaryChangeType.ItemRemoved"/>, this will contain the value removed for the <see cref="Key"/>.
+        /// If <see cref="ChangeType"/> is a <see cref="ObservableDictionaryChangeType.ItemChanged"/> one and the underlying change
+        /// is a full item replacement rather than a single sub-property change, this is the old, replaced value.
         /// </summary>
         /// <value>
-        /// The old value, if any
+        /// The replaced value, if applicable
         /// </value>
-        TValue OldValue { get; }
+        TValue ReplacedValue { get; }
+
+        /// <summary>
+        /// If <see cref="ChangeType"/> is a <see cref="ObservableDictionaryChangeType.ItemChanged"/> one and <typeparamref name="TValue"/>
+        /// implements <see cref="INotifyPropertyChanged"/> and the underlying item change originated from a <see cref="INotifyPropertyChanged.PropertyChanged"/>
+        /// event, this will be the forwarded <see cref="PropertyChangedEventArgs.PropertyName"/> value.
+        /// </summary>
+        /// <value>
+        /// The changed property name for <see cref="Value"/>, if applicable.
+        /// </value>
+        string ChangedPropertyName { get; }
     }
 }

@@ -53,6 +53,126 @@ namespace JB.Collections.Reactive.Tests
             }
         }
 
+        [Fact]
+        public void NotifiesAboutItemChangesWhileItemsAreInDictionaryTest()
+        {
+            // given
+            var scheduler = new TestScheduler();
+
+            int key = 1;
+            var testInpcImplementationInstance = new MyNotifyPropertyChanged<int, string>(key);
+
+            var observer = scheduler.CreateObserver<IObservableDictionaryChange<int, MyNotifyPropertyChanged<int, string>>>();
+            var itemChangesObserver = scheduler.CreateObserver<IObservableDictionaryChange<int, MyNotifyPropertyChanged<int, string>>>();
+
+            using (var observableDictionary = new ObservableDictionary<int, MyNotifyPropertyChanged<int, string>>(scheduler: scheduler))
+            {
+                observableDictionary.ThresholdAmountWhenItemChangesAreNotifiedAsReset = int.MaxValue;
+                
+                IDisposable dictionaryChangesSubscription = null;
+                IDisposable dictionaryItemChangesSubscription = null;
+
+                try
+                {
+                    dictionaryChangesSubscription = observableDictionary.DictionaryChanges.Subscribe(observer);
+                    dictionaryItemChangesSubscription = observableDictionary.DictionaryItemChanges.Subscribe(itemChangesObserver);
+
+                    // when
+                    observableDictionary.Add(key, testInpcImplementationInstance);
+
+                    testInpcImplementationInstance.FirstProperty = Guid.NewGuid().ToString();
+                    scheduler.AdvanceBy(100);
+
+                    // then
+                    observer.Messages.Count.Should().Be(2);
+                    itemChangesObserver.Messages.Count.Should().Be(1);
+
+                    observer.Messages.First().Value.Value.ChangeType.Should().Be(ObservableDictionaryChangeType.ItemAdded);
+                    observer.Messages.First().Value.Value.Key.Should().Be(key);
+                    observer.Messages.First().Value.Value.Value.Should().Be(testInpcImplementationInstance);
+
+                    observer.Messages.Last().Value.Value.ChangeType.Should().Be(ObservableDictionaryChangeType.ItemChanged);
+                    observer.Messages.Last().Value.Value.Key.Should().Be(key);
+                    observer.Messages.Last().Value.Value.Value.Should().Be(testInpcImplementationInstance);
+                    observer.Messages.Last().Value.Value.ReplacedValue.Should().BeNull();
+                    observer.Messages.Last().Value.Value.ChangedPropertyName.Should().Be(nameof(MyNotifyPropertyChanged<int, string>.FirstProperty));
+
+                    itemChangesObserver.Messages.First().Value.Value.ChangeType.Should().Be(ObservableDictionaryChangeType.ItemChanged);
+                    itemChangesObserver.Messages.First().Value.Value.Key.Should().Be(key);
+                    itemChangesObserver.Messages.First().Value.Value.Value.Should().Be(testInpcImplementationInstance);
+                    itemChangesObserver.Messages.First().Value.Value.ReplacedValue.Should().BeNull();
+                    itemChangesObserver.Messages.Last().Value.Value.ChangedPropertyName.Should().Be(nameof(MyNotifyPropertyChanged<int, string>.FirstProperty));
+                }
+                finally
+                {
+                    dictionaryChangesSubscription?.Dispose();
+                    dictionaryItemChangesSubscription?.Dispose();
+                }
+            }
+        }
+
+        [Fact]
+        public void StopsNotifyingAboutItemChangesAfterItemsAreRemovedFromDictionaryTest()
+        {// given
+            var scheduler = new TestScheduler();
+
+            int key = 1;
+            var testInpcImplementationInstance = new MyNotifyPropertyChanged<int, string>(key);
+
+            var observer = scheduler.CreateObserver<IObservableDictionaryChange<int, MyNotifyPropertyChanged<int, string>>>();
+            var itemChangesObserver = scheduler.CreateObserver<IObservableDictionaryChange<int, MyNotifyPropertyChanged<int, string>>>();
+
+            using (var observableDictionary = new ObservableDictionary<int, MyNotifyPropertyChanged<int, string>>(scheduler: scheduler))
+            {
+                observableDictionary.ThresholdAmountWhenItemChangesAreNotifiedAsReset = int.MaxValue;
+
+                IDisposable dictionaryChangesSubscription = null;
+                IDisposable dictionaryItemChangesSubscription = null;
+
+                try
+                {
+                    dictionaryChangesSubscription = observableDictionary.DictionaryChanges.Subscribe(observer);
+                    dictionaryItemChangesSubscription = observableDictionary.DictionaryItemChanges.Subscribe(itemChangesObserver);
+
+                    // when
+                    observableDictionary.Add(key, testInpcImplementationInstance); // first general message - ItemAdd
+                    testInpcImplementationInstance.FirstProperty = Guid.NewGuid().ToString(); // second general / first item change message - ItemChanged
+                    observableDictionary.Remove(key); // third general message - ItemRemoved
+                    testInpcImplementationInstance.SecondProperty = Guid.NewGuid().ToString(); // should no longer be observable on/via dictionary
+
+                    scheduler.AdvanceBy(100);
+
+                    // then
+                    observer.Messages.Count.Should().Be(3);
+                    observer.Messages[0].Value.Value.ChangeType.Should().Be(ObservableDictionaryChangeType.ItemAdded);
+                    observer.Messages[0].Value.Value.Key.Should().Be(key);
+                    observer.Messages[0].Value.Value.Value.Should().Be(testInpcImplementationInstance);
+
+                    observer.Messages[1].Value.Value.ChangeType.Should().Be(ObservableDictionaryChangeType.ItemChanged);
+                    observer.Messages[1].Value.Value.Key.Should().Be(key);
+                    observer.Messages[1].Value.Value.Value.Should().Be(testInpcImplementationInstance);
+                    observer.Messages[1].Value.Value.ReplacedValue.Should().BeNull();
+                    observer.Messages[1].Value.Value.ChangedPropertyName.Should().Be(nameof(MyNotifyPropertyChanged<int, string>.FirstProperty));
+
+                    observer.Messages[2].Value.Value.ChangeType.Should().Be(ObservableDictionaryChangeType.ItemRemoved);
+                    observer.Messages[2].Value.Value.Key.Should().Be(key);
+                    observer.Messages[2].Value.Value.Value.Should().Be(testInpcImplementationInstance);
+
+                    itemChangesObserver.Messages.Count.Should().Be(1);
+                    itemChangesObserver.Messages.First().Value.Value.ChangeType.Should().Be(ObservableDictionaryChangeType.ItemChanged);
+                    itemChangesObserver.Messages.First().Value.Value.Key.Should().Be(key);
+                    itemChangesObserver.Messages.First().Value.Value.Value.Should().Be(testInpcImplementationInstance);
+                    itemChangesObserver.Messages.First().Value.Value.ReplacedValue.Should().BeNull();
+                    itemChangesObserver.Messages.First().Value.Value.ChangedPropertyName.Should().Be(nameof(MyNotifyPropertyChanged<int, string>.FirstProperty));
+                }
+                finally
+                {
+                    dictionaryChangesSubscription?.Dispose();
+                    dictionaryItemChangesSubscription?.Dispose();
+                }
+            }
+        }
+
         [Theory]
         [InlineData(0)]
         [InlineData(1)]

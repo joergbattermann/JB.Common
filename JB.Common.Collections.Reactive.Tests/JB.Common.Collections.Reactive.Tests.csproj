@@ -89,6 +89,7 @@
     <Compile Include="..\CommonAssemblyInfo.cs">
       <Link>Properties\CommonAssemblyInfo.cs</Link>
     </Compile>
+    <Compile Include="MyNotifyPropertyChanged.cs" />
     <Compile Include="ObservableCollectionInitializationTests.cs" />
     <Compile Include="ObservableDictionarySingleItemModificationsTests.cs" />
     <Compile Include="ObservableDictionaryInitializationTests.cs" />
