@@ -19,7 +19,8 @@ namespace JB.Collections.Reactive.ExtensionMethods
         /// <exception cref="System.ArgumentOutOfRangeException">$Only {ObservableDictionaryChangeType.ItemAdded}, {ObservableDictionaryChangeType.ItemChanged}, {ObservableDictionaryChangeType.ItemRemoved} and {ObservableDictionaryChangeType.Reset} are supported.</exception>
         public static IObservableCollectionChange<KeyValuePair<TKey, TValue>> ToObservableCollectionChange<TKey, TValue>(this IObservableDictionaryChange<TKey, TValue> observableDictionaryChange)
         {
-            if (observableDictionaryChange == null) throw new ArgumentNullException(nameof(observableDictionaryChange));
+            if (observableDictionaryChange == null)
+                throw new ArgumentNullException(nameof(observableDictionaryChange));
 
             switch (observableDictionaryChange.ChangeType)
             {
@@ -42,6 +43,38 @@ namespace JB.Collections.Reactive.ExtensionMethods
                     throw new ArgumentOutOfRangeException(nameof(observableDictionaryChange),
                         $"Only {ObservableDictionaryChangeType.ItemAdded}, {ObservableDictionaryChangeType.ItemChanged}, {ObservableDictionaryChangeType.ItemRemoved} and {ObservableDictionaryChangeType.Reset} are supported.");
             }
+        }
+
+        /// <summary>
+        /// Determines whether the <paramref name="observableDictionaryChange"/> is a replacement <see cref="ObservableCollectionChangeType.ItemChanged"/> type.
+        /// </summary>
+        /// <typeparam name="TKey">The type of the key.</typeparam>
+        /// <typeparam name="TValue">The type of the value.</typeparam>
+        /// <param name="observableDictionaryChange">The observable dictionary change.</param>
+        /// <returns>[true] if change is a replacement type, [false] otherwise.</returns>
+        /// <exception cref="System.ArgumentNullException">If <paramref name="observableDictionaryChange"/> is [null].</exception>
+        public static bool IsReplacementItemChange<TKey, TValue>(this IObservableDictionaryChange<TKey, TValue> observableDictionaryChange)
+        {
+            if (observableDictionaryChange == null)
+                throw new ArgumentNullException(nameof(observableDictionaryChange));
+
+            return string.IsNullOrWhiteSpace(observableDictionaryChange.ChangedPropertyName);
+        }
+
+        /// <summary>
+        /// Determines whether the <paramref name="observableDictionaryChange"/> is a PropertyChanged <see cref="ObservableCollectionChangeType.ItemChanged"/> type.
+        /// </summary>
+        /// <typeparam name="TKey">The type of the key.</typeparam>
+        /// <typeparam name="TValue">The type of the value.</typeparam>
+        /// <param name="observableDictionaryChange">The observable dictionary change.</param>
+        /// <returns>[true] if change is a PropertyChanged type, [false] otherwise.</returns>
+        /// <exception cref="System.ArgumentNullException">If <paramref name="observableDictionaryChange"/> is [null].</exception>
+        public static bool IsPropertyChangedItemChange<TKey, TValue>(this IObservableDictionaryChange<TKey, TValue> observableDictionaryChange)
+        {
+            if (observableDictionaryChange == null)
+                throw new ArgumentNullException(nameof(observableDictionaryChange));
+
+            return string.IsNullOrWhiteSpace(observableDictionaryChange.ChangedPropertyName);
         }
     }
 }
