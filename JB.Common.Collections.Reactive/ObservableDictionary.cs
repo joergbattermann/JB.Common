@@ -254,15 +254,99 @@ namespace JB.Collections.Reactive
 
             CheckForAndThrowIfDisposed();
 
+            return TryAdd(key, value, IsTrackingChanges);
+        }
+
+        /// <summary>
+        /// Attempts to add the specified key and value to the <see cref="ObservableDictionary{TKey,TValue}" />.
+        /// </summary>
+        /// <param name="key">The key of the element to add.</param>
+        /// <param name="value">The value of the element to add. The value can be  null for reference types.</param>
+        /// <param name="notifyObserversAboutChange">if set to <c>true</c> observers will be notified about the change.</param>
+        /// <returns>
+        /// true if the key/value pair was added to the <see cref="ObservableDictionary{TKey,TValue}" /> successfully; false if the key already exists.
+        /// </returns>
+        /// <exception cref="T:System.ArgumentNullException">
+        ///   <paramref name="key" /> is  null.</exception>
+        /// <exception cref="T:System.OverflowException">The dictionary already contains the maximum number of elements (<see cref="F:System.Int32.MaxValue" />).</exception>
+        protected virtual bool TryAdd(TKey key, TValue value, bool notifyObserversAboutChange)
+        {
+            if (key == null) throw new ArgumentNullException(nameof(key));
+
+            CheckForAndThrowIfDisposed();
+
             var wasAdded = InnerDictionary.TryAdd(key, value);
             if (wasAdded)
             {
                 AddValueToPropertyChangedHandling(value);
 
-                NotifySubscribersAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.ItemAdded(key, value));
+                if (notifyObserversAboutChange)
+                    NotifySubscribersAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.ItemAdded(key, value));
             }
 
             return wasAdded;
+        }
+
+        /// <summary>
+        /// Attempts to add the specified keys and values to the <see cref="ObservableDictionary{TKey,TValue}" />.
+        /// </summary>
+        /// <param name="items">The items to add.</param>
+        /// <param name="itemsThatCouldNotBeAdded">The items that could not be added, typically due to pre-existing keys in the dictionary.</param>
+        /// <returns>
+        /// [true] if all key/value pairs were added to the <see cref="ObservableDictionary{TKey,TValue}" /> successfully; [false] if not.
+        /// If [false] is returned, check <paramref name="itemsThatCouldNotBeAdded"/> for the corresponding ones that could not be added.
+        /// </returns>
+        /// <exception cref="T:System.ArgumentNullException">
+        ///   <paramref name="key" /> is  null.</exception>
+        /// <exception cref="T:System.OverflowException">The dictionary already contains the maximum number of elements (<see cref="F:System.Int32.MaxValue" />).</exception>
+        public virtual bool TryAddRange(IEnumerable<KeyValuePair<TKey, TValue>> items, out IList<KeyValuePair<TKey, TValue>> itemsThatCouldNotBeAdded)
+        {
+            if (items == null) throw new ArgumentNullException(nameof(items));
+
+            CheckForAndThrowIfDisposed();
+
+            itemsThatCouldNotBeAdded = new List<KeyValuePair<TKey, TValue>>();
+
+            var itemsAsList = items.ToList();
+            var itemsThatCouldBeAdded = new List<KeyValuePair<TKey, TValue>>();
+            
+            if (itemsAsList.Count == 0)
+                return true;
+
+            // check whether change(s) shall be notified as individual changes OR as one final reset at the end
+            var useResetInsteadOfIndividualChanges = IsItemsChangedAmountGreaterThanResetThreshold(itemsAsList.Count, ThresholdAmountWhenItemChangesAreNotifiedAsReset);
+            var signalIndividualItemChanges = !useResetInsteadOfIndividualChanges;
+
+            // then perform change itself
+            foreach (var keyValuePair in itemsAsList)
+            {
+                // ... and only notify observers if 'currently' desired
+                if (TryAdd(keyValuePair.Key, keyValuePair.Value, signalIndividualItemChanges && IsTrackingChanges) == false)
+                {
+                    itemsThatCouldNotBeAdded.Add(keyValuePair);
+                }
+                else
+                {
+                    itemsThatCouldBeAdded.Add(keyValuePair);
+                }
+            }
+
+            // finally and if originally determined (and currently wanted), signal a reset
+            // finally and if still correct, signal a reset OR individual change(s)
+            useResetInsteadOfIndividualChanges = IsItemsChangedAmountGreaterThanResetThreshold(itemsThatCouldBeAdded.Count, ThresholdAmountWhenItemChangesAreNotifiedAsReset);
+            if (useResetInsteadOfIndividualChanges)
+            {
+                NotifySubscribersAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.Reset());
+            }
+            else
+            {
+                foreach (var keyValuePair in itemsThatCouldBeAdded)
+                {
+                    NotifySubscribersAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.ItemAdded(keyValuePair.Key, keyValuePair.Value));
+                }
+            }
+
+            return itemsThatCouldNotBeAdded.Count == 0; // return true if non-addable items were / is 0
         }
 
         /// <summary>
@@ -315,12 +399,70 @@ namespace JB.Collections.Reactive
         }
 
         /// <summary>
-        /// Attempts to remove the value that has the specified key from the <see cref="ObservableDictionary{TKey,TValue}"/>.
+        /// Attempts to remove the <paramref name="keys"/> and corresponding value from the <see cref="ObservableDictionary{TKey,TValue}"/>.
+        /// </summary>
+        /// <returns>
+        /// [true] if all key/value pairs were removed from the <see cref="ObservableDictionary{TKey,TValue}" /> successfully; [false] if not.
+        /// If [false] is returned, check <paramref name="keysThatCouldNotBeRemoved"/> for the corresponding ones that could not be removed.
+        /// </returns>
+        /// <param name="keys">The keys of the elements to remove.</param>
+        /// <exception cref="T:System.ArgumentNullException"><paramref name="key"/> is null.</exception>
+        public virtual bool TryRemoveRange(IEnumerable<TKey> keys, out IList<TKey> keysThatCouldNotBeRemoved)
+        {
+            if (keys == null) throw new ArgumentNullException(nameof(keys));
+
+            CheckForAndThrowIfDisposed();
+
+            keysThatCouldNotBeRemoved = new List<TKey>();
+
+            var keysAsList = keys.ToList();
+            var keyValuePairsThatCouldBeRemoved = new List<KeyValuePair<TKey, TValue>>();
+            
+            if (keysAsList.Count == 0)
+                return true;
+
+            // check whether change(s) shall be notified as individual changes OR as one final reset at the end
+            var useResetInsteadOfIndividualChanges = IsItemsChangedAmountGreaterThanResetThreshold(keysAsList.Count, ThresholdAmountWhenItemChangesAreNotifiedAsReset);
+            var signalIndividualItemChanges = !useResetInsteadOfIndividualChanges;
+
+            // then perform removal itself
+            foreach (var key in keysAsList)
+            {
+                TValue value = default(TValue);
+                if (TryRemove(key, out value, signalIndividualItemChanges && IsTrackingChanges) == false)
+                {
+                    keysThatCouldNotBeRemoved.Add(key);
+                }
+                else
+                {
+                    keyValuePairsThatCouldBeRemoved.Add(new KeyValuePair<TKey, TValue>(key, value));
+                }
+            }
+
+            // finally and if still correct, signal a reset OR individual change(s)
+            useResetInsteadOfIndividualChanges = IsItemsChangedAmountGreaterThanResetThreshold(keyValuePairsThatCouldBeRemoved.Count, ThresholdAmountWhenItemChangesAreNotifiedAsReset);
+            if (useResetInsteadOfIndividualChanges)
+            {
+                NotifySubscribersAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.Reset());
+            }
+            else
+            {
+                foreach (var keyValuePair in keyValuePairsThatCouldBeRemoved)
+                {
+                    NotifySubscribersAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.ItemRemoved(keyValuePair.Key, keyValuePair.Value));
+                }
+            }
+
+            return keysThatCouldNotBeRemoved.Count == 0;
+        }
+
+        /// <summary>
+        /// Attempts to remove the <paramref name="key"/> and corresponding value from the <see cref="ObservableDictionary{TKey,TValue}"/>.
         /// </summary>
         /// <returns>
         /// true if the object was removed successfully; otherwise, false.
         /// </returns>
-        /// <param name="key">The key of the element to remove and return.</param>
+        /// <param name="key">The key of the element to remove.</param>
         /// <exception cref="T:System.ArgumentNullException"><paramref name="key"/> is null.</exception>
         public virtual bool TryRemove(TKey key)
         {
@@ -338,7 +480,7 @@ namespace JB.Collections.Reactive
         /// <returns>
         /// true if the object was updated successfully; otherwise, false.
         /// </returns>
-        /// <param name="key">The key of the element to remove and return.</param>
+        /// <param name="key">The key of the element to update.</param>
         /// <exception cref="T:System.ArgumentNullException"><paramref name="key"/> is null.</exception>
         public virtual bool TryUpdate(TKey key, TValue newValue)
         {
@@ -1344,16 +1486,8 @@ namespace JB.Collections.Reactive
             }
         }
 
-        /// <summary>
-        /// Gets a value indicating whether the <see cref="T:System.Collections.Generic.ICollection`1"/> is read-only.
-        /// </summary>
-        /// <returns>
-        /// true if the <see cref="T:System.Collections.Generic.ICollection`1"/> is read-only; otherwise, false.
-        /// </returns>
-        public bool IsReadOnly { get; }
-
         #endregion
-        
+
         #region Implementation of IDictionary
 
         /// <summary>
@@ -1890,9 +2024,25 @@ namespace JB.Collections.Reactive
             }
         }
 
-#endregion
+        #endregion
 
-#region Implementation of ICollection<KeyValuePair<TKey,TValue>>
+        #region Implementation of ICollection<KeyValuePair<TKey,TValue>>
+
+        /// <summary>
+        /// Gets a value indicating whether this instance is read only.
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if this instance is read only; otherwise, <c>false</c>.
+        /// </value>
+        bool ICollection<KeyValuePair<TKey, TValue>>.IsReadOnly
+        {
+            get
+            {
+                CheckForAndThrowIfDisposed();
+
+                return ((ICollection<KeyValuePair<TKey, TValue>>)InnerDictionary).IsReadOnly;
+            }
+        }
 
         /// <summary>
         /// Adds an item to the <see cref="T:System.Collections.Generic.ICollection`1"/>.
@@ -1993,6 +2143,8 @@ namespace JB.Collections.Reactive
         /// <param name="items">The items to remove.</param>
         public virtual void RemoveRange(IEnumerable<KeyValuePair<TKey, TValue>> items)
         {
+            if (items == null) throw new ArgumentNullException(nameof(items));
+
             CheckForAndThrowIfDisposed();
 
             var itemsAsList = items.ToList();

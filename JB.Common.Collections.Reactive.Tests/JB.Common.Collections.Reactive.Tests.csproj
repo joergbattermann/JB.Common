@@ -91,6 +91,7 @@
     </Compile>
     <Compile Include="MyNotifyPropertyChanged.cs" />
     <Compile Include="ObservableCollectionInitializationTests.cs" />
+    <Compile Include="ObservableDictionaryResetAndClearTests.cs" />
     <Compile Include="ObservableDictionarySingleItemModificationsTests.cs" />
     <Compile Include="ObservableDictionaryInitializationTests.cs" />
     <Compile Include="ObservableListSingleItemModificationsTests.cs" />
