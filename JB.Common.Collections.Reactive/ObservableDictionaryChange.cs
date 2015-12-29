@@ -92,7 +92,7 @@ namespace JB.Collections.Reactive
             Value = value;
             ReplacedValue = replacedValue;
 
-            ChangedPropertyName = changedPropertyName ?? "";
+            ChangedPropertyName = changedPropertyName ?? string.Empty;
         }
 
         /// <summary>

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reactive;
+using System.Runtime.CompilerServices;
 using FluentAssertions;
 using Microsoft.Reactive.Testing;
 using Xunit;
@@ -54,7 +55,7 @@ namespace JB.Collections.Reactive.Tests
         }
 
         [Fact]
-        public void NotifiesAboutItemChangesWhileItemsAreInDictionaryTest()
+        public void ItemChangesWhileItemsAreInDictionaryNotifiesObserversTest()
         {
             // given
             var scheduler = new TestScheduler();
@@ -112,7 +113,60 @@ namespace JB.Collections.Reactive.Tests
         }
 
         [Fact]
-        public void StopsNotifyingAboutItemChangesAfterItemsAreRemovedFromDictionaryTest()
+        public void ItemChangesWhileItemsAreInDictionaryNotifiesObserversAsResetIfRequestedTest()
+        {
+            // given
+            var scheduler = new TestScheduler();
+
+            int key = 1;
+            var testInpcImplementationInstance = new MyNotifyPropertyChanged<int, string>(key);
+
+            var observer = scheduler.CreateObserver<IObservableDictionaryChange<int, MyNotifyPropertyChanged<int, string>>>();
+            var itemChangesObserver = scheduler.CreateObserver<IObservableDictionaryChange<int, MyNotifyPropertyChanged<int, string>>>();
+
+            using (var observableDictionary = new ObservableDictionary<int, MyNotifyPropertyChanged<int, string>>(scheduler: scheduler))
+            {
+                observableDictionary.ThresholdAmountWhenItemChangesAreNotifiedAsReset = Int32.MaxValue;
+
+                IDisposable dictionaryChangesSubscription = null;
+                IDisposable dictionaryItemChangesSubscription = null;
+
+                try
+                {
+                    dictionaryChangesSubscription = observableDictionary.DictionaryChanges.Subscribe(observer);
+                    dictionaryItemChangesSubscription = observableDictionary.DictionaryItemChanges.Subscribe(itemChangesObserver);
+
+                    // when
+                    observableDictionary.Add(key, testInpcImplementationInstance);
+
+                    observableDictionary.ThresholdAmountWhenItemChangesAreNotifiedAsReset = 0;
+                    testInpcImplementationInstance.FirstProperty = Guid.NewGuid().ToString();
+                    scheduler.AdvanceBy(100);
+
+                    // then
+                    observer.Messages.Count.Should().Be(2);
+                    itemChangesObserver.Messages.Count.Should().Be(0);
+
+                    observer.Messages.First().Value.Value.ChangeType.Should().Be(ObservableDictionaryChangeType.ItemAdded);
+                    observer.Messages.First().Value.Value.Key.Should().Be(key);
+                    observer.Messages.First().Value.Value.Value.Should().Be(testInpcImplementationInstance);
+
+                    observer.Messages.Last().Value.Value.ChangeType.Should().Be(ObservableDictionaryChangeType.Reset);
+                    observer.Messages.Last().Value.Value.Key.Should().Be(default(int));
+                    observer.Messages.Last().Value.Value.Value.Should().Be(default(MyNotifyPropertyChanged<int, string>));
+                    observer.Messages.Last().Value.Value.ReplacedValue.Should().Be(default(MyNotifyPropertyChanged<int, string>));
+                    observer.Messages.Last().Value.Value.ChangedPropertyName.Should().BeEmpty();
+                }
+                finally
+                {
+                    dictionaryChangesSubscription?.Dispose();
+                    dictionaryItemChangesSubscription?.Dispose();
+                }
+            }
+        }
+
+        [Fact]
+        public void ItemChangesAfterItemsAreRemovedFromDictionaryDoNoLongerNotifySubscribersTest()
         {// given
             var scheduler = new TestScheduler();
 
@@ -169,6 +223,92 @@ namespace JB.Collections.Reactive.Tests
                 {
                     dictionaryChangesSubscription?.Dispose();
                     dictionaryItemChangesSubscription?.Dispose();
+                }
+            }
+        }
+
+        [Theory]
+        [InlineData(0)]
+        [InlineData(1)]
+        [InlineData(10)]
+        [InlineData(100)]
+        public void AddNotifiesAdditionAsResetIfRequestedTest(int amountOfItemsToAdd)
+        {
+            // given
+            var scheduler = new TestScheduler();
+            var observer = scheduler.CreateObserver<IObservableDictionaryChange<int, string>>();
+
+            using (var observableDictionary = new ObservableDictionary<int, string>(scheduler: scheduler))
+            {
+                // when
+                observableDictionary.ThresholdAmountWhenItemChangesAreNotifiedAsReset = 0;
+
+                using (observableDictionary.DictionaryChanges.Subscribe(observer))
+                {
+                    var addedKeyValuePairs = new List<KeyValuePair<int, string>>();
+                    for (int i = 0; i < amountOfItemsToAdd; i++)
+                    {
+                        var keyValuePair = new KeyValuePair<int, string>(i, $"#{i}");
+
+                        observableDictionary.Add(keyValuePair.Key, keyValuePair.Value);
+                        addedKeyValuePairs.Add(keyValuePair);
+
+                        scheduler.AdvanceBy(1);
+                    }
+
+                    // then
+                    observableDictionary.Count.Should().Be(amountOfItemsToAdd);
+                    observer.Messages.Count.Should().Be(amountOfItemsToAdd);
+
+                    if (amountOfItemsToAdd > 0)
+                    {
+                        observer.Messages.Select(message => message.Value.Value.ChangeType).Should().OnlyContain(changeType => changeType == ObservableDictionaryChangeType.Reset);
+                        
+                        observer.Messages.Select(message => message.Value.Value.Key).Should().Match(ints => ints.All(@int => Equals(default(int), @int)));
+                        observer.Messages.Select(message => message.Value.Value.Value).Should().Match(strings => strings.All(@string => Equals(default(string), @string)));
+                    }
+                }
+            }
+        }
+
+        [Fact]
+        public void ResetNotifiesResetTest()
+        {
+            // given
+            var scheduler = new TestScheduler();
+            var observer = scheduler.CreateObserver<IObservableDictionaryChange<int, string>>();
+            var resetsObserver = scheduler.CreateObserver<Unit>();
+
+            using (var observableDictionary = new ObservableDictionary<int, string>(scheduler: scheduler))
+            {
+                // when
+                observableDictionary.ThresholdAmountWhenItemChangesAreNotifiedAsReset = int.MaxValue;
+
+                IDisposable dictionaryChangesSubscription = null;
+                IDisposable resetsSubscription = null;
+
+                try
+                {
+                    dictionaryChangesSubscription = observableDictionary.DictionaryChanges.Subscribe(observer);
+                    resetsSubscription = observableDictionary.Resets.Subscribe(resetsObserver);
+
+                    observableDictionary.Reset();
+                    scheduler.AdvanceBy(2);
+
+                    // then
+                    resetsObserver.Messages.Count.Should().Be(1);
+                    observer.Messages.Count.Should().Be(1);
+
+                    observer.Messages.First().Value.Value.ChangeType.Should().Be(ObservableDictionaryChangeType.Reset);
+                    observer.Messages.First().Value.Value.Key.Should().Be(default(int));
+                    observer.Messages.First().Value.Value.Value.Should().Be(default(string));
+                    observer.Messages.First().Value.Value.ReplacedValue.Should().Be(default(string));
+                    observer.Messages.First().Value.Value.ChangedPropertyName.Should().BeEmpty();
+                }
+                finally
+                {
+                    dictionaryChangesSubscription?.Dispose();
+                    resetsSubscription?.Dispose();
                 }
             }
         }
@@ -262,6 +402,56 @@ namespace JB.Collections.Reactive.Tests
 
                         observer.Messages.Select(message => message.Value.Value.Key).Should().Contain(removedKeyValuePairs.Select(kvp => kvp.Key));
                         observer.Messages.Select(message => message.Value.Value.Value).Should().Contain(removedKeyValuePairs.Select(kvp => kvp.Value));
+                    }
+                }
+            }
+        }
+
+        [Theory]
+        [InlineData(0, 0)]
+        [InlineData(1, 1)]
+        [InlineData(10, 5)]
+        [InlineData(100, 99)]
+        public void RemoveNotifiesRemovalAsResetIfRequestedTest(int initialDictionarySize, int amountOfItemsToRemove)
+        {
+            if (amountOfItemsToRemove > initialDictionarySize)
+                throw new ArgumentOutOfRangeException(nameof(amountOfItemsToRemove), $"Must be less than {nameof(initialDictionarySize)}");
+
+            // given
+            var scheduler = new TestScheduler();
+
+            var initialValues = Enumerable.Range(0, initialDictionarySize).ToDictionary(item => item, item => $"#{item}");
+            var observer = scheduler.CreateObserver<IObservableDictionaryChange<int, string>>();
+
+            using (var observableDictionary = new ObservableDictionary<int, string>(initialValues, scheduler: scheduler))
+            {
+                // when
+                observableDictionary.ThresholdAmountWhenItemChangesAreNotifiedAsReset = 0;
+
+                using (observableDictionary.DictionaryChanges.Subscribe(observer))
+                {
+                    var removedKeyValuePairs = new List<KeyValuePair<int, string>>();
+
+                    for (int i = 0; i < amountOfItemsToRemove; i++)
+                    {
+                        var lastEntry = observableDictionary.Last();
+                        observableDictionary.Remove(lastEntry.Key);
+
+                        removedKeyValuePairs.Add(lastEntry);
+
+                        scheduler.AdvanceBy(1);
+                    }
+
+                    // then
+                    observableDictionary.Count.Should().Be(initialDictionarySize - amountOfItemsToRemove);
+                    observer.Messages.Count.Should().Be(amountOfItemsToRemove);
+
+                    if (initialDictionarySize > 0)
+                    {
+                        observer.Messages.Select(message => message.Value.Value.ChangeType).Should().OnlyContain(changeType => changeType == ObservableDictionaryChangeType.Reset);
+
+                        observer.Messages.Select(message => message.Value.Value.Key).Should().Match(ints => ints.All(@int => Equals(default(int), @int)));
+                        observer.Messages.Select(message => message.Value.Value.Value).Should().Match(strings => strings.All(@string => Equals(default(string), @string)));
                     }
                 }
             }

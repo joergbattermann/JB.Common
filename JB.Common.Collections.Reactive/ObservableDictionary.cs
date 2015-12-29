@@ -1103,6 +1103,8 @@ namespace JB.Collections.Reactive
             get { return _thresholdAmountWhenItemChangesAreNotifiedAsReset; }
             set
             {
+                if (value < 0) throw new ArgumentOutOfRangeException(nameof(value));
+
                 CheckForAndThrowIfDisposed();
 
                 _thresholdAmountWhenItemChangesAreNotifiedAsReset = value;
