@@ -15,7 +15,7 @@ using Xunit;
 
 namespace JB.Collections.Reactive.Tests
 {
-    public class ObservableCollectionSingleItemModificationsTests
+    public class ObservableCollectionSingleItemTests
     {
         [Theory]
         [InlineData(1, 1)]

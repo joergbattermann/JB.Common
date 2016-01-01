@@ -130,11 +130,13 @@ namespace JB.Collections.Reactive
 
             ThresholdAmountWhenItemChangesAreNotifiedAsReset = 100;
 
+            IsThrowingUnhandledObserverExceptions = true;
+
             IsTrackingChanges = true;
             IsTrackingItemChanges = true;
             IsTrackingCountChanges = true;
             IsTrackingResets = true;
-            
+
             // hook up INPC handling for values handed in on .ctor
             foreach (var value in InnerDictionary.Values)
             {
@@ -814,9 +816,6 @@ namespace JB.Collections.Reactive
         /// </summary>
         public virtual void Dispose()
         {
-            if (IsDisposing || IsDisposed)
-                return;
-
             Dispose(true);
             GC.SuppressFinalize(this);
         }
@@ -879,6 +878,8 @@ namespace JB.Collections.Reactive
                         _unhandledObserverExceptionsSubject.Dispose();
                         _unhandledObserverExceptionsSubject = null;
                     }
+
+                    InnerDictionary.Clear();
                 }
             }
             finally
@@ -889,11 +890,12 @@ namespace JB.Collections.Reactive
         }
 
         /// <summary>
-        ///     Checks whether this instance is currently or already has been disposed.
+        /// Checks whether this instance has been disposed, optionally whether it is currently being disposed.
         /// </summary>
-        protected virtual void CheckForAndThrowIfDisposed()
+        /// <param name="checkIsDisposing">if set to <c>true</c> checks whether disposal is currently ongoing, indicated via <see cref="IsDisposing"/>.</param>
+        protected virtual void CheckForAndThrowIfDisposed(bool checkIsDisposing = true)
         {
-            if (IsDisposing)
+            if (checkIsDisposing && IsDisposing)
             {
                 throw new ObjectDisposedException(GetType().Name, "This instance is currently being disposed.");
             }
@@ -962,10 +964,12 @@ namespace JB.Collections.Reactive
         /// <value>
         /// <c>true</c> if this instance is notifying about unhandled observer exceptions; otherwise, <c>false</c>.
         /// </value>
-        public virtual bool IsThrowingUnhandledObserverExceptions
+        public bool IsThrowingUnhandledObserverExceptions
         {
             get
             {
+                CheckForAndThrowIfDisposed(false);
+
                 return Interlocked.Read(ref _isThrowingUnhandledObserverExceptions) == 1;
             }
             set
@@ -1018,7 +1022,12 @@ namespace JB.Collections.Reactive
         /// </value>
         public bool IsTrackingResets
         {
-            get { return Interlocked.Read(ref _isTrackingResets) == 1; }
+            get
+            {
+                CheckForAndThrowIfDisposed(false);
+
+                return Interlocked.Read(ref _isTrackingResets) == 1;
+            }
             protected set
             {
                 CheckForAndThrowIfDisposed();
@@ -1113,7 +1122,12 @@ namespace JB.Collections.Reactive
         /// </value>
         public bool IsTrackingCountChanges
         {
-            get { return Interlocked.Read(ref _isTrackingCountChanges) == 1; }
+            get
+            {
+                CheckForAndThrowIfDisposed(false);
+
+                return Interlocked.Read(ref _isTrackingCountChanges) == 1;
+            }
             protected set
             {
                 CheckForAndThrowIfDisposed();
@@ -1213,7 +1227,12 @@ namespace JB.Collections.Reactive
         /// <exception cref="System.InvalidOperationException">An Item Change Notification Suppression is currently already ongoing, multiple concurrent suppressions are not supported.</exception>
         public bool IsTrackingItemChanges
         {
-            get { return Interlocked.Read(ref _isTrackingItemChanges) == 1; }
+            get
+            {
+                CheckForAndThrowIfDisposed(false);
+
+                return Interlocked.Read(ref _isTrackingItemChanges) == 1;
+            }
             protected set
             {
                 CheckForAndThrowIfDisposed();
@@ -1242,7 +1261,12 @@ namespace JB.Collections.Reactive
         /// </value>
         public int ThresholdAmountWhenItemChangesAreNotifiedAsReset
         {
-            get { return _thresholdAmountWhenItemChangesAreNotifiedAsReset; }
+            get
+            {
+                CheckForAndThrowIfDisposed(false);
+
+                return _thresholdAmountWhenItemChangesAreNotifiedAsReset;
+            }
             set
             {
                 if (value < 0) throw new ArgumentOutOfRangeException(nameof(value));
@@ -1369,7 +1393,12 @@ namespace JB.Collections.Reactive
         /// <exception cref="System.InvalidOperationException">A Change Notification Suppression is currently already ongoing, multiple concurrent suppressions are not supported.</exception>
         public bool IsTrackingChanges
         {
-            get { return Interlocked.Read(ref _isTrackingChanges) == 1; }
+            get
+            {
+                CheckForAndThrowIfDisposed(false);
+
+                return Interlocked.Read(ref _isTrackingChanges) == 1;
+            }
             protected set
             {
                 CheckForAndThrowIfDisposed();
@@ -1476,15 +1505,7 @@ namespace JB.Collections.Reactive
         /// <returns>
         /// The number of elements in the collection. 
         /// </returns>
-        public virtual int Count
-        {
-            get
-            {
-                CheckForAndThrowIfDisposed();
-
-                return InnerDictionary.Count;
-            }
-        }
+        public virtual int Count => InnerDictionary.Count;
 
         #endregion
 

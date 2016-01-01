@@ -1,20 +1,20 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.CompilerServices;
+using System.Reactive;
 using FluentAssertions;
 using Microsoft.Reactive.Testing;
 using Xunit;
 
 namespace JB.Collections.Reactive.Tests
 {
-    public class ObservableDictionarySingleItemModificationsTests
+    public class ObservableDictionaryObservableTests
     {
         [Theory]
         [InlineData(10, 10)]
         [InlineData(10, 100)]
         [InlineData(5, 1000)]
-        public void AddIncreasesCountTest(int lowerLimit, int upperLimit)
+        public void AddNotifiesCountIncreaseTest(int lowerLimit, int upperLimit)
         {
             // given
             var initialList = new List<KeyValuePair<int, string>>()
@@ -68,7 +68,7 @@ namespace JB.Collections.Reactive.Tests
             using (var observableDictionary = new ObservableDictionary<int, MyNotifyPropertyChanged<int, string>>(scheduler: scheduler))
             {
                 observableDictionary.ThresholdAmountWhenItemChangesAreNotifiedAsReset = int.MaxValue;
-                
+
                 IDisposable dictionaryChangesSubscription = null;
                 IDisposable dictionaryItemChangesSubscription = null;
 
@@ -262,53 +262,99 @@ namespace JB.Collections.Reactive.Tests
                     if (amountOfItemsToAdd > 0)
                     {
                         observer.Messages.Select(message => message.Value.Value.ChangeType).Should().OnlyContain(changeType => changeType == ObservableDictionaryChangeType.Reset);
-                        
+
                         observer.Messages.Select(message => message.Value.Value.Key).Should().Match(ints => ints.All(@int => Equals(default(int), @int)));
                         observer.Messages.Select(message => message.Value.Value.Value).Should().Match(strings => strings.All(@string => Equals(default(string), @string)));
                     }
                 }
             }
         }
-        
-        [Theory]
-        [InlineData(0)]
-        [InlineData(1)]
-        [InlineData(10)]
-        [InlineData(100)]
-        public void AddNotifiesAdditionTest(int amountOfItemsToAdd)
-        {
-            // given
-            var scheduler = new TestScheduler();
-            var observer = scheduler.CreateObserver<IObservableDictionaryChange<int, string>>();
 
-            using (var observableDictionary = new ObservableDictionary<int, string>(scheduler: scheduler))
+        [Theory]
+        [InlineData(1, 1)]
+        [InlineData(100, 10)]
+        [InlineData(1, 0)]
+        public void RemoveNotifiesCountDecreaseTest(int initialDictionarySize, int amountOfItemsToRemove)
+        {
+            if (amountOfItemsToRemove > initialDictionarySize)
+                throw new ArgumentOutOfRangeException(nameof(amountOfItemsToRemove), $"Must be less than {nameof(initialDictionarySize)}");
+
+            // given
+            var initialValues = Enumerable.Range(0, initialDictionarySize).ToDictionary(item => item, item => $"#{item}");
+
+            int observableReportedCount = initialValues.Count;
+            int countChangesCalled = 0;
+
+            using (var observableDictionary = new ObservableDictionary<int, string>(initialValues))
             {
                 // when
                 observableDictionary.ThresholdAmountWhenItemChangesAreNotifiedAsReset = int.MaxValue;
-                
+                observableDictionary.CountChanges.Subscribe(i =>
+                {
+                    observableReportedCount = i;
+                    countChangesCalled++;
+                });
+
+                for (int i = 0; i < amountOfItemsToRemove; i++)
+                {
+                    observableDictionary.Remove(observableDictionary.Last().Key);
+                }
+
+                // then check whether all items have been accounted for
+                var expectedCount = initialDictionarySize - amountOfItemsToRemove;
+
+                observableReportedCount.Should().Be(expectedCount); // +1 because the upper for loop goes up to & inclusive the upperLimit
+                observableReportedCount.Should().Be(observableDictionary.Count);
+
+                countChangesCalled.Should().Be(amountOfItemsToRemove);
+            }
+        }
+
+        [Theory]
+        [InlineData(0, 0)]
+        [InlineData(1, 1)]
+        [InlineData(10, 5)]
+        [InlineData(100, 99)]
+        public void RemoveNotifiesRemovalAsResetIfRequestedTest(int initialDictionarySize, int amountOfItemsToRemove)
+        {
+            if (amountOfItemsToRemove > initialDictionarySize)
+                throw new ArgumentOutOfRangeException(nameof(amountOfItemsToRemove), $"Must be less than {nameof(initialDictionarySize)}");
+
+            // given
+            var scheduler = new TestScheduler();
+
+            var initialValues = Enumerable.Range(0, initialDictionarySize).ToDictionary(item => item, item => $"#{item}");
+            var observer = scheduler.CreateObserver<IObservableDictionaryChange<int, string>>();
+
+            using (var observableDictionary = new ObservableDictionary<int, string>(initialValues, scheduler: scheduler))
+            {
+                // when
+                observableDictionary.ThresholdAmountWhenItemChangesAreNotifiedAsReset = 0;
+
                 using (observableDictionary.DictionaryChanges.Subscribe(observer))
                 {
-                    var addedKeyValuePairs = new List<KeyValuePair<int, string>>();
-                    for (int i = 0; i < amountOfItemsToAdd; i++)
-                    {
-                        var keyValuePair = new KeyValuePair<int, string>(i, $"#{i}");
+                    var removedKeyValuePairs = new List<KeyValuePair<int, string>>();
 
-                        observableDictionary.Add(keyValuePair.Key, keyValuePair.Value);
-                        addedKeyValuePairs.Add(keyValuePair);
+                    for (int i = 0; i < amountOfItemsToRemove; i++)
+                    {
+                        var lastEntry = observableDictionary.Last();
+                        observableDictionary.Remove(lastEntry.Key);
+
+                        removedKeyValuePairs.Add(lastEntry);
 
                         scheduler.AdvanceBy(1);
                     }
 
                     // then
-                    observableDictionary.Count.Should().Be(amountOfItemsToAdd);
-                    observer.Messages.Count.Should().Be(amountOfItemsToAdd);
-                    
-                    if (amountOfItemsToAdd > 0)
-                    {
-                        observer.Messages.Select(message => message.Value.Value.ChangeType).Should().OnlyContain(changeType => changeType == ObservableDictionaryChangeType.ItemAdded);
+                    observableDictionary.Count.Should().Be(initialDictionarySize - amountOfItemsToRemove);
+                    observer.Messages.Count.Should().Be(amountOfItemsToRemove);
 
-                        observer.Messages.Select(message => message.Value.Value.Key).Should().Contain(addedKeyValuePairs.Select(kvp => kvp.Key));
-                        observer.Messages.Select(message => message.Value.Value.Value).Should().Contain(addedKeyValuePairs.Select(kvp => kvp.Value));
+                    if (initialDictionarySize > 0)
+                    {
+                        observer.Messages.Select(message => message.Value.Value.ChangeType).Should().OnlyContain(changeType => changeType == ObservableDictionaryChangeType.Reset);
+
+                        observer.Messages.Select(message => message.Value.Value.Key).Should().Match(ints => ints.All(@int => Equals(default(int), @int)));
+                        observer.Messages.Select(message => message.Value.Value.Value).Should().Match(strings => strings.All(@string => Equals(default(string), @string)));
                     }
                 }
             }
@@ -365,92 +411,139 @@ namespace JB.Collections.Reactive.Tests
         }
 
         [Theory]
-        [InlineData(0, 0)]
-        [InlineData(1, 1)]
-        [InlineData(10, 5)]
-        [InlineData(100, 99)]
-        public void RemoveNotifiesRemovalAsResetIfRequestedTest(int initialDictionarySize, int amountOfItemsToRemove)
+        [InlineData(0)]
+        [InlineData(1)]
+        [InlineData(10)]
+        [InlineData(100)]
+        public void AddNotifiesAdditionTest(int amountOfItemsToAdd)
         {
-            if (amountOfItemsToRemove > initialDictionarySize)
-                throw new ArgumentOutOfRangeException(nameof(amountOfItemsToRemove), $"Must be less than {nameof(initialDictionarySize)}");
-
             // given
             var scheduler = new TestScheduler();
-
-            var initialValues = Enumerable.Range(0, initialDictionarySize).ToDictionary(item => item, item => $"#{item}");
             var observer = scheduler.CreateObserver<IObservableDictionaryChange<int, string>>();
 
-            using (var observableDictionary = new ObservableDictionary<int, string>(initialValues, scheduler: scheduler))
+            using (var observableDictionary = new ObservableDictionary<int, string>(scheduler: scheduler))
             {
                 // when
-                observableDictionary.ThresholdAmountWhenItemChangesAreNotifiedAsReset = 0;
+                observableDictionary.ThresholdAmountWhenItemChangesAreNotifiedAsReset = int.MaxValue;
 
                 using (observableDictionary.DictionaryChanges.Subscribe(observer))
                 {
-                    var removedKeyValuePairs = new List<KeyValuePair<int, string>>();
-
-                    for (int i = 0; i < amountOfItemsToRemove; i++)
+                    var addedKeyValuePairs = new List<KeyValuePair<int, string>>();
+                    for (int i = 0; i < amountOfItemsToAdd; i++)
                     {
-                        var lastEntry = observableDictionary.Last();
-                        observableDictionary.Remove(lastEntry.Key);
+                        var keyValuePair = new KeyValuePair<int, string>(i, $"#{i}");
 
-                        removedKeyValuePairs.Add(lastEntry);
+                        observableDictionary.Add(keyValuePair.Key, keyValuePair.Value);
+                        addedKeyValuePairs.Add(keyValuePair);
 
                         scheduler.AdvanceBy(1);
                     }
 
                     // then
-                    observableDictionary.Count.Should().Be(initialDictionarySize - amountOfItemsToRemove);
-                    observer.Messages.Count.Should().Be(amountOfItemsToRemove);
+                    observableDictionary.Count.Should().Be(amountOfItemsToAdd);
+                    observer.Messages.Count.Should().Be(amountOfItemsToAdd);
 
-                    if (initialDictionarySize > 0)
+                    if (amountOfItemsToAdd > 0)
                     {
-                        observer.Messages.Select(message => message.Value.Value.ChangeType).Should().OnlyContain(changeType => changeType == ObservableDictionaryChangeType.Reset);
+                        observer.Messages.Select(message => message.Value.Value.ChangeType).Should().OnlyContain(changeType => changeType == ObservableDictionaryChangeType.ItemAdded);
 
-                        observer.Messages.Select(message => message.Value.Value.Key).Should().Match(ints => ints.All(@int => Equals(default(int), @int)));
-                        observer.Messages.Select(message => message.Value.Value.Value).Should().Match(strings => strings.All(@string => Equals(default(string), @string)));
+                        observer.Messages.Select(message => message.Value.Value.Key).Should().Contain(addedKeyValuePairs.Select(kvp => kvp.Key));
+                        observer.Messages.Select(message => message.Value.Value.Value).Should().Contain(addedKeyValuePairs.Select(kvp => kvp.Value));
                     }
                 }
             }
         }
 
-        [Theory]
-        [InlineData(1, 1)]
-        [InlineData(100, 10)]
-        [InlineData(1, 0)]
-        public void RemoveDecreasesCountTest(int initialDictionarySize, int amountOfItemsToRemove)
+        [Fact]
+        public void ClearEmptiesDictionaryAndNotifiesAsReset()
         {
-            if (amountOfItemsToRemove > initialDictionarySize)
-                throw new ArgumentOutOfRangeException(nameof(amountOfItemsToRemove), $"Must be less than {nameof(initialDictionarySize)}");
-
             // given
-            var initialValues = Enumerable.Range(0, initialDictionarySize).ToDictionary(item => item, item => $"#{item}");
+            var initialList = new List<KeyValuePair<int, string>>()
+            {
+                new KeyValuePair<int, string>(1, "Some Value"),
+                new KeyValuePair<int, string>(2, "Some Other Value"),
+                new KeyValuePair<int, string>(3, "Some Totally Different Value"),
+            };
 
-            int observableReportedCount = initialValues.Count;
-            int countChangesCalled = 0;
+            var scheduler = new TestScheduler();
+            var observer = scheduler.CreateObserver<IObservableDictionaryChange<int, string>>();
+            var resetsObserver = scheduler.CreateObserver<Unit>();
 
-            using (var observableDictionary = new ObservableDictionary<int, string>(initialValues))
+            using (var observableDictionary = new ObservableDictionary<int, string>(initialList, scheduler: scheduler))
             {
                 // when
                 observableDictionary.ThresholdAmountWhenItemChangesAreNotifiedAsReset = int.MaxValue;
-                observableDictionary.CountChanges.Subscribe(i =>
-                {
-                    observableReportedCount = i;
-                    countChangesCalled++;
-                });
 
-                for (int i = 0; i < amountOfItemsToRemove; i++)
+                IDisposable dictionaryChangesSubscription = null;
+                IDisposable resetsSubscription = null;
+
+                try
                 {
-                    observableDictionary.Remove(observableDictionary.Last().Key);
+                    dictionaryChangesSubscription = observableDictionary.DictionaryChanges.Subscribe(observer);
+                    resetsSubscription = observableDictionary.Resets.Subscribe(resetsObserver);
+
+                    observableDictionary.Clear();
+                    scheduler.AdvanceBy(2);
+
+                    // then
+                    observableDictionary.Count.Should().Be(0);
+
+                    resetsObserver.Messages.Count.Should().Be(1);
+                    observer.Messages.Count.Should().Be(1);
+
+                    observer.Messages.First().Value.Value.ChangeType.Should().Be(ObservableDictionaryChangeType.Reset);
+                    observer.Messages.First().Value.Value.Key.Should().Be(default(int));
+                    observer.Messages.First().Value.Value.Value.Should().Be(default(string));
+                    observer.Messages.First().Value.Value.ReplacedValue.Should().Be(default(string));
+                    observer.Messages.First().Value.Value.ChangedPropertyName.Should().BeEmpty();
                 }
+                finally
+                {
+                    dictionaryChangesSubscription?.Dispose();
+                    resetsSubscription?.Dispose();
+                }
+            }
+        }
 
-                // then check whether all items have been accounted for
-                var expectedCount = initialDictionarySize - amountOfItemsToRemove;
+        [Fact]
+        public void ResetNotifiesResetTest()
+        {
+            // given
+            var scheduler = new TestScheduler();
+            var observer = scheduler.CreateObserver<IObservableDictionaryChange<int, string>>();
+            var resetsObserver = scheduler.CreateObserver<Unit>();
 
-                observableReportedCount.Should().Be(expectedCount); // +1 because the upper for loop goes up to & inclusive the upperLimit
-                observableReportedCount.Should().Be(observableDictionary.Count);
+            using (var observableDictionary = new ObservableDictionary<int, string>(scheduler: scheduler))
+            {
+                // when
+                observableDictionary.ThresholdAmountWhenItemChangesAreNotifiedAsReset = int.MaxValue;
 
-                countChangesCalled.Should().Be(amountOfItemsToRemove);
+                IDisposable dictionaryChangesSubscription = null;
+                IDisposable resetsSubscription = null;
+
+                try
+                {
+                    dictionaryChangesSubscription = observableDictionary.DictionaryChanges.Subscribe(observer);
+                    resetsSubscription = observableDictionary.Resets.Subscribe(resetsObserver);
+
+                    observableDictionary.Reset();
+                    scheduler.AdvanceBy(2);
+
+                    // then
+                    resetsObserver.Messages.Count.Should().Be(1);
+                    observer.Messages.Count.Should().Be(1);
+
+                    observer.Messages.First().Value.Value.ChangeType.Should().Be(ObservableDictionaryChangeType.Reset);
+                    observer.Messages.First().Value.Value.Key.Should().Be(default(int));
+                    observer.Messages.First().Value.Value.Value.Should().Be(default(string));
+                    observer.Messages.First().Value.Value.ReplacedValue.Should().Be(default(string));
+                    observer.Messages.First().Value.Value.ChangedPropertyName.Should().BeEmpty();
+                }
+                finally
+                {
+                    dictionaryChangesSubscription?.Dispose();
+                    resetsSubscription?.Dispose();
+                }
             }
         }
     }

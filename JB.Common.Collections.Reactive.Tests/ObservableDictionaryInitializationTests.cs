@@ -13,10 +13,12 @@ namespace JB.Collections.Reactive.Tests
         public void ShouldBeEmptyByDefault()
         {
             // when
-            using (var observableList = new ObservableDictionary<int, string>())
+            using (var observableDictionary = new ObservableDictionary<int, string>())
             {
                 // then
-                observableList.Count.Should().Be(0);
+                observableDictionary.IsEmpty.Should().Be(true); 
+                observableDictionary.Count.Should().Be(0);
+                observableDictionary.IsThrowingUnhandledObserverExceptions.Should().Be(true);
             }
         }
 
@@ -27,11 +29,12 @@ namespace JB.Collections.Reactive.Tests
             var initialList = new List<int>() { 1, 2, 3 }.ToDictionary(value => value, value => $"#{value}");
 
             // when
-            using (var observableList = new ObservableDictionary<int, string>(initialList))
+            using (var observableDictionary = new ObservableDictionary<int, string>(initialList))
             {
                 // then
-                observableList.Count.Should().Be(initialList.Count);
-                observableList.ShouldAllBeEquivalentTo(initialList);
+                observableDictionary.IsEmpty.Should().Be(false);
+                observableDictionary.Count.Should().Be(initialList.Count);
+                observableDictionary.ShouldAllBeEquivalentTo(initialList);
             }
         }
 
@@ -92,6 +95,68 @@ namespace JB.Collections.Reactive.Tests
 
             createdDictionary.Count.Should().Be(initialList.Count);
             createdDictionary.Should().ContainKeys(initialList.Select(keyValuePair => keyValuePair.Key), "Should contain all keys");
+        }
+
+        [Fact]
+        public void ShouldAllowDisablingOfIsThrowingUnhandledObserverExceptions()
+        {
+            // given
+            using (var observableDictionary = new ObservableDictionary<int, string>())
+            {
+                // when
+                observableDictionary.IsThrowingUnhandledObserverExceptions = false;
+
+                // then
+                observableDictionary.IsThrowingUnhandledObserverExceptions.Should().Be(false);
+            }
+        }
+
+        [Fact]
+        public void ShouldAllowMultipleConsecutiveDisablingsOfIsThrowingUnhandledObserverExceptions()
+        {
+            // given
+            using (var observableDictionary = new ObservableDictionary<int, string>())
+            {
+                // when
+                observableDictionary.IsThrowingUnhandledObserverExceptions = false;
+                observableDictionary.IsThrowingUnhandledObserverExceptions = false;
+                observableDictionary.IsThrowingUnhandledObserverExceptions = false;
+
+                // then
+                observableDictionary.IsThrowingUnhandledObserverExceptions.Should().Be(false);
+            }
+        }
+
+        [Fact]
+        public void ShouldAllowReEnablingOfIsThrowingUnhandledObserverExceptions()
+        {
+            // given
+            using (var observableDictionary = new ObservableDictionary<int, string>())
+            {
+                // when
+                observableDictionary.IsThrowingUnhandledObserverExceptions = false;
+                observableDictionary.IsThrowingUnhandledObserverExceptions = true;
+
+                // then
+                observableDictionary.IsThrowingUnhandledObserverExceptions.Should().Be(true);
+            }
+        }
+
+        [Fact]
+        public void ShouldAllowMultipleConsecutiveReEnablingsOfIsThrowingUnhandledObserverExceptions()
+        {
+            // given
+            using (var observableDictionary = new ObservableDictionary<int, string>())
+            {
+                // when
+                observableDictionary.IsThrowingUnhandledObserverExceptions = false;
+                observableDictionary.IsThrowingUnhandledObserverExceptions = true;
+                observableDictionary.IsThrowingUnhandledObserverExceptions = true;
+                observableDictionary.IsThrowingUnhandledObserverExceptions = true;
+
+                // then
+                observableDictionary.IsThrowingUnhandledObserverExceptions.Should().Be(true);
+            }
         }
     }
 }

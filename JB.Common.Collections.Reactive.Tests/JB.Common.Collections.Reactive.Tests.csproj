@@ -91,13 +91,16 @@
     </Compile>
     <Compile Include="MyNotifyPropertyChanged.cs" />
     <Compile Include="ObservableCollectionInitializationTests.cs" />
-    <Compile Include="ObservableDictionaryResetAndClearTests.cs" />
-    <Compile Include="ObservableDictionarySingleItemModificationsTests.cs" />
+    <Compile Include="ObservableDictionaryDisposalTests.cs" />
+    <Compile Include="ObservableDictionaryEventsTests.cs" />
+    <Compile Include="ObservableDictionaryExplicitImplementationsTests.cs" />
+    <Compile Include="ObservableDictionaryObservableTests.cs" />
+    <Compile Include="ObservableDictionaryModificationTests.cs" />
     <Compile Include="ObservableDictionaryInitializationTests.cs" />
     <Compile Include="ObservableListSingleItemModificationsTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ObservableListAddMultipleItemsTests.cs" />
-    <Compile Include="ObservableCollectionSingleItemModificationsTests.cs" />
+    <Compile Include="ObservableCollectionSingleItemTests.cs" />
     <Compile Include="ObservableListInitializationTests.cs" />
   </ItemGroup>
   <ItemGroup>

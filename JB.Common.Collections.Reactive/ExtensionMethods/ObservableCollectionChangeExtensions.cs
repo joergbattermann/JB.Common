@@ -32,7 +32,7 @@ namespace JB.Collections.Reactive.ExtensionMethods
                 case ObservableCollectionChangeType.ItemAdded:
                     return new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Add, observableCollectionChange.Item);
                 case ObservableCollectionChangeType.ItemChanged:
-                    return new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Replace, observableCollectionChange.Item);
+                    return new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Replace, observableCollectionChange.Item, observableCollectionChange.Item);
                 case ObservableCollectionChangeType.ItemRemoved:
                     return new NotifyCollectionChangedEventArgs(NotifyCollectionChangedAction.Remove, observableCollectionChange.Item);
                 case ObservableCollectionChangeType.Reset:
