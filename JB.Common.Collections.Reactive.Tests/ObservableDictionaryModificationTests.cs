@@ -680,7 +680,7 @@ namespace JB.Collections.Reactive.Tests
         }
 
         [Fact]
-        public void AddRangeOfKeyValuePairsThrowsOnNonexistingKeys()
+        public void AddRangeOfKeyValuePairsThrowsOnNonExistingKeys()
         {
             // given
             var keyValuePairs = Enumerable.Range(0, 2)
@@ -773,7 +773,7 @@ namespace JB.Collections.Reactive.Tests
         }
 
         [Fact]
-        public void RemoveRangeOfKeysThrowsOnNonexistingItems()
+        public void RemoveRangeOfKeysThrowsOnNonExistingItems()
         {
             // given
             using (var observableDictionary = new ObservableDictionary<int, string>())
@@ -791,7 +791,7 @@ namespace JB.Collections.Reactive.Tests
         }
 
         [Fact]
-        public void RemoveRangeOfKeyValuePairsThrowsOnNonexistingItems()
+        public void RemoveRangeOfKeyValuePairsThrowsOnNonExistingItems()
         {
             // given
             using (var observableDictionary = new ObservableDictionary<int, string>())
@@ -883,7 +883,7 @@ namespace JB.Collections.Reactive.Tests
         }
 
         [Fact]
-        public void TryRemoveOfKeyShouldNotThrowOnNonexistingItem()
+        public void TryRemoveOfKeyShouldNotThrowOnNonExistingItem()
         {
             // given
             using (var observableDictionary = new ObservableDictionary<int, string>())
@@ -919,7 +919,7 @@ namespace JB.Collections.Reactive.Tests
         }
 
         [Fact]
-        public void RemoveOfKeyShouldNotThrowOnNonexistingItem()
+        public void RemoveOfKeyShouldNotThrowOnNonExistingItem()
         {
             // given
             using (var observableDictionary = new ObservableDictionary<int, string>())
@@ -937,7 +937,7 @@ namespace JB.Collections.Reactive.Tests
         }
 
         [Fact]
-        public void RemoveOfKeyShouldReportBackCorrespondinglyOnNonexistingItems()
+        public void RemoveOfKeyShouldReportBackCorrespondinglyOnNonExistingItems()
         {
             // given
             using (var observableDictionary = new ObservableDictionary<int, string>())

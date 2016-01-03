@@ -10,15 +10,25 @@ namespace JB.Collections.Reactive.Tests
     public class ObservableDictionaryInitializationTests
     {
         [Fact]
-        public void ShouldBeEmptyByDefault()
+        public void ShouldBeEmptyAndTrackingEverythingByDefault()
         {
             // when
             using (var observableDictionary = new ObservableDictionary<int, string>())
             {
                 // then
-                observableDictionary.IsEmpty.Should().Be(true); 
                 observableDictionary.Count.Should().Be(0);
+
+                observableDictionary.IsEmpty.Should().Be(true);
+
+                observableDictionary.IsTrackingChanges.Should().Be(true);
+                observableDictionary.IsTrackingCountChanges.Should().Be(true);
+                observableDictionary.IsTrackingItemChanges.Should().Be(true);
+                observableDictionary.IsTrackingResets.Should().Be(true);
+
                 observableDictionary.IsThrowingUnhandledObserverExceptions.Should().Be(true);
+
+                observableDictionary.IsDisposing.Should().Be(false);
+                observableDictionary.IsDisposed.Should().Be(false);
             }
         }
 
