@@ -156,14 +156,15 @@ namespace JB.Collections.Reactive
 
             CheckForAndThrowIfDisposed();
 
+            var wasAdded = true;
             TValue oldValueIfReplaced = default(TValue);
-            var wasReplaced = false;
 
             InnerDictionary.AddOrUpdate(key, value, (usedKey, oldValue) =>
             {
                 // in case we get in here, which means the inner dictionary did already contain a value for the given key,
                 // remove the old value from property changed handling first at any circumstance as INPC hook will be (re-)added
                 // in the next step after AddOrUpdate (again)
+                wasAdded = false;
 
                 RemoveValueFromPropertyChangedHandling(oldValue);
 
@@ -172,23 +173,23 @@ namespace JB.Collections.Reactive
                 if (!AreTheSameValue(oldValue, value))
                 {
                     oldValueIfReplaced = oldValue;
-                    wasReplaced = true;
                 }
 
                 return value; // always return the 'new' value here as the old value shall never be kept.
             });
 
-            // hook up INPC handling to the value
+            // hook up INPC handling to the value (again)
             AddValueToPropertyChangedHandling(value);
 
             // signal change to subscribers
-            if (wasReplaced)
+            if (wasAdded)
             {
-                NotifySubscribersAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.ItemReplaced(key, value, oldValueIfReplaced));
+                NotifySubscribersAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.ItemAdded(key, value));
             }
             else
             {
-                NotifySubscribersAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.ItemAdded(key, value));
+                NotifySubscribersAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.ItemReplaced(key, value, oldValueIfReplaced));
+                
             }
         }
 
@@ -1583,7 +1584,15 @@ namespace JB.Collections.Reactive
         /// <returns>
         /// The number of elements in the collection. 
         /// </returns>
-        public virtual int Count => InnerDictionary.Count;
+        public virtual int Count
+        {
+            get
+            {
+                CheckForAndThrowIfDisposed();
+
+                return InnerDictionary.Count;
+            }
+        }
 
         #endregion
 
@@ -1765,7 +1774,7 @@ namespace JB.Collections.Reactive
         /// <returns>
         /// An enumerator that can be used to iterate through the collection.
         /// </returns>
-        public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator()
+        IEnumerator<KeyValuePair<TKey, TValue>> IEnumerable<KeyValuePair<TKey, TValue>>.GetEnumerator()
         {
             CheckForAndThrowIfDisposed();
 
@@ -1840,7 +1849,9 @@ namespace JB.Collections.Reactive
         /// </returns>
         IEnumerator IEnumerable.GetEnumerator()
         {
-            return GetEnumerator();
+            CheckForAndThrowIfDisposed();
+
+            return ((IEnumerable<KeyValuePair<TKey, TValue>>)this).GetEnumerator();
         }
 
         #endregion

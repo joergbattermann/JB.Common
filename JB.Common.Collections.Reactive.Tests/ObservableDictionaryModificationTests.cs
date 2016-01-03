@@ -11,6 +11,89 @@ namespace JB.Collections.Reactive.Tests
     public class ObservableDictionaryModificationTests
     {
         [Fact]
+        public void KeyIndexerSetAddsNewItem()
+        {
+            // given
+            var key = 1;
+            var value = "One";
+
+            using (var observableDictionary = new ObservableDictionary<int, string>())
+            {
+                // when
+                observableDictionary[key] = value;
+
+                // then check whether all items have been accounted for
+                observableDictionary.Count.Should().Be(1);
+                observableDictionary.Should().Contain(1, "One");
+
+                observableDictionary.Keys.Should().Contain(1);
+                observableDictionary.Values.Should().Contain("One");
+            }
+        }
+
+        [Fact]
+        public void KeyIndexerSetUpdatesValueForExistingKey()
+        {
+            // given
+            var initialKvPs = new List<KeyValuePair<int, string>>()
+            {
+                new KeyValuePair<int, string>(1, "One")
+            };
+
+            using (var observableDictionary = new ObservableDictionary<int, string>(initialKvPs))
+            {
+                // when
+                observableDictionary[1] = "Two";
+
+                // then check whether all items have been accounted for
+                observableDictionary.Count.Should().Be(1);
+                observableDictionary.Should().Contain(1, "Two");
+
+                observableDictionary.Keys.Should().Contain(1);
+                observableDictionary.Values.Should().Contain("Two");
+
+                observableDictionary.Values.Should().NotContain("One");
+            }
+        }
+
+        [Fact]
+        public void KeyIndexerGetGetsValueForExistingKey()
+        {
+            // given
+            var initialKvPs = new List<KeyValuePair<int, string>>()
+            {
+                new KeyValuePair<int, string>(1, "One")
+            };
+
+            // when
+            using (var observableDictionary = new ObservableDictionary<int, string>(initialKvPs))
+            {
+                // then
+                observableDictionary[1].Should().Be("One");
+            }
+        }
+
+        [Fact]
+        public void KeyIndexerGetShouldThrowForNonExistingKey()
+        {
+            // given
+            var initialKvPs = new List<KeyValuePair<int, string>>()
+            {
+                new KeyValuePair<int, string>(1, "One")
+            };
+
+            // when
+            using (var observableDictionary = new ObservableDictionary<int, string>(initialKvPs))
+            {
+                // when
+                Action action = () => { var value = observableDictionary[2]; };
+
+                // then
+                action.ShouldThrow<KeyNotFoundException>();
+            }
+        }
+
+        [Fact]
         public void ClearClearsDictionary()
         {
             // given
@@ -92,8 +175,6 @@ namespace JB.Collections.Reactive.Tests
             }
         }
 
-
-
         [Fact]
         public void AddOrUpdateAddsNewItem()
         {
@@ -129,6 +210,26 @@ namespace JB.Collections.Reactive.Tests
                 // then check whether all items have been accounted for
                 observableDictionary.Count.Should().Be(1);
                 observableDictionary.Should().Contain(1, "Two");
+            }
+        }
+
+        [Fact]
+        public void AddOrUpdateAllowsUpdateForExistingKeyWithSameValue()
+        {
+            // given
+            var initialKvPs = new List<KeyValuePair<int, string>>()
+            {
+                new KeyValuePair<int, string>(1, "One")
+            };
+
+            using (var observableDictionary = new ObservableDictionary<int, string>(initialKvPs))
+            {
+                // when
+                observableDictionary.AddOrUpdate(1, "One");
+
+                // then check whether all items have been accounted for
+                observableDictionary.Count.Should().Be(1);
+                observableDictionary.Should().Contain(1, "One");
             }
         }
 
@@ -206,8 +307,14 @@ namespace JB.Collections.Reactive.Tests
 
                 // then
                 updateResult.Should().Be(true);
+
                 observableDictionary.Count.Should().Be(1);
                 observableDictionary.Should().Contain(1, "Two");
+
+                observableDictionary.Keys.Should().Contain(1);
+
+                observableDictionary.Values.Should().NotContain("One");
+                observableDictionary.Values.Should().Contain("Two");
             }
         }
 
@@ -231,7 +338,7 @@ namespace JB.Collections.Reactive.Tests
                 observableDictionary.Should().Contain(1, "One");
             }
         }
-
+        
         [Fact]
         public void AddAddsItem()
         {
@@ -247,6 +354,9 @@ namespace JB.Collections.Reactive.Tests
                 // then check whether all items have been accounted for
                 observableDictionary.Count.Should().Be(1);
                 observableDictionary.Should().Contain(1, "One");
+
+                observableDictionary.Keys.Should().Contain(1);
+                observableDictionary.Values.Should().Contain("One");
             }
         }
 
@@ -968,6 +1078,9 @@ namespace JB.Collections.Reactive.Tests
                 // then check whether all items have been accounted for
                 observableDictionary.Count.Should().Be(0);
                 observableDictionary.Should().NotContain(1, "One");
+
+                observableDictionary.Keys.Should().NotContain(1);
+                observableDictionary.Values.Should().NotContain("One");
             }
         }
 

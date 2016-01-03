@@ -18,6 +18,9 @@ namespace JB.Collections.Reactive.Tests
                 // then
                 observableDictionary.Count.Should().Be(0);
 
+                observableDictionary.Keys.Should().BeEmpty();
+                observableDictionary.Values.Should().BeEmpty();
+
                 observableDictionary.IsEmpty.Should().Be(true);
 
                 observableDictionary.IsTrackingChanges.Should().Be(true);
@@ -29,6 +32,44 @@ namespace JB.Collections.Reactive.Tests
 
                 observableDictionary.IsDisposing.Should().Be(false);
                 observableDictionary.IsDisposed.Should().Be(false);
+            }
+        }
+
+        [Theory]
+        [InlineData(1)]
+        [InlineData(10)]
+        [InlineData(100)]
+        public void KeysShouldContainAllInitialKeys(int itemsInDictionary)
+        {
+            // given
+            var keyValuePairs = Enumerable.Range(0, itemsInDictionary)
+                            .Select(i => new KeyValuePair<int, string>(i, $"#{i}"))
+                            .ToList();
+
+            // when
+            using (var observableDictionary = new ObservableDictionary<int, string>(keyValuePairs))
+            {
+                // then
+                observableDictionary.Keys.Should().Contain(keyValuePairs.Select(kvp => kvp.Key));
+            }
+        }
+
+        [Theory]
+        [InlineData(1)]
+        [InlineData(10)]
+        [InlineData(100)]
+        public void ValuesShouldContainAllInitialValues(int itemsInDictionary)
+        {
+            // given
+            var keyValuePairs = Enumerable.Range(0, itemsInDictionary)
+                            .Select(i => new KeyValuePair<int, string>(i, $"#{i}"))
+                            .ToList();
+
+            // when
+            using (var observableDictionary = new ObservableDictionary<int, string>(keyValuePairs))
+            {
+                // then
+                observableDictionary.Values.Should().Contain(keyValuePairs.Select(kvp => kvp.Value));
             }
         }
 

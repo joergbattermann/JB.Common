@@ -42,13 +42,9 @@ namespace JB.Collections.Reactive.Tests
             Action isDisposingPropertyAccess = () => { var isDisposing = observableDictionary.IsDisposing; };
             Action isDisposedPropertyAccess = () => { var isDisposed = observableDictionary.IsDisposed; };
 
-            Action countPropertyAccess = () => { var count = observableDictionary.Count; };
-
             // then
             isDisposingPropertyAccess.ShouldNotThrow<ObjectDisposedException>();
             isDisposedPropertyAccess.ShouldNotThrow<ObjectDisposedException>();
-
-            countPropertyAccess.ShouldNotThrow<ObjectDisposedException>();
         }
 
         [Fact]
@@ -59,6 +55,8 @@ namespace JB.Collections.Reactive.Tests
             observableDictionary.Dispose();
 
             // when
+            Action countPropertyAccess = () => { var count = observableDictionary.Count; };
+
             Action isTrackingChangesPropertyAccess = () => { var isTrackingChanges = observableDictionary.IsTrackingChanges; };
             Action isTrackingCountChangesPropertyAccess = () => { var isTrackingCountChanges = observableDictionary.IsTrackingCountChanges; };
             Action isTrackingItemChangesPropertyAccess = () => { var isTrackingItemChanges = observableDictionary.IsTrackingItemChanges; };
@@ -74,6 +72,8 @@ namespace JB.Collections.Reactive.Tests
             Action thresholdAmountWhenItemChangesAreNotifiedAsResetPropertySetAccess = () => { observableDictionary.ThresholdAmountWhenItemChangesAreNotifiedAsReset = 1; };
 
             // then
+            countPropertyAccess.ShouldThrow<ObjectDisposedException>();
+
             isTrackingChangesPropertyAccess.ShouldThrow<ObjectDisposedException>();
             isTrackingCountChangesPropertyAccess.ShouldThrow<ObjectDisposedException>();
             isTrackingItemChangesPropertyAccess.ShouldThrow<ObjectDisposedException>();
@@ -87,6 +87,34 @@ namespace JB.Collections.Reactive.Tests
 
             keysPropertyAccess.ShouldThrow<ObjectDisposedException>();
             valuesPropertyAccess.ShouldThrow<ObjectDisposedException>();
+        }
+
+        [Fact]
+        public void ShouldThrowDisposedExceptionWhenGettingValueViaKeyIndexerAfterDisposal()
+        {
+            // given
+            var observableDictionary = new ObservableDictionary<int, string>();
+            observableDictionary.Dispose();
+
+            // when
+            Action action = () => { var value = observableDictionary[1]; };
+
+            // then
+            action.ShouldThrow<ObjectDisposedException>();
+        }
+
+        [Fact]
+        public void ShouldThrowDisposedExceptionWhenSettingValueViaKeyIndexerAfterDisposal()
+        {
+            // given
+            var observableDictionary = new ObservableDictionary<int, string>();
+            observableDictionary.Dispose();
+
+            // when
+            Action action = () => { observableDictionary[1] = "One"; };
+
+            // then
+            action.ShouldThrow<ObjectDisposedException>();
         }
     }
 }
