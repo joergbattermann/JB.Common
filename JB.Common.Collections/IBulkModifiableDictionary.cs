@@ -10,15 +10,21 @@ namespace JB.Collections
     public interface IBulkModifiableDictionary<TKey, TValue> : IDictionary<TKey, TValue>
     {
         /// <summary>
-        /// Adds a range of items.
+        /// Adds a range of key/value pair(s).
         /// </summary>
         /// <param name="items">The items to add.</param>
         void AddRange(IEnumerable<KeyValuePair<TKey, TValue>> items);
 
         /// <summary>
-        /// Removes the specified items.
+        /// Removes the specified key/value pair(s).
         /// </summary>
         /// <param name="items">The items to remove.</param>
         void RemoveRange(IEnumerable<KeyValuePair<TKey, TValue>> items);
+
+        /// <summary>
+        /// Removes the items for the provided <paramref name="keys"/>.
+        /// </summary>
+        /// <param name="keys">The keys.</param>
+        void RemoveRange(IEnumerable<TKey> keys);
     }
 }

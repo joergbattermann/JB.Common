@@ -8,7 +8,7 @@ using Xunit;
 
 namespace JB.Collections.Reactive.Tests
 {
-    public class ObservableDictionaryObservableTests
+    public class ObservableDictionaryNotificationTests
     {
         [Theory]
         [InlineData(10, 10)]

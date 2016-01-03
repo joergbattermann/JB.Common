@@ -94,7 +94,7 @@
     <Compile Include="ObservableDictionaryDisposalTests.cs" />
     <Compile Include="ObservableDictionaryEventsTests.cs" />
     <Compile Include="ObservableDictionaryExplicitImplementationsTests.cs" />
-    <Compile Include="ObservableDictionaryObservableTests.cs" />
+    <Compile Include="ObservableDictionaryNotificationTests.cs" />
     <Compile Include="ObservableDictionaryModificationTests.cs" />
     <Compile Include="ObservableDictionaryInitializationTests.cs" />
     <Compile Include="ObservableListSingleItemModificationsTests.cs" />
