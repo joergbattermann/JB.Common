@@ -40,7 +40,7 @@ namespace JB.Collections.Reactive.Tests
         }
 
         [Fact]
-        public void ShouldNotThrowDisposedExceptionWhenAccessingInfrastructureRelevantPropertiesAfterDisposal()
+        public void AccessingInfrastructureRelevantPropertiesAfterDisposalShouldNotThrowDisposedException()
         {
             // given
             var observableDictionary = new ObservableDictionary<int, string>();
@@ -56,7 +56,7 @@ namespace JB.Collections.Reactive.Tests
         }
 
         [Fact]
-        public void ShouldThrowDisposedExceptionWhenAccessingPropertiesAfterDisposal()
+        public void AccessingPropertiesAfterDisposalShouldThrowDisposedException()
         {
             // given
             var observableDictionary = new ObservableDictionary<int, string>();
@@ -98,7 +98,7 @@ namespace JB.Collections.Reactive.Tests
         }
 
         [Fact]
-        public void ShouldThrowDisposedExceptionWhenGettingValueViaKeyIndexerAfterDisposal()
+        public void KeyIndexerValueGetShouldThrowDisposedExceptionAfterDisposal()
         {
             // given
             var observableDictionary = new ObservableDictionary<int, string>();
@@ -112,7 +112,7 @@ namespace JB.Collections.Reactive.Tests
         }
 
         [Fact]
-        public void ShouldThrowDisposedExceptionWhenSettingValueViaKeyIndexerAfterDisposal()
+        public void KeyIndexerValueSetShouldThrowDisposedExceptionAfterDisposal()
         {
             // given
             var observableDictionary = new ObservableDictionary<int, string>();
@@ -120,6 +120,52 @@ namespace JB.Collections.Reactive.Tests
 
             // when
             Action action = () => { observableDictionary[1] = "One"; };
+
+            // then
+            action.ShouldThrow<ObjectDisposedException>();
+        }
+
+        [Fact]
+        public void TryGetShouldThrowDisposedExceptionAfterDisposal()
+        {
+            // given
+            var observableDictionary = new ObservableDictionary<string, string>();
+            observableDictionary.Dispose();
+            // when
+            string value;
+            Action action = () => observableDictionary.TryGetValue("One", out value);
+
+            // then
+            action.ShouldThrow<ObjectDisposedException>();  
+        }
+
+        [Fact]
+        public void ContainsKeyShouldThrowDisposedExceptionAfterDisposal()
+        {
+            // given
+            var observableDictionary = new ObservableDictionary<string, string>();
+            observableDictionary.Dispose();
+            // when
+            Action action = () =>
+            {
+                var value = observableDictionary.ContainsKey("One");
+            };
+
+            // then
+            action.ShouldThrow<ObjectDisposedException>();
+        }
+
+        [Fact]
+        public void ClearShouldThrowDisposedExceptionAfterDisposal()
+        {
+            // given
+            var observableDictionary = new ObservableDictionary<string, string>();
+            observableDictionary.Dispose();
+            // when
+            Action action = () =>
+            {
+                observableDictionary.Clear();
+            };
 
             // then
             action.ShouldThrow<ObjectDisposedException>();

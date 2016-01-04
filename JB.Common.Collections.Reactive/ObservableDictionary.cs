@@ -1627,9 +1627,6 @@ namespace JB.Collections.Reactive
             if (!(key is TKey))
                 throw new ArgumentOutOfRangeException(nameof(key), $"Must be an instance of {typeof(TKey).Name}");
 
-            if (!(value is TValue))
-                throw new ArgumentOutOfRangeException(nameof(value), $"Must be an instance of {typeof(TValue).Name}");
-
             Add((TKey)key, (TValue)value);
         }
 
@@ -1677,7 +1674,7 @@ namespace JB.Collections.Reactive
             get
             {
                 CheckForAndThrowIfDisposed();
-
+                
                 return ((IDictionary)InnerDictionary).Values;
             }
         }
@@ -1743,10 +1740,10 @@ namespace JB.Collections.Reactive
 
                 CheckForAndThrowIfDisposed();
 
-                if (key is TKey)
+                if ((key is TKey))
                     return this[(TKey) key];
 
-                return (object)null;
+                return null;
             }
             set
             {
@@ -1945,12 +1942,16 @@ namespace JB.Collections.Reactive
         {
             get
             {
+                if (key == null) throw new ArgumentNullException(nameof(key));
+
                 CheckForAndThrowIfDisposed();
 
                 return InnerDictionary[key];
             }
             set
             {
+                if (key == null) throw new ArgumentNullException(nameof(key));
+
                 CheckForAndThrowIfDisposed();
 
                 AddOrUpdate(key, value);

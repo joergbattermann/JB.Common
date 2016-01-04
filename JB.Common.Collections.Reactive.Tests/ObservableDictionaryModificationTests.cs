@@ -30,10 +30,10 @@ namespace JB.Collections.Reactive.Tests
 
                 // then check whether all items have been accounted for
                 observableDictionary.Count.Should().Be(1);
-                observableDictionary.Should().Contain(1, "One");
+                observableDictionary.Should().Contain(key, value);
 
-                observableDictionary.Keys.Should().Contain(1);
-                observableDictionary.Values.Should().Contain("One");
+                observableDictionary.Keys.Should().Contain(key);
+                observableDictionary.Values.Should().Contain(value);
             }
         }
 
@@ -76,7 +76,7 @@ namespace JB.Collections.Reactive.Tests
         }
 
         [Fact]
-        public void AddOrUpdateShouldNotThrowOnDefaultValue()
+        public void AddOrUpdateShouldAllowUpdateWithDefaultValue()
         {
             // given
             var initialKvPs = new List<KeyValuePair<string, string>>()
@@ -85,6 +85,23 @@ namespace JB.Collections.Reactive.Tests
             };
 
             using (var observableDictionary = new ObservableDictionary<string, string>(initialKvPs))
+            {
+                // when
+                Action action = () => observableDictionary.AddOrUpdate("1", default(string));
+
+                // then
+                action.ShouldNotThrow<ArgumentNullException>();
+
+                observableDictionary.Count.Should().Be(1);
+                observableDictionary.Should().Contain("1", default(string));
+            }
+        }
+
+        [Fact]
+        public void AddOrUpdateShouldAllowAddWithDefaultValue()
+        {
+            // given
+            using (var observableDictionary = new ObservableDictionary<string, string>())
             {
                 // when
                 Action action = () => observableDictionary.AddOrUpdate("1", default(string));
@@ -230,7 +247,7 @@ namespace JB.Collections.Reactive.Tests
         }
 
         [Fact]
-        public void AddThrowsOnNullKey()
+        public void AddShouldThrowOnNullKey()
         {
             // given
             using (var observableDictionary = new ObservableDictionary<string, string>())
@@ -301,6 +318,50 @@ namespace JB.Collections.Reactive.Tests
 
                 // then
                 action.ShouldThrow<KeyNotFoundException>();
+            }
+        }
+
+        [Fact]
+        public void KeyIndexerGetShouldThrowForNullKey()
+        {
+            // given
+            var initialKvPs = new List<KeyValuePair<string, string>>()
+            {
+                new KeyValuePair<string, string>("1", "One")
+            };
+
+            // when
+            using (var observableDictionary = new ObservableDictionary<string, string>(initialKvPs))
+            {
+                // when
+                Action action = () => { var value = observableDictionary[null]; };
+
+                // then
+                action
+                    .ShouldThrow<ArgumentNullException>()
+                    .WithMessage("Value cannot be null.\r\nParameter name: key");
+            }
+        }
+
+        [Fact]
+        public void KeyIndexerSetShouldThrowForNullKey()
+        {
+            // given
+            var initialKvPs = new List<KeyValuePair<string, string>>()
+            {
+                new KeyValuePair<string, string>("1", "One")
+            };
+
+            // when
+            using (var observableDictionary = new ObservableDictionary<string, string>(initialKvPs))
+            {
+                // when
+                Action action = () => { observableDictionary[null] = "Two"; };
+
+                // then
+                action
+                    .ShouldThrow<ArgumentNullException>()
+                    .WithMessage("Value cannot be null.\r\nParameter name: key");
             }
         }
 
@@ -377,7 +438,12 @@ namespace JB.Collections.Reactive.Tests
         public void RemoveOfKeyShouldNotThrowOnNonExistingItem()
         {
             // given
-            using (var observableDictionary = new ObservableDictionary<int, string>())
+            var initialKvPs = new List<KeyValuePair<int, string>>()
+            {
+                new KeyValuePair<int, string>(1, "One"),
+                new KeyValuePair<int, string>(2, "Two")
+            };
+            using (var observableDictionary = new ObservableDictionary<int, string>(initialKvPs))
             {
                 // when
                 Action invalidRemoveRangeForNonExistingKey = () => observableDictionary.Remove(10);
@@ -387,7 +453,7 @@ namespace JB.Collections.Reactive.Tests
                 invalidRemoveRangeForNonExistingKey
                     .ShouldNotThrow<ArgumentOutOfRangeException>();
 
-                observableDictionary.Count.Should().Be(0);
+                observableDictionary.Count.Should().Be(2);
             }
         }
 
@@ -395,14 +461,19 @@ namespace JB.Collections.Reactive.Tests
         public void RemoveOfKeyShouldReportBackCorrespondinglyOnNonExistingItems()
         {
             // given
-            using (var observableDictionary = new ObservableDictionary<int, string>())
+            var initialKvPs = new List<KeyValuePair<int, string>>()
+            {
+                new KeyValuePair<int, string>(1, "One"),
+                new KeyValuePair<int, string>(2, "Two")
+            };
+            using (var observableDictionary = new ObservableDictionary<int, string>(initialKvPs))
             {
                 // when
                 var removalResult = observableDictionary.Remove(10);
 
                 // then
                 removalResult.Should().Be(false);
-                observableDictionary.Count.Should().Be(0);
+                observableDictionary.Count.Should().Be(2);
             }
         }
 
@@ -410,7 +481,12 @@ namespace JB.Collections.Reactive.Tests
         public void RemoveOfKeyThrowsOnNullKey()
         {
             // given
-            using (var observableDictionary = new ObservableDictionary<string, string>())
+            var initialKvPs = new List<KeyValuePair<string, string>>()
+            {
+                new KeyValuePair<string, string>("1", "One"),
+                new KeyValuePair<string, string>("2", "Two")
+            };
+            using (var observableDictionary = new ObservableDictionary<string, string>(initialKvPs))
             {
                 // when
                 Action action = () => observableDictionary.Remove((string) null);
@@ -420,7 +496,7 @@ namespace JB.Collections.Reactive.Tests
                     .ShouldThrow<ArgumentNullException>()
                     .WithMessage("Value cannot be null.\r\nParameter name: key");
 
-                observableDictionary.Count.Should().Be(0);
+                observableDictionary.Count.Should().Be(2);
             }
         }
 
@@ -708,6 +784,60 @@ namespace JB.Collections.Reactive.Tests
                 {
                     observableDictionary.Should().Contain(keyValuePair);
                 }
+            }
+        }
+
+        [Fact]
+        public void ContainsKeyShouldReturnFalseForNonExistingKey()
+        {
+            // given
+            var initialKvPs = new List<KeyValuePair<int, string>>()
+            {
+                new KeyValuePair<int, string>(1, "One")
+            };
+
+            using (var observableDictionary = new ObservableDictionary<int, string>(initialKvPs))
+            {
+                // when
+                var result = observableDictionary.ContainsKey(2);
+
+                // then
+                result.Should().Be(false);
+            }
+        }
+
+        [Fact]
+        public void ContainsKeyShouldReturnTrueForExistingKey()
+        {
+            // given
+            var initialKvPs = new List<KeyValuePair<int, string>>()
+            {
+                new KeyValuePair<int, string>(1, "One")
+            };
+
+            using (var observableDictionary = new ObservableDictionary<int, string>(initialKvPs))
+            {
+                // when
+                var result = observableDictionary.ContainsKey(1);
+
+                // then
+                result.Should().Be(true);
+            }
+        }
+
+        [Fact]
+        public void ContainsKeyThrowsOnNullKey()
+        {
+            // given
+            using (var observableDictionary = new ObservableDictionary<string, string>())
+            {
+                // when
+                Action retrieval = () => observableDictionary.ContainsKey((string)null);
+
+                // then
+                retrieval
+                    .ShouldThrow<ArgumentNullException>()
+                    .WithMessage("Value cannot be null.\r\nParameter name: key");
             }
         }
 
