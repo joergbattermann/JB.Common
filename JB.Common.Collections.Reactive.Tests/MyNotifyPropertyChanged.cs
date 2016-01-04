@@ -1,6 +1,6 @@
 ﻿// -----------------------------------------------------------------------
 // <copyright file="MyNotifyPropertyChanged.cs" company="Joerg Battermann">
-//   Copyright (c) 2015 Joerg Battermann. All rights reserved.
+//   Copyright (c) 2016 Joerg Battermann. All rights reserved.
 // </copyright>
 // <author>Joerg Battermann</author>
 // <summary></summary>
@@ -18,26 +18,10 @@ namespace JB.Collections.Reactive.Tests
         private TValue _secondProperty;
 
         /// <summary>
-        /// Gets the comparer.
+        ///     Gets or sets the first property.
         /// </summary>
         /// <value>
-        /// The comparer.
-        /// </value>
-        private IEqualityComparer<TValue> ValueComparer { get; }
-
-        /// <summary>
-        /// Gets the key.
-        /// </summary>
-        /// <value>
-        /// The key.
-        /// </value>
-        public TKey Key { get; }
-
-        /// <summary>
-        /// Gets or sets the first property.
-        /// </summary>
-        /// <value>
-        /// The first property.
+        ///     The first property.
         /// </value>
         public TValue FirstProperty
         {
@@ -56,10 +40,18 @@ namespace JB.Collections.Reactive.Tests
         }
 
         /// <summary>
-        /// Gets or sets the second property.
+        ///     Gets the key.
         /// </summary>
         /// <value>
-        /// The second property.
+        ///     The key.
+        /// </value>
+        public TKey Key { get; }
+
+        /// <summary>
+        ///     Gets or sets the second property.
+        /// </summary>
+        /// <value>
+        ///     The second property.
         /// </value>
         public TValue SecondProperty
         {
@@ -78,12 +70,15 @@ namespace JB.Collections.Reactive.Tests
         }
 
         /// <summary>
-        /// Occurs when [property changed].
+        ///     Gets the comparer.
         /// </summary>
-        public event PropertyChangedEventHandler PropertyChanged;
+        /// <value>
+        ///     The comparer.
+        /// </value>
+        private IEqualityComparer<TValue> ValueComparer { get; }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="MyNotifyPropertyChanged{TKey,TValue}" /> class.
+        ///     Initializes a new instance of the <see cref="MyNotifyPropertyChanged{TKey,TValue}" /> class.
         /// </summary>
         /// <param name="key">The key.</param>
         /// <param name="firstProperty">The first property.</param>
@@ -100,7 +95,12 @@ namespace JB.Collections.Reactive.Tests
         }
 
         /// <summary>
-        /// Raises the <see cref="PropertyChanged"/> event.
+        ///     Occurs when [property changed].
+        /// </summary>
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        /// <summary>
+        ///     Raises the <see cref="PropertyChanged" /> event.
         /// </summary>
         /// <param name="propertyName">Name of the property.</param>
         private void RaisePropertyChanged([CallerMemberName] string propertyName = null)

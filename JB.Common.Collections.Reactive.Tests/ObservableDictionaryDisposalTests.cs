@@ -1,3 +1,11 @@
+// -----------------------------------------------------------------------
+// <copyright file="ObservableDictionaryDisposalTests.cs" company="Joerg Battermann">
+//   Copyright (c) 2016 Joerg Battermann. All rights reserved.
+// </copyright>
+// <author>Joerg Battermann</author>
+// <summary></summary>
+// -----------------------------------------------------------------------
+
 using System;
 using FluentAssertions;
 using Xunit;

@@ -1,6 +1,6 @@
 ﻿// -----------------------------------------------------------------------
-// <copyright file="ReactiveListAddItemsTests.cs" company="Joerg Battermann">
-//   Copyright (c) 2015 Joerg Battermann. All rights reserved.
+// <copyright file="ObservableCollectionSingleItemTests.cs" company="Joerg Battermann">
+//   Copyright (c) 2016 Joerg Battermann. All rights reserved.
 // </copyright>
 // <author>Joerg Battermann</author>
 // <summary></summary>
@@ -10,7 +10,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using FluentAssertions;
-using Microsoft.Reactive.Testing;
 using Xunit;
 
 namespace JB.Collections.Reactive.Tests
@@ -47,7 +46,7 @@ namespace JB.Collections.Reactive.Tests
                 countChangesCalled.Should().Be(observableCollection.Count);
             }
         }
-        
+
         [Theory]
         [InlineData(1, 1)]
         [InlineData(10, 100)]
@@ -55,7 +54,7 @@ namespace JB.Collections.Reactive.Tests
         public void AddingSingleItemsForNonEmptyListIncreasesCountTest(int lowerLimit, int upperLimit)
         {
             // given
-            var initialList = new List<int>() {1,2,3};
+            var initialList = new List<int>() {1, 2, 3};
             int observableReportedCount = initialList.Count;
             int countChangesCalled = 0;
 
@@ -68,12 +67,12 @@ namespace JB.Collections.Reactive.Tests
                     observableReportedCount = i;
                     countChangesCalled++;
                 });
-                
+
                 for (int i = lowerLimit; i <= upperLimit; i++)
                 {
                     observableCollection.Add(i);
                 }
-                
+
                 // then check whether all items have been accounted for
                 var expectedCountChangesCalls = ((upperLimit == lowerLimit) ? 1 : (upperLimit - lowerLimit + 1));
                 var expectedCount = expectedCountChangesCalls + initialList.Count;
@@ -91,7 +90,7 @@ namespace JB.Collections.Reactive.Tests
         [InlineData(1, 0)]
         public void RemoveSingleItemsFromListDecreasesCountTest(int initialListSize, int amountOfItemsToRemove)
         {
-            if(amountOfItemsToRemove > initialListSize)
+            if (amountOfItemsToRemove > initialListSize)
                 throw new ArgumentOutOfRangeException(nameof(amountOfItemsToRemove), $"Must be less than {nameof(initialListSize)}");
 
             // given

@@ -1,3 +1,11 @@
+// -----------------------------------------------------------------------
+// <copyright file="ObservableCollectionInitializationTests.cs" company="Joerg Battermann">
+//   Copyright (c) 2016 Joerg Battermann. All rights reserved.
+// </copyright>
+// <author>Joerg Battermann</author>
+// <summary></summary>
+// -----------------------------------------------------------------------
+
 using System.Collections.Generic;
 using FluentAssertions;
 using Xunit;
@@ -10,7 +18,7 @@ namespace JB.Collections.Reactive.Tests
         public void ShouldContainAllInitiallyProvidedElements()
         {
             // given
-            var initialList = new List<int>() { 1, 2, 3 };
+            var initialList = new List<int>() {1, 2, 3};
 
             // when
             using (var observableCollection = new ObservableCollection<int>(initialList))

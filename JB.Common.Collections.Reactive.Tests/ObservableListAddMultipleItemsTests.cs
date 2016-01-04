@@ -1,4 +1,12 @@
-﻿using System;
+﻿// -----------------------------------------------------------------------
+// <copyright file="ObservableListAddMultipleItemsTests.cs" company="Joerg Battermann">
+//   Copyright (c) 2016 Joerg Battermann. All rights reserved.
+// </copyright>
+// <author>Joerg Battermann</author>
+// <summary></summary>
+// -----------------------------------------------------------------------
+
+using System;
 using System.Linq;
 using System.Reactive;
 using System.Reactive.Concurrency;
@@ -100,7 +108,7 @@ namespace JB.Collections.Reactive.Tests
                         recordedMessages.All(message => message.Value.Value.ChangeType == (shouldBeReset ? ObservableCollectionChangeType.Reset : ObservableCollectionChangeType.ItemAdded)));
 
                 testObserverResets.Messages.Count.Should().Be(shouldBeReset ? 1 : 0);
-            } 
+            }
         }
 
         [Theory]
