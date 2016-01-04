@@ -85,6 +85,8 @@ namespace JB.Collections.Reactive
 
             ThresholdAmountWhenItemChangesAreNotifiedAsReset = 100;
 
+            IsThrowingUnhandledObserverExceptions = true;
+
             IsTrackingChanges = true;
             IsTrackingItemChanges = true;
             IsTrackingCountChanges = true;
@@ -296,7 +298,7 @@ namespace JB.Collections.Reactive
         /// <value>
         /// <c>true</c> if this instance is notifying about unhandled observer exceptions; otherwise, <c>false</c>.
         /// </value>
-        public virtual bool IsThrowingUnhandledObserverExceptions
+        public bool IsThrowingUnhandledObserverExceptions
         {
             get
             {
