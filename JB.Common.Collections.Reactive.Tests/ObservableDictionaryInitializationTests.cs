@@ -146,6 +146,39 @@ namespace JB.Collections.Reactive.Tests
             }
         }
 
+        [Theory]
+        [InlineData(0)]
+        [InlineData(1)]
+        [InlineData(Int32.MaxValue)]
+        public void ShouldAllowZeroOrHigherValuesForThresholdAmountWhenItemChangesAreNotifiedAsReset(int value)
+        {
+            // given
+            using (var observableDictionary = new ObservableDictionary<int, string>())
+            {
+                // when
+                observableDictionary.ThresholdAmountWhenItemChangesAreNotifiedAsReset = value;
+
+                // then
+                observableDictionary.ThresholdAmountWhenItemChangesAreNotifiedAsReset.Should().Be(value);
+            }
+        }
+
+        [Fact]
+        public void ShouldThrowForThresholdAmountWhenItemChangesAreNotifiedAsResetValueLessThanZero()
+        {
+            // given
+            using (var observableDictionary = new ObservableDictionary<int, string>())
+            {
+                // when
+                Action action = () => observableDictionary.ThresholdAmountWhenItemChangesAreNotifiedAsReset = -1;
+
+                // then
+                action
+                    .ShouldThrow<ArgumentOutOfRangeException>()
+                    .WithMessage("Must be 0 or higher.\r\nParameter name: value");
+            }
+        }
+
         [Fact]
         public void ShouldContainAllInitiallyProvidedElements()
         {

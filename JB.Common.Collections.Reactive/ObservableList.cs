@@ -83,7 +83,7 @@ namespace JB.Collections.Reactive
         /// <param name="observableListChange">The observable list change.</param>
         protected virtual void NotifySubscribersAboutListChanges(IObservableListChange<T> observableListChange)
         {
-            // This is similar to what ObservableCollection implements via its NotifySubscribersAboutCollectionChanges method,
+            // This is similar to what ObservableCollection implements via its NotifyObserversAboutCollectionChanges method,
             // however:
             // - no need to handle count-relevant changes because the underlying ObservableCollection takes care of this
             // - no (extra) (Raise)CollectionChanged call here, again.. already done by the ObservableCollection

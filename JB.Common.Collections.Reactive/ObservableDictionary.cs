@@ -184,11 +184,11 @@ namespace JB.Collections.Reactive
             // signal change to subscribers
             if (wasAdded)
             {
-                NotifySubscribersAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.ItemAdded(key, value));
+                NotifyObserversAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.ItemAdded(key, value));
             }
             else
             {
-                NotifySubscribersAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.ItemReplaced(key, value, oldValueIfReplaced));
+                NotifyObserversAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.ItemReplaced(key, value, oldValueIfReplaced));
                 
             }
         }
@@ -211,7 +211,7 @@ namespace JB.Collections.Reactive
             AddValueToPropertyChangedHandling(value);
 
             if (notifyObserversAboutChange)
-                NotifySubscribersAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.ItemAdded(key, value));
+                NotifyObserversAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.ItemAdded(key, value));
         }
 
         /// <summary>
@@ -279,7 +279,7 @@ namespace JB.Collections.Reactive
                 AddValueToPropertyChangedHandling(value);
 
                 if (notifyObserversAboutChange)
-                    NotifySubscribersAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.ItemAdded(key, value));
+                    NotifyObserversAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.ItemAdded(key, value));
             }
 
             return wasAdded;
@@ -338,13 +338,13 @@ namespace JB.Collections.Reactive
             useResetInsteadOfIndividualChanges = IsItemsChangedAmountGreaterThanResetThreshold(itemsThatCouldBeAdded.Count, ThresholdAmountWhenItemChangesAreNotifiedAsReset);
             if (useResetInsteadOfIndividualChanges)
             {
-                NotifySubscribersAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.Reset());
+                NotifyObserversAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.Reset());
             }
             else
             {
                 foreach (var keyValuePair in itemsThatCouldBeAdded)
                 {
-                    NotifySubscribersAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.ItemAdded(keyValuePair.Key, keyValuePair.Value));
+                    NotifyObserversAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.ItemAdded(keyValuePair.Key, keyValuePair.Value));
                 }
             }
 
@@ -393,7 +393,7 @@ namespace JB.Collections.Reactive
 
                 if (notifyObserversAboutChange)
                 {
-                    NotifySubscribersAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.ItemRemoved(key, value));
+                    NotifyObserversAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.ItemRemoved(key, value));
                 }
             }
 
@@ -462,13 +462,13 @@ namespace JB.Collections.Reactive
             useResetInsteadOfIndividualChanges = IsItemsChangedAmountGreaterThanResetThreshold(keyValuePairsThatCouldBeRemoved.Count, ThresholdAmountWhenItemChangesAreNotifiedAsReset);
             if (useResetInsteadOfIndividualChanges)
             {
-                NotifySubscribersAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.Reset());
+                NotifyObserversAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.Reset());
             }
             else
             {
                 foreach (var keyValuePair in keyValuePairsThatCouldBeRemoved)
                 {
-                    NotifySubscribersAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.ItemRemoved(keyValuePair.Key, keyValuePair.Value));
+                    NotifyObserversAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.ItemRemoved(keyValuePair.Key, keyValuePair.Value));
                 }
             }
 
@@ -527,13 +527,13 @@ namespace JB.Collections.Reactive
             useResetInsteadOfIndividualChanges = IsItemsChangedAmountGreaterThanResetThreshold(keysThatCouldBeRemoved.Count, ThresholdAmountWhenItemChangesAreNotifiedAsReset);
             if (useResetInsteadOfIndividualChanges)
             {
-                NotifySubscribersAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.Reset());
+                NotifyObserversAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.Reset());
             }
             else
             {
                 foreach (var keyValuePair in keysThatCouldBeRemoved)
                 {
-                    NotifySubscribersAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.ItemRemoved(keyValuePair.Key, keyValuePair.Value));
+                    NotifyObserversAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.ItemRemoved(keyValuePair.Key, keyValuePair.Value));
                 }
             }
 
@@ -559,13 +559,15 @@ namespace JB.Collections.Reactive
         }
 
         /// <summary>
-        /// Attempts to update the value that has the specified key from the <see cref="ObservableDictionary{TKey,TValue}"/>.
+        /// Attempts to update the value that has the specified key from the <see cref="ObservableDictionary{TKey,TValue}" />.
         /// </summary>
+        /// <param name="key">The key of the element to update.</param>
+        /// <param name="newValue">The new value.</param>
         /// <returns>
         /// true if the object was updated successfully; otherwise, false.
         /// </returns>
-        /// <param name="key">The key of the element to update.</param>
-        /// <exception cref="T:System.ArgumentNullException"><paramref name="key"/> is null.</exception>
+        /// <exception cref="System.ArgumentNullException"></exception>
+        /// <exception cref="T:System.ArgumentNullException"><paramref name="key" /> is null.</exception>
         public virtual bool TryUpdate(TKey key, TValue newValue)
         {
             if (key == null) throw new ArgumentNullException(nameof(key));
@@ -583,6 +585,8 @@ namespace JB.Collections.Reactive
             }
             catch (Exception)
             {
+                // this is  basically a double check - ContainsKey only let through if the value did exist at the time of checking,
+                // however in rare / race conditions someone might have deleted it in the 'meantime'
                 return false;
             }
         }
@@ -621,7 +625,7 @@ namespace JB.Collections.Reactive
             if (sender == null || e == null || string.IsNullOrWhiteSpace(e.PropertyName))
             {
                 // Fire reset event (per INotifyPropertyChanged spec)
-                NotifySubscribersAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.Reset());
+                NotifyObserversAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.Reset());
             }
             else
             {
@@ -637,7 +641,7 @@ namespace JB.Collections.Reactive
                 }
                 catch (InvalidCastException)
                 {
-                    NotifySubscribersAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.Reset());
+                    NotifyObserversAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.Reset());
                     return;
                 }
 
@@ -657,21 +661,21 @@ namespace JB.Collections.Reactive
                     // well that should not happen, but if it does, remove INPC tracking from the element and send, much like BindingList, a Reset message to observers
                     RemoveValueFromPropertyChangedHandling(item);
 
-                    NotifySubscribersAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.Reset());
+                    NotifyObserversAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.Reset());
                 }
                 else
                 {
                     // otherwise check whether the amount of notifications would be greater than the individual messages threshold
                     if(IsItemsChangedAmountGreaterThanResetThreshold(observableDictionaryChanges.Count, ThresholdAmountWhenItemChangesAreNotifiedAsReset))
                     {
-                        NotifySubscribersAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.Reset());
+                        NotifyObserversAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.Reset());
                     }
                     else
                     {
                         // if not, send out individual item changed notifications
                         foreach (var observableDictionaryChange in observableDictionaryChanges)
                         {
-                            NotifySubscribersAboutDictionaryChanges(observableDictionaryChange);
+                            NotifyObserversAboutDictionaryChanges(observableDictionaryChange);
                         }
                     }
                 }
@@ -727,7 +731,7 @@ namespace JB.Collections.Reactive
         /// </summary>
         /// <param name="observableDictionaryChange">The observable dictionary change.</param>
         /// <exception cref="System.ArgumentNullException"></exception>
-        protected virtual void NotifySubscribersAboutDictionaryChanges(IObservableDictionaryChange<TKey, TValue> observableDictionaryChange)
+        protected virtual void NotifyObserversAboutDictionaryChanges(IObservableDictionaryChange<TKey, TValue> observableDictionaryChange)
         {
             if (observableDictionaryChange == null) throw new ArgumentNullException(nameof(observableDictionaryChange));
 
@@ -1162,7 +1166,7 @@ namespace JB.Collections.Reactive
 
                 if (signalResetWhenFinished)
                 {
-                    NotifySubscribersAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.Reset());
+                    NotifyObserversAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.Reset());
                 }
             });
         }
@@ -1183,7 +1187,7 @@ namespace JB.Collections.Reactive
                 return;
 
             // else
-            NotifySubscribersAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.Reset());
+            NotifyObserversAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.Reset());
         }
 
         #endregion
@@ -1288,7 +1292,7 @@ namespace JB.Collections.Reactive
 
                 if (signalResetWhenFinished)
                 {
-                    NotifySubscribersAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.Reset());
+                    NotifyObserversAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.Reset());
                 }
             });
         }
@@ -1348,10 +1352,14 @@ namespace JB.Collections.Reactive
             }
             set
             {
-                if (value < 0) throw new ArgumentOutOfRangeException(nameof(value));
+                if (value < 0) throw new ArgumentOutOfRangeException(nameof(value), "Must be 0 or higher.");
 
                 CheckForAndThrowIfDisposed();
 
+                if (Equals(_thresholdAmountWhenItemChangesAreNotifiedAsReset, value))
+                    return;
+
+                // else
                 _thresholdAmountWhenItemChangesAreNotifiedAsReset = value;
 
                 RaisePropertyChanged();
@@ -1455,7 +1463,7 @@ namespace JB.Collections.Reactive
 
                 if (signalResetWhenFinished)
                 {
-                    NotifySubscribersAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.Reset());
+                    NotifyObserversAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.Reset());
                 }
             });
         }
@@ -1914,7 +1922,7 @@ namespace JB.Collections.Reactive
             InnerDictionary.Clear();
 
             if(hadItemsBeforeClearing)
-                NotifySubscribersAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.Reset());
+                NotifyObserversAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.Reset());
         }
 
         /// <summary>
@@ -2210,7 +2218,7 @@ namespace JB.Collections.Reactive
             {
                 RemoveValueFromPropertyChangedHandling(item.Value);
 
-                NotifySubscribersAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.ItemRemoved(item.Key, item.Value));
+                NotifyObserversAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.ItemRemoved(item.Key, item.Value));
             }
 
             return wasRemoved;

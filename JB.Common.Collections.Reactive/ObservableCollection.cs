@@ -622,7 +622,7 @@ namespace JB.Collections.Reactive
                 .SelectMany(eventPattern => eventPattern.EventArgs.ToObservableCollectionChanges(InnerList))
                 .ObserveOn(Scheduler)
                 .Subscribe(
-                    NotifySubscribersAboutCollectionChanges,
+                    NotifyObserversAboutCollectionChanges,
                     exception =>
                     {
                         // ToDo: at this point this instance is practically doomed / no longer forwarding any events & therefore further usage of the instance itself should be prevented, or the observable stream should re-connect/signal-and-swallow exceptions. Either way.. not ideal.
@@ -668,7 +668,7 @@ namespace JB.Collections.Reactive
         ///     raises the (observable)collection changed events.
         /// </summary>
         /// <param name="observableCollectionChange">The observable collection change.</param>
-        protected virtual void NotifySubscribersAboutCollectionChanges(IObservableCollectionChange<T> observableCollectionChange)
+        protected virtual void NotifyObserversAboutCollectionChanges(IObservableCollectionChange<T> observableCollectionChange)
         {
             if (observableCollectionChange == null)
                 throw new ArgumentNullException(nameof(observableCollectionChange));
@@ -1166,7 +1166,7 @@ namespace JB.Collections.Reactive
                 // after resetting the InnerList.RaiseListChangedEvents property, raise Reset event, if 'still' desired
                 if (useResetInsteadOfIndividualChanges && IsTrackingResets)
                 {
-                    NotifySubscribersAboutCollectionChanges(ObservableCollectionChange<T>.Reset);
+                    NotifyObserversAboutCollectionChanges(ObservableCollectionChange<T>.Reset);
                 }
             }
         }
@@ -1208,7 +1208,7 @@ namespace JB.Collections.Reactive
                 // after resetting the InnerList.RaiseListChangedEvents property, raise Reset event, if 'still' desired
                 if (useResetInsteadOfIndividualChanges && IsTrackingResets)
                 {
-                    NotifySubscribersAboutCollectionChanges(ObservableCollectionChange<T>.Reset);
+                    NotifyObserversAboutCollectionChanges(ObservableCollectionChange<T>.Reset);
                 }
             }
         }
