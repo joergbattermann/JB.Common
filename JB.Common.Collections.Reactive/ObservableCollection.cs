@@ -13,6 +13,7 @@ using System.Reactive.Subjects;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using JB.Collections.Reactive.ExtensionMethods;
+using JB.Reactive;
 using JB.Reactive.Linq;
 
 namespace JB.Collections.Reactive
@@ -28,7 +29,7 @@ namespace JB.Collections.Reactive
 
         private Subject<IObservableCollectionChange<T>> _collectionChangesSubject = new Subject<IObservableCollectionChange<T>>();
         private Subject<int> _countChangesSubject = new Subject<int>();
-        private Subject<Exception> _unhandledObserverExceptionsSubject = new Subject<Exception>();
+        private Subject<ObserverException> _unhandledObserverExceptionsSubject = new Subject<ObserverException>();
 
         /// <summary>
         /// Gets the count changes observer.
@@ -44,7 +45,7 @@ namespace JB.Collections.Reactive
         /// <value>
         /// The thrown exceptions observer.
         /// </value>
-        protected IObserver<Exception> UnhandledObserverExceptionsObserver { get; private set; }
+        protected IObserver<ObserverException> UnhandledObserverExceptionsObserver { get; private set; }
 
         /// <summary>
         /// Gets the collection changes observer.
@@ -84,8 +85,6 @@ namespace JB.Collections.Reactive
             InnerList = new SynchronizedBindingList<T>(list, syncRoot ?? new object());
 
             ThresholdAmountWhenItemChangesAreNotifiedAsReset = 100;
-
-            IsThrowingUnhandledObserverExceptions = true;
 
             IsTrackingChanges = true;
             IsTrackingItemChanges = true;
@@ -270,12 +269,15 @@ namespace JB.Collections.Reactive
         }
 
         /// <summary>
-        /// Provides an observable sequence of unhandled <see cref="Exception">exceptions</see> thrown by observers.
+        /// Provides an observable sequence of unhandled <see cref="ObserverException">exceptions</see> thrown by observers.
+        /// An <see cref="ObserverException" /> provides a <see cref="ObserverException.Handled" /> property, if set to [true] by
+        /// any of the observers of <see cref="UnhandledObserverExceptions" /> observable, it is assumed to be safe to continue
+        /// without re-throwing the exception.
         /// </summary>
         /// <value>
         /// An observable stream of unhandled exceptions.
         /// </value>
-        public virtual IObservable<Exception> UnhandledObserverExceptions
+        public virtual IObservable<ObserverException> UnhandledObserverExceptions
         {
             get
             {
@@ -283,34 +285,6 @@ namespace JB.Collections.Reactive
 
                 // not caring about IsDisposing / IsDisposed on purpose once subscribed, so corresponding Exceptions are forwarded 'til the "end" to already existing subscribers
                 return _unhandledObserverExceptionsSubject;
-            }
-        }
-
-        private long _isThrowingUnhandledObserverExceptions = 0;
-
-        /// <summary>
-        /// Gets a value indicating whether this instance is notifying about unhandled observer exceptions via <see cref="INotifyUnhandledObserverExceptions.UnhandledObserverExceptions"/>.
-        /// </summary>
-        /// <remarks>
-        /// If this is set to [false], all unhandled Observer exceptions will be forwarded to <see cref="INotifyUnhandledObserverExceptions.UnhandledObserverExceptions"/>
-        /// and will not be thrown any further. If set to [true] however, the Exceptions will also be (re-)thrown where they are caught.
-        /// </remarks>
-        /// <value>
-        /// <c>true</c> if this instance is notifying about unhandled observer exceptions; otherwise, <c>false</c>.
-        /// </value>
-        public bool IsThrowingUnhandledObserverExceptions
-        {
-            get
-            {
-                return Interlocked.Read(ref _isThrowingUnhandledObserverExceptions) == 1;
-            }
-            set
-            {
-                var potentialNewValue = (value ? 1 : 0);
-                var oldValue = Interlocked.CompareExchange(ref _isThrowingUnhandledObserverExceptions, potentialNewValue, (IsThrowingUnhandledObserverExceptions ? 1 : 0));
-
-                if (oldValue != potentialNewValue)
-                    RaisePropertyChanged();
             }
         }
 
@@ -626,7 +600,10 @@ namespace JB.Collections.Reactive
                     exception =>
                     {
                         // ToDo: at this point this instance is practically doomed / no longer forwarding any events & therefore further usage of the instance itself should be prevented, or the observable stream should re-connect/signal-and-swallow exceptions. Either way.. not ideal.
-                        UnhandledObserverExceptionsObserver.OnNext(exception);
+                        var observerException = new ObserverException(
+                            $"An error occured notifying observers of this {this.GetType().Name} - consistency and future notifications are no longer guaranteed.",
+                            exception);
+                        UnhandledObserverExceptionsObserver.OnNext(observerException);
                     });
 
 
@@ -684,42 +661,7 @@ namespace JB.Collections.Reactive
                     : observableCollectionChange;
 
             // raise events and notify about collection changes
-            try
-            {
-                CollectionChangesObserver.OnNext(actualObservableCollectionChange);
-            }
-            catch (Exception exception)
-            {
-                UnhandledObserverExceptionsObserver.OnNext(exception);
 
-                if (IsThrowingUnhandledObserverExceptions)
-                    throw;
-            }
-
-            try
-            {
-                RaiseObservableCollectionChanged(new ObservableCollectionChangedEventArgs<T>(actualObservableCollectionChange));
-            }
-            catch (Exception exception)
-            {
-                UnhandledObserverExceptionsObserver.OnNext(exception);
-
-                if (IsThrowingUnhandledObserverExceptions)
-                    throw;
-            }
-
-            try
-            {
-                RaiseCollectionChanged(actualObservableCollectionChange.ToNotifyCollectionChangedEventArgs());
-            }
-            catch (Exception exception)
-            {
-                UnhandledObserverExceptionsObserver.OnNext(exception);
-
-                if (IsThrowingUnhandledObserverExceptions)
-                    throw;
-            }
-            
             if (actualObservableCollectionChange.ChangeType == ObservableCollectionChangeType.ItemAdded
                 || actualObservableCollectionChange.ChangeType == ObservableCollectionChangeType.ItemRemoved
                 || actualObservableCollectionChange.ChangeType == ObservableCollectionChangeType.Reset)
@@ -730,11 +672,63 @@ namespace JB.Collections.Reactive
                 }
                 catch (Exception exception)
                 {
-                    UnhandledObserverExceptionsObserver.OnNext(exception);
+                    var observerException = new ObserverException(
+                        $"An error occured notifying {nameof(CountChanges)} Observers of this {this.GetType().Name}.",
+                        exception);
 
-                    if (IsThrowingUnhandledObserverExceptions)
+                    UnhandledObserverExceptionsObserver.OnNext(observerException);
+
+                    if (observerException.Handled == false)
                         throw;
                 }
+            }
+
+            try
+            {
+                CollectionChangesObserver.OnNext(actualObservableCollectionChange);
+            }
+            catch (Exception exception)
+            {
+                var observerException = new ObserverException(
+                    $"An error occured notifying {nameof(CollectionChanges)} Observers of this {this.GetType().Name}.",
+                    exception);
+
+                UnhandledObserverExceptionsObserver.OnNext(observerException);
+
+                if (observerException.Handled == false)
+                    throw;
+            }
+
+            try
+            {
+                RaiseObservableCollectionChanged(new ObservableCollectionChangedEventArgs<T>(actualObservableCollectionChange));
+            }
+            catch (Exception exception)
+            {
+                var observerException = new ObserverException(
+                    $"An error occured notifying {nameof(ObservableCollectionChanged)} Subscribers of this {this.GetType().Name}.",
+                    exception);
+
+                UnhandledObserverExceptionsObserver.OnNext(observerException);
+
+                if (observerException.Handled == false)
+                    throw;
+            }
+
+            try
+            {
+                RaiseCollectionChanged(actualObservableCollectionChange.ToNotifyCollectionChangedEventArgs());
+            }
+            catch (Exception exception)
+            {
+                var observerException = new ObserverException(
+                    $"An error occured notifying {nameof(CollectionChanged)} Subscribers of this {this.GetType().Name}.",
+                    exception);
+
+                UnhandledObserverExceptionsObserver.OnNext(observerException);
+
+                if (observerException.Handled == false)
+                    throw;
             }
         }
         

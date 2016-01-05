@@ -8,6 +8,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.Linq;
 using System.Reactive;
 using FluentAssertions;
@@ -18,6 +19,178 @@ namespace JB.Collections.Reactive.Tests
 {
     public class ObservableDictionaryNotificationTests
     {
+        [Fact]
+        public void DictionaryChangesObserverExceptionsShouldNotBeThrownIfHandledViaUnhandledObserverExceptionsObservable()
+        {
+            // given
+            using (var observableDictionary = new ObservableDictionary<int, string>())
+            {
+                observableDictionary.UnhandledObserverExceptions.Subscribe(observerException =>
+                {
+                    observerException.Handled = true;
+                });
+
+                observableDictionary.DictionaryChanges.Subscribe(_ =>
+                {
+                    throw new InvalidOperationException("My Marker Message");
+                });
+
+                // when
+                Action action = () => observableDictionary.Add(1, "One");
+
+                // then
+                action.ShouldNotThrow<InvalidOperationException>();
+            }
+        }
+
+        [Fact]
+        public void DictionaryChangesObserverExceptionsShouldBeThrownIfUnhandled()
+        {
+            // given
+            using (var observableDictionary = new ObservableDictionary<int, string>())
+            {
+                observableDictionary.DictionaryChanges.Subscribe(_ =>
+                {
+                    throw new InvalidOperationException("My Marker Message");
+                });
+
+                // when
+                Action action = () => observableDictionary.Add(1, "One");
+
+                // then
+                action
+                    .ShouldThrow<InvalidOperationException>()
+                    .WithMessage("My Marker Message");
+            }
+        }
+
+        [Fact]
+        public void CountChangesObserverExceptionsShouldNotBeThrownIfHandledViaUnhandledObserverExceptionsObservable()
+        {
+            // given
+            using (var observableDictionary = new ObservableDictionary<int, string>())
+            {
+                observableDictionary.UnhandledObserverExceptions.Subscribe(observerException =>
+                {
+                    observerException.Handled = true;
+                });
+
+                observableDictionary.CountChanges.Subscribe(_ =>
+                {
+                    throw new InvalidOperationException("My Marker Message");
+                });
+
+                // when
+                Action action = () => observableDictionary.Add(1, "One");
+
+                // then
+                action.ShouldNotThrow<InvalidOperationException>();
+            }
+        }
+
+        [Fact]
+        public void CountChangesObserverExceptionsShouldBeThrownIfUnhandled()
+        {
+            // given
+            using (var observableDictionary = new ObservableDictionary<int, string>())
+            {
+                observableDictionary.CountChanges.Subscribe(_ =>
+                {
+                    throw new InvalidOperationException("My Marker Message");
+                });
+
+                // when
+                Action action = () => observableDictionary.Add(1, "One");
+
+                // then
+                action
+                    .ShouldThrow<InvalidOperationException>()
+                    .WithMessage("My Marker Message");
+            }
+        }
+
+        [Fact]
+        public void ObservableCollectionChangedSubscriberExceptionsShouldNotBeThrownIfHandledViaUnhandledObserverExceptionsObservable()
+        {
+            // given
+            using (var observableDictionary = new ObservableDictionary<int, string>())
+            {
+                observableDictionary.UnhandledObserverExceptions.Subscribe(observerException =>
+                {
+                    observerException.Handled = true;
+                });
+
+                ((INotifyObservableCollectionChanged<KeyValuePair<int, string>>)observableDictionary).ObservableCollectionChanged
+                    += (sender, args) => { throw new InvalidOperationException("My Marker Message"); };
+
+                // when
+                Action action = () => observableDictionary.Add(1, "One");
+
+                // then
+                action.ShouldNotThrow<InvalidOperationException>();
+            }
+        }
+
+        [Fact]
+        public void ObservableCollectionChangedSubscriberExceptionsShouldBeThrownIfUnhandled()
+        {
+            // given
+            using (var observableDictionary = new ObservableDictionary<int, string>())
+            {
+                ((INotifyObservableCollectionChanged<KeyValuePair<int, string>>)observableDictionary).ObservableCollectionChanged
+                    += (sender, args) => { throw new InvalidOperationException("My Marker Message"); };
+
+                // when
+                Action action = () => observableDictionary.Add(1, "One");
+
+                // then
+                action
+                    .ShouldThrow<InvalidOperationException>()
+                    .WithMessage("My Marker Message");
+            }
+        }
+
+        [Fact]
+        public void CollectionChangedSubscriberExceptionsShouldNotBeThrownIfHandledViaUnhandledObserverExceptionsObservable()
+        {
+            // given
+            using (var observableDictionary = new ObservableDictionary<int, string>())
+            {
+                observableDictionary.UnhandledObserverExceptions.Subscribe(observerException =>
+                {
+                    observerException.Handled = true;
+                });
+
+                ((INotifyCollectionChanged)observableDictionary).CollectionChanged
+                    += (sender, args) => { throw new InvalidOperationException("My Marker Message"); };
+
+                // when
+                Action action = () => observableDictionary.Add(1, "One");
+
+                // then
+                action.ShouldNotThrow<InvalidOperationException>();
+            }
+        }
+
+        [Fact]
+        public void CollectionChangedSubscriberExceptionsShouldBeThrownIfUnhandled()
+        {
+            // given
+            using (var observableDictionary = new ObservableDictionary<int, string>())
+            {
+                ((INotifyCollectionChanged)observableDictionary).CollectionChanged
+                    += (sender, args) => { throw new InvalidOperationException("My Marker Message"); };
+
+                // when
+                Action action = () => observableDictionary.Add(1, "One");
+
+                // then
+                action
+                    .ShouldThrow<InvalidOperationException>()
+                    .WithMessage("My Marker Message");
+            }
+        }
+
         [Theory]
         [InlineData(0)]
         [InlineData(1)]

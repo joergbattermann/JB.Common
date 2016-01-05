@@ -4,6 +4,7 @@ using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Reactive.Concurrency;
 using JB.Collections.Reactive.ExtensionMethods;
+using JB.Reactive;
 
 namespace JB.Collections.Reactive
 {
@@ -34,9 +35,13 @@ namespace JB.Collections.Reactive
             }
             catch (Exception exception)
             {
-                UnhandledObserverExceptionsObserver.OnNext(exception);
+                var observerException = new ObserverException(
+                    $"An error occured notifying {nameof(ListChanged)} subscribers of this {this.GetType().Name}.",
+                    exception);
 
-                if (IsThrowingUnhandledObserverExceptions)
+                UnhandledObserverExceptionsObserver.OnNext(observerException);
+
+                if (observerException.Handled == false)
                     throw;
             }
         }

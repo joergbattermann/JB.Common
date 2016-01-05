@@ -14,6 +14,7 @@ using System.Reactive.Subjects;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using JB.Collections.Reactive.ExtensionMethods;
+using JB.Reactive;
 using JB.Reactive.Linq;
 
 namespace JB.Collections.Reactive
@@ -43,7 +44,7 @@ namespace JB.Collections.Reactive
         private IDisposable _countChangesCountPropertyChangedForwarder;
 
         private Subject<int> _countChangesSubject = new Subject<int>();
-        private Subject<Exception> _unhandledObserverExceptionsSubject = new Subject<Exception>();
+        private Subject<ObserverException> _unhandledObserverExceptionsSubject = new Subject<ObserverException>();
         private Subject<IObservableDictionaryChange<TKey, TValue>> _dictionaryChangesSubject = new Subject<IObservableDictionaryChange<TKey, TValue>>();
         
         /// <summary>
@@ -60,7 +61,7 @@ namespace JB.Collections.Reactive
         /// <value>
         /// The thrown exceptions observer.
         /// </value>
-        protected IObserver<Exception> UnhandledObserverExceptionsObserver { get; private set; }
+        protected IObserver<ObserverException> UnhandledObserverExceptionsObserver { get; private set; }
 
         /// <summary>
         /// Gets the dictionary changes observer.
@@ -124,9 +125,7 @@ namespace JB.Collections.Reactive
                     : new ConcurrentDictionary<TKey, TValue>(KeyComparer);
 
             ThresholdAmountWhenItemChangesAreNotifiedAsReset = 100;
-
-            IsThrowingUnhandledObserverExceptions = true;
-
+            
             IsTrackingChanges = true;
             IsTrackingItemChanges = true;
             IsTrackingCountChanges = true;
@@ -745,43 +744,6 @@ namespace JB.Collections.Reactive
                     ? ObservableDictionaryChange<TKey, TValue>.Reset()
                     : observableDictionaryChange;
 
-            try
-            {
-                DictionaryChangesObserver.OnNext(actualObservableDictionaryChange);
-            }
-            catch (Exception exception)
-            {
-                UnhandledObserverExceptionsObserver.OnNext(exception);
-
-                if (IsThrowingUnhandledObserverExceptions)
-                    throw;
-            }
-
-            var observableCollectionChange = actualObservableDictionaryChange.ToObservableCollectionChange();
-            try
-            {
-                RaiseObservableCollectionChanged(new ObservableCollectionChangedEventArgs<KeyValuePair<TKey, TValue>>(observableCollectionChange));
-            }
-            catch (Exception exception)
-            {
-                UnhandledObserverExceptionsObserver.OnNext(exception);
-
-                if (IsThrowingUnhandledObserverExceptions)
-                    throw;
-            }
-
-            try
-            {
-                RaiseCollectionChanged(observableCollectionChange.ToNotifyCollectionChangedEventArgs());
-            }
-            catch (Exception exception)
-            {
-                UnhandledObserverExceptionsObserver.OnNext(exception);
-
-                if (IsThrowingUnhandledObserverExceptions)
-                    throw;
-            }
-
             if (actualObservableDictionaryChange.ChangeType == ObservableDictionaryChangeType.ItemAdded
                 || actualObservableDictionaryChange.ChangeType == ObservableDictionaryChangeType.ItemRemoved
                 || actualObservableDictionaryChange.ChangeType == ObservableDictionaryChangeType.Reset)
@@ -792,11 +754,64 @@ namespace JB.Collections.Reactive
                 }
                 catch (Exception exception)
                 {
-                    UnhandledObserverExceptionsObserver.OnNext(exception);
+                    var observerException = new ObserverException(
+                        $"An error occured notifying {nameof(CountChanges)} Observers of this {this.GetType().Name}.",
+                        exception);
 
-                    if (IsThrowingUnhandledObserverExceptions)
+                    UnhandledObserverExceptionsObserver.OnNext(observerException);
+
+                    if (observerException.Handled == false)
                         throw;
                 }
+            }
+
+            try
+            {
+                DictionaryChangesObserver.OnNext(actualObservableDictionaryChange);
+            }
+            catch (Exception exception)
+            {
+                var observerException = new ObserverException(
+                    $"An error occured notifying {nameof(DictionaryChanges)} Observers of this {this.GetType().Name}.",
+                    exception);
+
+                UnhandledObserverExceptionsObserver.OnNext(observerException);
+
+                if (observerException.Handled == false)
+                    throw;
+            }
+
+            var observableCollectionChange = actualObservableDictionaryChange.ToObservableCollectionChange();
+            try
+            {
+                RaiseObservableCollectionChanged(new ObservableCollectionChangedEventArgs<KeyValuePair<TKey, TValue>>(observableCollectionChange));
+            }
+            catch (Exception exception)
+            {
+                var observerException = new ObserverException(
+                    $"An error occured notifying ObservableCollectionChanged Subscribers of this {this.GetType().Name}.",
+                    exception);
+
+                UnhandledObserverExceptionsObserver.OnNext(observerException);
+
+                if (observerException.Handled == false)
+                    throw;
+            }
+
+            try
+            {
+                RaiseCollectionChanged(observableCollectionChange.ToNotifyCollectionChangedEventArgs());
+            }
+            catch (Exception exception)
+            {
+                var observerException = new ObserverException(
+                    $"An error occured notifying CollectionChanged Subscribers of this {this.GetType().Name}.",
+                    exception);
+
+                UnhandledObserverExceptionsObserver.OnNext(observerException);
+
+                if (observerException.Handled == false)
+                    throw;
             }
         }
 
@@ -1035,43 +1050,16 @@ namespace JB.Collections.Reactive
 
         #region Implementation of INotifyUnhandledObserverExceptions
 
-        private long _isThrowingUnhandledObserverExceptions = 0;
-        
         /// <summary>
-        /// Gets a value indicating whether this instance is notifying about unhandled observer exceptions via <see cref="INotifyUnhandledObserverExceptions.UnhandledObserverExceptions"/>.
-        /// </summary>
-        /// <remarks>
-        /// If this is set to [false], all unhandled Observer exceptions will be forwarded to <see cref="INotifyUnhandledObserverExceptions.UnhandledObserverExceptions"/>
-        /// and will not be thrown any further. If set to [true] however, the Exceptions will also be (re-)thrown where they are caught.
-        /// </remarks>
-        /// <value>
-        /// <c>true</c> if this instance is notifying about unhandled observer exceptions; otherwise, <c>false</c>.
-        /// </value>
-        public bool IsThrowingUnhandledObserverExceptions
-        {
-            get
-            {
-                CheckForAndThrowIfDisposed(false);
-
-                return Interlocked.Read(ref _isThrowingUnhandledObserverExceptions) == 1;
-            }
-            set
-            {
-                var potentialNewValue = (value ? 1 : 0);
-                var oldValue = Interlocked.CompareExchange(ref _isThrowingUnhandledObserverExceptions, potentialNewValue, (IsThrowingUnhandledObserverExceptions ? 1 : 0));
-
-                if(oldValue != potentialNewValue)
-                    RaisePropertyChanged();
-            }
-        }
-
-        /// <summary>
-        /// Provides an observable sequence of exceptions thrown.
+        /// Provides an observable sequence of unhandled <see cref="ObserverException">exceptions</see> thrown by observers.
+        /// An <see cref="ObserverException" /> provides a <see cref="ObserverException.Handled" /> property, if set to [true] by
+        /// any of the observers of <see cref="UnhandledObserverExceptions" /> observable, it is assumed to be safe to continue
+        /// without re-throwing the exception.
         /// </summary>
         /// <value>
-        /// The thrown exceptions.
+        /// An observable stream of unhandled exceptions.
         /// </value>
-        public virtual IObservable<Exception> UnhandledObserverExceptions
+        public virtual IObservable<ObserverException> UnhandledObserverExceptions
         {
             get
             {

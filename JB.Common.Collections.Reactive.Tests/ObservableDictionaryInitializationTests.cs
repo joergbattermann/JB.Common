@@ -34,69 +34,7 @@ namespace JB.Collections.Reactive.Tests
                 observableDictionary.Keys.Should().Contain(keyValuePairs.Select(kvp => kvp.Key));
             }
         }
-
-        [Fact]
-        public void ShouldAllowDisablingOfIsThrowingUnhandledObserverExceptions()
-        {
-            // given
-            using (var observableDictionary = new ObservableDictionary<int, string>())
-            {
-                // when
-                observableDictionary.IsThrowingUnhandledObserverExceptions = false;
-
-                // then
-                observableDictionary.IsThrowingUnhandledObserverExceptions.Should().Be(false);
-            }
-        }
-
-        [Fact]
-        public void ShouldAllowMultipleConsecutiveDisablingsOfIsThrowingUnhandledObserverExceptions()
-        {
-            // given
-            using (var observableDictionary = new ObservableDictionary<int, string>())
-            {
-                // when
-                observableDictionary.IsThrowingUnhandledObserverExceptions = false;
-                observableDictionary.IsThrowingUnhandledObserverExceptions = false;
-                observableDictionary.IsThrowingUnhandledObserverExceptions = false;
-
-                // then
-                observableDictionary.IsThrowingUnhandledObserverExceptions.Should().Be(false);
-            }
-        }
-
-        [Fact]
-        public void ShouldAllowMultipleConsecutiveReEnablingsOfIsThrowingUnhandledObserverExceptions()
-        {
-            // given
-            using (var observableDictionary = new ObservableDictionary<int, string>())
-            {
-                // when
-                observableDictionary.IsThrowingUnhandledObserverExceptions = false;
-                observableDictionary.IsThrowingUnhandledObserverExceptions = true;
-                observableDictionary.IsThrowingUnhandledObserverExceptions = true;
-                observableDictionary.IsThrowingUnhandledObserverExceptions = true;
-
-                // then
-                observableDictionary.IsThrowingUnhandledObserverExceptions.Should().Be(true);
-            }
-        }
-
-        [Fact]
-        public void ShouldAllowReEnablingOfIsThrowingUnhandledObserverExceptions()
-        {
-            // given
-            using (var observableDictionary = new ObservableDictionary<int, string>())
-            {
-                // when
-                observableDictionary.IsThrowingUnhandledObserverExceptions = false;
-                observableDictionary.IsThrowingUnhandledObserverExceptions = true;
-
-                // then
-                observableDictionary.IsThrowingUnhandledObserverExceptions.Should().Be(true);
-            }
-        }
-
+        
         [Fact]
         public void ShouldAllowSimiliarKeysOnConstructionWithCustomComparerThatDifferentiatesKeys()
         {
@@ -139,7 +77,6 @@ namespace JB.Collections.Reactive.Tests
                 observableDictionary.IsTrackingItemChanges.Should().Be(true);
                 observableDictionary.IsTrackingResets.Should().Be(true);
 
-                observableDictionary.IsThrowingUnhandledObserverExceptions.Should().Be(true);
 
                 observableDictionary.IsDisposing.Should().Be(false);
                 observableDictionary.IsDisposed.Should().Be(false);

@@ -17,6 +17,7 @@ using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using JB.Collections.Reactive.ExtensionMethods;
 using JB.ExtensionMethods;
+using JB.Reactive;
 using JB.Reactive.Linq;
 
 namespace JB.Collections.Reactive
@@ -71,8 +72,12 @@ namespace JB.Collections.Reactive
                     NotifySubscribersAboutListChanges,
                     exception =>
                     {
-                        UnhandledObserverExceptionsObserver.OnNext(exception);
                         // ToDo: at this point this instance is practically doomed / no longer forwarding any events & therefore further usage of the instance itself should be prevented, or the observable stream should re-connect/signal-and-swallow exceptions. Either way.. not ideal.
+                        var observerException = new ObserverException(
+                                                    $"An error occured notifying observers of this {this.GetType().Name} - consistency and future notifications are no longer guaranteed.",
+                                                    exception);
+
+                        UnhandledObserverExceptionsObserver.OnNext(observerException);
                     });
         }
 
@@ -109,9 +114,13 @@ namespace JB.Collections.Reactive
             }
             catch (Exception exception)
             {
-                UnhandledObserverExceptionsObserver.OnNext(exception);
+                var observerException = new ObserverException(
+                    $"An error occured notifying {nameof(ListChanges)} observers of this {this.GetType().Name}.",
+                    exception);
 
-                if (IsThrowingUnhandledObserverExceptions)
+                UnhandledObserverExceptionsObserver.OnNext(observerException);
+
+                if (observerException.Handled == false)
                     throw;
             }
 
@@ -121,9 +130,13 @@ namespace JB.Collections.Reactive
             }
             catch (Exception exception)
             {
-                UnhandledObserverExceptionsObserver.OnNext(exception);
+                var observerException = new ObserverException(
+                    $"An error occured notifying {nameof(ObservableListChanged)} subscribers of this {this.GetType().Name}.",
+                    exception);
 
-                if (IsThrowingUnhandledObserverExceptions)
+                UnhandledObserverExceptionsObserver.OnNext(observerException);
+
+                if (observerException.Handled == false)
                     throw;
             }
 
@@ -135,9 +148,13 @@ namespace JB.Collections.Reactive
                 }
                 catch (Exception exception)
                 {
-                    UnhandledObserverExceptionsObserver.OnNext(exception);
+                    var observerException = new ObserverException(
+                                        $"An error occured notifying {nameof(PropertyChanged)} subscribers of this {this.GetType().Name}.",
+                                        exception);
 
-                    if (IsThrowingUnhandledObserverExceptions)
+                    UnhandledObserverExceptionsObserver.OnNext(observerException);
+
+                    if (observerException.Handled == false)
                         throw;
                 }
             }

@@ -69,7 +69,6 @@ namespace JB.Collections.Reactive.Tests
             Action isTrackingCountChangesPropertyAccess = () => { var isTrackingCountChanges = observableDictionary.IsTrackingCountChanges; };
             Action isTrackingItemChangesPropertyAccess = () => { var isTrackingItemChanges = observableDictionary.IsTrackingItemChanges; };
             Action isTrackingResetsPropertyAccess = () => { var isTrackingResets = observableDictionary.IsTrackingResets; };
-            Action isThrowingUnhandledObserverExceptionsPropertyAccess = () => { var isThrowingUnhandledObserverExceptions = observableDictionary.IsThrowingUnhandledObserverExceptions; };
 
             Action isEmptyPropertyAccess = () => { var isEmpty = observableDictionary.IsEmpty; };
 
@@ -86,7 +85,6 @@ namespace JB.Collections.Reactive.Tests
             isTrackingCountChangesPropertyAccess.ShouldThrow<ObjectDisposedException>();
             isTrackingItemChangesPropertyAccess.ShouldThrow<ObjectDisposedException>();
             isTrackingResetsPropertyAccess.ShouldThrow<ObjectDisposedException>();
-            isThrowingUnhandledObserverExceptionsPropertyAccess.ShouldThrow<ObjectDisposedException>();
 
             thresholdAmountWhenItemChangesAreNotifiedAsResetPropertyGetAccess.ShouldThrow<ObjectDisposedException>();
             thresholdAmountWhenItemChangesAreNotifiedAsResetPropertySetAccess.ShouldThrow<ObjectDisposedException>();
