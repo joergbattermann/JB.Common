@@ -29,13 +29,13 @@ namespace JB.Collections.Reactive
         TValue Value { get; }
 
         /// <summary>
-        /// If <see cref="ChangeType"/> is a <see cref="ObservableDictionaryChangeType.ItemChanged"/> one and the underlying change
-        /// is a full item replacement rather than a single sub-property change, this is the old, replaced value.
+        /// If <see cref="ChangeType"/> is a <see cref="ObservableDictionaryChangeType.ItemReplaced"/>
+        /// or <see cref="ObservableDictionaryChangeType.ItemRemoved"/> this will hold the old, previous value.
         /// </summary>
         /// <value>
         /// The replaced value, if applicable
         /// </value>
-        TValue ReplacedValue { get; }
+        TValue OldValue { get; }
 
         /// <summary>
         /// If <see cref="ChangeType"/> is a <see cref="ObservableDictionaryChangeType.ItemChanged"/> one and <typeparamref name="TValue"/>

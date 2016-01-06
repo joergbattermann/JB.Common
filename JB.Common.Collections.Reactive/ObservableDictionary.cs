@@ -642,7 +642,7 @@ namespace JB.Collections.Reactive
                 // removed from our dictionary without our knowledge.
 
                 var observableDictionaryChanges = GetKeysForValue(item)
-                    .Select(key => ObservableDictionaryChange<TKey, TValue>.ItemPropertyChanged(key, item, e.PropertyName))
+                    .Select(key => ObservableDictionaryChange<TKey, TValue>.ItemChanged(key, item, e.PropertyName))
                     .ToList();
 
                 if (observableDictionaryChanges.Count == 0)
@@ -676,11 +676,13 @@ namespace JB.Collections.Reactive
         /// </summary>
         /// <param name="value">The value.</param>
         /// <returns></returns>
-        protected IList<TKey> GetKeysForValue(TValue value)
+        public virtual IEnumerable<TKey> GetKeysForValue(TValue value)
         {
-            return (from keyValuePair in this
-                    where Equals(keyValuePair.Value, value)
-                    select keyValuePair.Key).ToList();
+            CheckForAndThrowIfDisposed();
+
+            return from keyValuePair in this
+                    where AreTheSameValue(keyValuePair.Value, value)
+                    select keyValuePair.Key;
         }
 
         /// <summary>
@@ -787,15 +789,15 @@ namespace JB.Collections.Reactive
                     throw;
             }
 
-            var observableCollectionChange = actualObservableDictionaryChange.ToObservableCollectionChange();
+            var observableCollectionChanges = new List<IObservableCollectionChange<KeyValuePair<TKey, TValue>>>();
             try
             {
-                RaiseObservableCollectionChanged(new ObservableCollectionChangedEventArgs<KeyValuePair<TKey, TValue>>(observableCollectionChange));
+                observableCollectionChanges.AddRange(actualObservableDictionaryChange.ToObservableCollectionChanges());
             }
             catch (Exception exception)
             {
                 var observerException = new ObserverException(
-                    $"An error occured notifying ObservableCollectionChanged Subscribers of this {this.GetType().Name}.",
+                    $"An error occured converting the {nameof(observableDictionaryChange)} instance to its ObservableCollectionChange counter part(s).",
                     exception);
 
                 UnhandledObserverExceptionsObserver.OnNext(observerException);
@@ -804,20 +806,42 @@ namespace JB.Collections.Reactive
                     throw;
             }
 
-            try
+            foreach (var observableCollectionChange in observableCollectionChanges)
             {
-                RaiseCollectionChanged(observableCollectionChange.ToNotifyCollectionChangedEventArgs());
+                try
+                {
+                    RaiseObservableCollectionChanged(new ObservableCollectionChangedEventArgs<KeyValuePair<TKey, TValue>>(observableCollectionChange));
+                }
+                catch (Exception exception)
+                {
+                    var observerException = new ObserverException(
+                        $"An error occured notifying ObservableCollectionChanged Subscribers of this {this.GetType().Name}.",
+                        exception);
+
+                    UnhandledObserverExceptionsObserver.OnNext(observerException);
+
+                    if (observerException.Handled == false)
+                        throw;
+                }
             }
-            catch (Exception exception)
+            
+            foreach (var observableCollectionChange in observableCollectionChanges)
             {
-                var observerException = new ObserverException(
-                    $"An error occured notifying CollectionChanged Subscribers of this {this.GetType().Name}.",
-                    exception);
+                try
+                {
+                    RaiseCollectionChanged(observableCollectionChange.ToNotifyCollectionChangedEventArgs());
+                }
+                catch (Exception exception)
+                {
+                    var observerException = new ObserverException(
+                        $"An error occured notifying CollectionChanged Subscribers of this {this.GetType().Name}.",
+                        exception);
 
-                UnhandledObserverExceptionsObserver.OnNext(observerException);
+                    UnhandledObserverExceptionsObserver.OnNext(observerException);
 
-                if (observerException.Handled == false)
-                    throw;
+                    if (observerException.Handled == false)
+                        throw;
+                }
             }
         }
 
@@ -2036,7 +2060,7 @@ namespace JB.Collections.Reactive
                     .TakeWhile(_ => !IsDisposing && !IsDisposed)
                     .SkipContinuouslyWhile(change => !IsTrackingChanges)
                     .Where(change => change.ChangeType == ObservableDictionaryChangeType.ItemChanged)
-                    .Select(change => change.ToObservableCollectionChange());
+                    .SelectMany(change => change.ToObservableCollectionChanges());
             }
         }
 
@@ -2061,7 +2085,7 @@ namespace JB.Collections.Reactive
                     .SkipContinuouslyWhile(change => !IsTrackingChanges)
                     .SkipContinuouslyWhile(change => change.ChangeType == ObservableDictionaryChangeType.ItemChanged && !IsTrackingItemChanges)
                     .SkipContinuouslyWhile(change => change.ChangeType == ObservableDictionaryChangeType.Reset && !IsTrackingResets)
-                    .Select(dictionaryChange => dictionaryChange.ToObservableCollectionChange());
+                    .SelectMany(dictionaryChange => dictionaryChange.ToObservableCollectionChanges());
             }
         }
 

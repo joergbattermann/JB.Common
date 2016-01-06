@@ -31,17 +31,17 @@ namespace JB.Collections.Reactive.ExtensionMethods
         /// <param name="scheduler">The scheduler.</param>
         /// <param name="targetBindingLists">The target binding lists.</param>
         /// <returns></returns>
-        /// <exception cref="System.ArgumentNullException">sourceObservableList
+        /// <exception cref="System.ArgumentNullException">source
         /// or
-        /// targetBindingList</exception>
+        /// target</exception>
         /// <exception cref="System.ArgumentOutOfRangeException"></exception>
         /// <exception cref="System.InvalidOperationException">Source and Target Lists must contain exactly the same element(s) at
         /// the exact same index position(s)</exception>
         public static IDisposable ForwardListChangesTo<T>(this ObservableList<T> sourceObservableList,
-            bool includeItemChanges = false,
+            bool includeItemChanges = true,
             bool includeMoves = false,
             IScheduler scheduler = null,
-            params EnhancedBindingList<T>[] targetBindingLists)
+            params IEnhancedBindingList<T>[] targetBindingLists)
         {
             if (sourceObservableList == null)
                 throw new ArgumentNullException(nameof(sourceObservableList));
@@ -56,43 +56,43 @@ namespace JB.Collections.Reactive.ExtensionMethods
         }
 
         /// <summary>
-        /// Forwards the <paramref name="sourceObservableList" /> changes to the <paramref name="targetBindingList" />.
+        /// Forwards the <paramref name="source" /> changes to the <paramref name="target" />.
         /// </summary>
         /// <typeparam name="T"></typeparam>
-        /// <param name="sourceObservableList">The source observable list.</param>
-        /// <param name="targetBindingList">The target binding list.</param>
+        /// <param name="source">The source observable list.</param>
+        /// <param name="target">The target binding list.</param>
         /// <param name="includeItemChanges">if set to <c>true</c> individual items' changes will be propagated to the
-        /// <paramref name="targetBindingList" /> via replacing the item completely.</param>
-        /// <param name="includeMoves">if set to <c>true</c> move operations will be replicated to the <paramref name="targetBindingList" />.</param>
+        /// <paramref name="target" /> via replacing the item completely.</param>
+        /// <param name="includeMoves">if set to <c>true</c> move operations will be replicated to the <paramref name="target" />.</param>
         /// <param name="scheduler">The scheduler.</param>
         /// <returns></returns>
-        /// <exception cref="System.ArgumentNullException">sourceObservableList
+        /// <exception cref="System.ArgumentNullException">source
         /// or
-        /// targetBindingList</exception>
+        /// target</exception>
         /// <exception cref="System.InvalidOperationException">Source and Target Lists must contain exactly the same element(s) at
         /// the exact same index position(s)</exception>
-        public static IDisposable ForwardListChangesTo<T>(this ObservableList<T> sourceObservableList,
-            EnhancedBindingList<T> targetBindingList,
-            bool includeItemChanges = false,
+        public static IDisposable ForwardListChangesTo<T>(this ObservableList<T> source,
+            IEnhancedBindingList<T> target,
+            bool includeItemChanges = true,
             bool includeMoves = false,
             IScheduler scheduler = null)
         {
-            if (sourceObservableList == null)
-                throw new ArgumentNullException(nameof(sourceObservableList));
+            if (source == null)
+                throw new ArgumentNullException(nameof(source));
 
-            if (targetBindingList == null)
-                throw new ArgumentNullException(nameof(targetBindingList));
+            if (target == null)
+                throw new ArgumentNullException(nameof(target));
 
-            if (includeMoves && (sourceObservableList.Except(targetBindingList, EqualityComparer<T>.Default).Any()
-                                 || targetBindingList.Except(sourceObservableList, EqualityComparer<T>.Default).Any()
-                                 || sourceObservableList.Any(element => sourceObservableList.IndexOf(element) != targetBindingList.IndexOf(element))))
+            if (includeMoves && (source.Except(target, EqualityComparer<T>.Default).Any()
+                                 || target.Except(source, EqualityComparer<T>.Default).Any()
+                                 || source.Any(element => source.IndexOf(element) != target.IndexOf(element))))
             {
                 throw new InvalidOperationException("Source and Target Lists must contain exactly the same element(s) at the exact same index position(s)");
             }
 
             IObservable<IObservableListChange<T>> sourceObservable = scheduler != null
-                ? sourceObservableList.ListChanges.ObserveOn(scheduler)
-                : sourceObservableList.ListChanges;
+                ? source.ListChanges.ObserveOn(scheduler)
+                : source.ListChanges;
 
             return sourceObservable.Subscribe(observableListChange =>
             {
@@ -100,7 +100,7 @@ namespace JB.Collections.Reactive.ExtensionMethods
                 {
                     case ObservableListChangeType.ItemAdded:
                     {
-                        targetBindingList.Insert(observableListChange.Index, observableListChange.Item);
+                        target.Insert(observableListChange.Index, observableListChange.Item);
                         break;
                     }
                     case ObservableListChangeType.ItemChanged:
@@ -108,12 +108,11 @@ namespace JB.Collections.Reactive.ExtensionMethods
                         if (includeItemChanges)
                         {
                             // check whether target list contains the moved element at its expected index position
-                            if (targetBindingList.IndexOf(observableListChange.Item) != observableListChange.Index)
-                            {
-                                throw new InvalidOperationException($"{nameof(sourceObservableList)} and {nameof(targetBindingList)} are no longer in sync: {nameof(targetBindingList)} has a diffent item at index position {observableListChange.Index} than expected.");
-                            }
+                            var targetIndex = target.IndexOf(observableListChange.Item);
+                            if (targetIndex == -1)
+                                return;
 
-                            targetBindingList.ResetItem(observableListChange.Index);
+                            target.ResetItem(targetIndex);
                         }
                         break;
                     }
@@ -122,40 +121,38 @@ namespace JB.Collections.Reactive.ExtensionMethods
                         if (includeMoves)
                         {
                             // check whether target list contains the moved element at its expected index position
-                            if (targetBindingList.IndexOf(observableListChange.Item) != observableListChange.OldIndex)
+                            if (target.IndexOf(observableListChange.Item) != observableListChange.OldIndex)
                             {
-                                throw new InvalidOperationException($"{nameof(sourceObservableList)} and {nameof(targetBindingList)} are no longer in sync: {nameof(targetBindingList)} has a diffent item at index position {observableListChange.OldIndex} than expected.");
+                                throw new InvalidOperationException($"{nameof(source)} and {nameof(target)} are no longer in sync: {nameof(target)} has a diffent item at index position {observableListChange.OldIndex} than expected.");
                             }
 
-                            targetBindingList.Move(observableListChange.Item, observableListChange.Index);
+                            target.Move(observableListChange.Item, observableListChange.Index);
                         }
                         break;
                     }
                     case ObservableListChangeType.ItemRemoved:
                     {
-                        // check whether target list contains the moved element at its expected index position
-                        if (targetBindingList.IndexOf(observableListChange.Item) != observableListChange.OldIndex)
+                        // check whether target list contains the removed item, and delete if so
+                        if (target.Contains(observableListChange.Item))
                         {
-                            throw new InvalidOperationException($"{nameof(sourceObservableList)} and {nameof(targetBindingList)} are no longer in sync: {nameof(targetBindingList)} has a diffent item at index position {observableListChange.OldIndex} than expected.");
+                            target.Remove(observableListChange.Item);
                         }
-
-                        targetBindingList.RemoveAt(observableListChange.OldIndex);
                         break;
                     }
                     case ObservableListChangeType.Reset:
                     {
-                        var originalBindingRaiseListChangedEvents = targetBindingList.RaiseListChangedEvents;
+                        var originalBindingRaiseListChangedEvents = target.RaiseListChangedEvents;
                         try
                         {
-                            targetBindingList.RaiseListChangedEvents = false;
-                            targetBindingList.Clear();
-                            targetBindingList.AddRange(sourceObservableList);
+                            target.RaiseListChangedEvents = false;
+                                ((ICollection<T>)target).Clear();
+                            target.AddRange(source);
                         }
                         finally
                         {
-                            targetBindingList.RaiseListChangedEvents = originalBindingRaiseListChangedEvents;
+                            target.RaiseListChangedEvents = originalBindingRaiseListChangedEvents;
                             if (originalBindingRaiseListChangedEvents)
-                                targetBindingList.ResetBindings();
+                                target.ResetBindings();
                         }
 
                         break;

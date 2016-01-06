@@ -71,6 +71,7 @@
     <Compile Include="ExtensionMethods\ObservableCollectionChangeExtensions.cs" />
     <Compile Include="ExtensionMethods\ListChangedTypeExtensions.cs" />
     <Compile Include="ExtensionMethods\ObservableDictionaryChangeExtensions.cs" />
+    <Compile Include="ExtensionMethods\ObservableDictionaryExtensions.cs" />
     <Compile Include="ExtensionMethods\ObservableListChangeExtensions.cs" />
     <Compile Include="INotifyObservableChanges.cs" />
     <Compile Include="INotifyObservableCollectionChanged.cs" />

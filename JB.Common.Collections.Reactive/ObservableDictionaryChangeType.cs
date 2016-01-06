@@ -15,6 +15,10 @@ namespace JB.Collections.Reactive
         /// </summary>
         ItemRemoved,
         /// <summary>
+        /// The item has been replaced
+        /// </summary>
+        ItemReplaced,
+        /// <summary>
         /// Indicates a major change and consumers should reset any existing knowledge and state about the affected collection and refetch its current state.
         /// </summary>
         Reset,

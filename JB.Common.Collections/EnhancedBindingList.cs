@@ -99,7 +99,7 @@ namespace JB.Collections
         /// <exception cref="ArgumentOutOfRangeException">item</exception>
         public virtual void Move(int itemIndex, int newIndex, bool correctNewIndexOnIndexShift = true)
 		{
-			Move(this[itemIndex], newIndex, correctNewIndexOnIndexShift);
+            Move(this[itemIndex], newIndex, correctNewIndexOnIndexShift);
 		}
 
 		/// <summary>
