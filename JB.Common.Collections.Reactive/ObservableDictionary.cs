@@ -781,6 +781,22 @@ namespace JB.Collections.Reactive
                     throw;
             }
 
+            try
+            {
+                RaiseObservableDictionaryChanged(new ObservableDictionaryChangedEventArgs<TKey, TValue>(actualObservableDictionaryChange));
+            }
+            catch (Exception exception)
+            {
+                var observerException = new ObserverException(
+                    $"An error occured notifying {nameof(ObservableDictionaryChanged)} Subscribers of this {this.GetType().Name}.",
+                    exception);
+
+                UnhandledObserverExceptionsObserver.OnNext(observerException);
+
+                if (observerException.Handled == false)
+                    throw;
+            }
+
             var observableCollectionChange = actualObservableDictionaryChange.ToObservableCollectionChange();
             try
             {
@@ -2015,8 +2031,7 @@ namespace JB.Collections.Reactive
         #region Implementation of INotifyObservableCollectionItemChanged<out KeyValuePair<TKey,TValue>>
 
         /// <summary>
-        /// Gets the observable streams of item changes, however these will only have their
-        /// <see cref="IObservableCollectionChange{T}.ChangeType"/> set to <see cref="ObservableCollectionChangeType.ItemChanged"/>.
+        /// Gets the observable streams of collection item changes.
         /// </summary>
         /// <value>
         /// The item changes.
@@ -2030,8 +2045,7 @@ namespace JB.Collections.Reactive
                 return DictionaryChanges
                     .TakeWhile(_ => !IsDisposing && !IsDisposed)
                     .SkipContinuouslyWhile(change => !IsTrackingChanges)
-                    .SkipContinuouslyWhile(change => change.ChangeType == ObservableDictionaryChangeType.ItemChanged && !IsTrackingItemChanges)
-                    .SkipContinuouslyWhile(change => change.ChangeType == ObservableDictionaryChangeType.Reset && !IsTrackingResets)
+                    .Where(change => change.ChangeType == ObservableDictionaryChangeType.ItemChanged)
                     .Select(change => change.ToObservableCollectionChange());
             }
         }
@@ -2062,7 +2076,7 @@ namespace JB.Collections.Reactive
         }
 
         /// <summary>
-        ///     The actual <see cref="ObservableCollectionChanged" /> event.
+        ///     The actual <see cref="INotifyObservableCollectionChanged{T}.ObservableCollectionChanged" /> event.
         /// </summary>
         private EventHandler<ObservableCollectionChangedEventArgs<KeyValuePair<TKey, TValue>>> _observableCollectionChanged;
 

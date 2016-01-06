@@ -37,8 +37,7 @@ namespace JB.Collections.Reactive
         int ThresholdAmountWhenItemChangesAreNotifiedAsReset { get; set; }
 
         /// <summary>
-        /// Gets the observable streams of item changes, however these will only have their
-        /// <see cref="IObservableCollectionChange{T}.ChangeType"/> set to <see cref="ObservableCollectionChangeType.ItemChanged"/>.
+        /// Gets the observable streams of collection item changes.
         /// </summary>
         /// <value>
         /// The item changes.

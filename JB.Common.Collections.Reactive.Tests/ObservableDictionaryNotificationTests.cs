@@ -9,6 +9,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
+using System.ComponentModel;
 using System.Linq;
 using System.Reactive;
 using FluentAssertions;
@@ -329,6 +330,259 @@ namespace JB.Collections.Reactive.Tests
         }
 
         [Fact]
+        public void AddRaisesPropertyChangedEventForItemIndexerdAndCount()
+        {
+            // given
+            using (var observableDictionary = new ObservableDictionary<int, string>())
+            {
+                observableDictionary.MonitorEvents();
+
+                // when
+                observableDictionary.Add(1, "One");
+
+                // then
+                observableDictionary
+                    .ShouldRaise(nameof(observableDictionary.PropertyChanged))
+                    .WithSender(observableDictionary)
+                    .WithArgs<PropertyChangedEventArgs>(args => args.PropertyName == "Item[]");
+
+                observableDictionary
+                    .ShouldRaise(nameof(observableDictionary.PropertyChanged))
+                    .WithSender(observableDictionary)
+                    .WithArgs<PropertyChangedEventArgs>(args => args.PropertyName == nameof(observableDictionary.Count));
+            }
+        }
+
+        [Fact(Skip = "Count is currently not captured / filtered properly by FluentAssertions")]
+        public void AddRangeRaisesPropertyChangeEventForItemIndexerdAndCountOnlyOnceWhenThresholdAmountWhenItemChangesAreNotifiedAsResetIsSetAccordingly()
+        {
+            // given
+            using (var observableDictionary = new ObservableDictionary<int, string>())
+            {
+                observableDictionary.ThresholdAmountWhenItemChangesAreNotifiedAsReset = 0;
+                observableDictionary.MonitorEvents();
+
+                var items = new List<KeyValuePair<int, string>>()
+                {
+                    new KeyValuePair<int, string>(1, "One"),
+                    new KeyValuePair<int, string>(2, "Two"),
+                    new KeyValuePair<int, string>(3, "Three"),
+                };
+
+                // when
+                observableDictionary.AddRange(items);
+
+                // then
+                observableDictionary
+                    .ShouldRaise(nameof(observableDictionary.PropertyChanged))
+                    .WithSender(observableDictionary)
+                    .WithArgs<PropertyChangedEventArgs>(args => args.PropertyName == "Item[]")
+                    .Should().HaveCount(1); // ToDo: re-enable test if/when https://github.com/dennisdoomen/fluentassertions/issues/337 has been fixed
+
+                observableDictionary
+                    .ShouldRaise(nameof(observableDictionary.PropertyChanged))
+                    .WithSender(observableDictionary)
+                    .WithArgs<PropertyChangedEventArgs>(args => args.PropertyName == nameof(observableDictionary.Count))
+                    .Should().HaveCount(1); // ToDo: re-enable test if/when https://github.com/dennisdoomen/fluentassertions/issues/337 has been fixed
+            }
+        }
+
+        [Fact]
+        public void ClearRaisesPropertyChangeEventForItemIndexerdAndCount()
+        {
+            // given
+            var items = new List<KeyValuePair<int, string>>()
+                {
+                    new KeyValuePair<int, string>(1, "One"),
+                    new KeyValuePair<int, string>(2, "Two"),
+                    new KeyValuePair<int, string>(3, "Three"),
+                };
+
+            using (var observableDictionary = new ObservableDictionary<int, string>(items))
+            {
+                observableDictionary.MonitorEvents();
+
+                // when
+                observableDictionary.Clear();
+
+                // then
+                observableDictionary
+                    .ShouldRaise(nameof(observableDictionary.PropertyChanged))
+                    .WithSender(observableDictionary)
+                    .WithArgs<PropertyChangedEventArgs>(args => args.PropertyName == "Item[]");
+
+                observableDictionary
+                    .ShouldRaise(nameof(observableDictionary.PropertyChanged))
+                    .WithSender(observableDictionary)
+                    .WithArgs<PropertyChangedEventArgs>(args => args.PropertyName == nameof(observableDictionary.Count));
+            }
+        }
+
+        [Fact]
+        public void ClearDoesNotRaisesPropertyChangeEventForItemIndexerdAndCountIfDictionaryIsEmpty()
+        {
+            // given
+            using (var observableDictionary = new ObservableDictionary<int, string>())
+            {
+                observableDictionary.MonitorEvents();
+
+                // when
+                observableDictionary.Clear();
+
+                // then
+                observableDictionary
+                    .ShouldNotRaise(nameof(observableDictionary.PropertyChanged));
+            }
+        }
+
+        [Fact]
+        public void ResetRaisesPropertyChangeEventForItemIndexerdAndCount()
+        {
+            // given
+            using (var observableDictionary = new ObservableDictionary<int, string>())
+            {
+                observableDictionary.MonitorEvents();
+
+                // when
+                observableDictionary.Reset();
+
+                // then
+                observableDictionary
+                    .ShouldRaise(nameof(observableDictionary.PropertyChanged))
+                    .WithSender(observableDictionary)
+                    .WithArgs<PropertyChangedEventArgs>(args => args.PropertyName == "Item[]");
+
+                observableDictionary
+                    .ShouldRaise(nameof(observableDictionary.PropertyChanged))
+                    .WithSender(observableDictionary)
+                    .WithArgs<PropertyChangedEventArgs>(args => args.PropertyName == nameof(observableDictionary.Count));
+            }
+        }
+
+        [Fact]
+        public void AddRangeRaisesPropertyChangeEventForItemIndexerdAndCount()
+        {
+            // given
+            using (var observableDictionary = new ObservableDictionary<int, string>())
+            {
+                observableDictionary.MonitorEvents();
+
+                var items = new List<KeyValuePair<int, string>>()
+                {
+                    new KeyValuePair<int, string>(1, "One"),
+                    new KeyValuePair<int, string>(2, "Two"),
+                    new KeyValuePair<int, string>(3, "Three"),
+                };
+
+                // when
+                observableDictionary.AddRange(items);
+
+                // then
+                observableDictionary
+                    .ShouldRaise(nameof(observableDictionary.PropertyChanged))
+                    .WithSender(observableDictionary)
+                    .WithArgs<PropertyChangedEventArgs>(args => args.PropertyName == "Item[]");
+
+                observableDictionary
+                    .ShouldRaise(nameof(observableDictionary.PropertyChanged))
+                    .WithSender(observableDictionary)
+                    .WithArgs<PropertyChangedEventArgs>(args => args.PropertyName == nameof(observableDictionary.Count));
+            }
+        }
+
+        [Fact(Skip = "Count is currently not captured / filtered properly by FluentAssertions")]
+        public void RemoveRangeRaisesPropertyChangedEventForItemIndexerAndCountOnlyOnceWhenThresholdAmountWhenItemChangesAreNotifiedAsResetIsSetAccordingly()
+        {
+            // given
+            var items = new List<KeyValuePair<int, string>>()
+                {
+                    new KeyValuePair<int, string>(1, "One"),
+                    new KeyValuePair<int, string>(2, "Two"),
+                    new KeyValuePair<int, string>(3, "Three"),
+                };
+
+            using (var observableDictionary = new ObservableDictionary<int, string>(items))
+            {
+                observableDictionary.ThresholdAmountWhenItemChangesAreNotifiedAsReset = 0;
+                observableDictionary.MonitorEvents();
+
+                // when
+                observableDictionary.RemoveRange(items);
+
+                // then
+                observableDictionary
+                    .ShouldRaise(nameof(observableDictionary.PropertyChanged))
+                    .WithSender(observableDictionary)
+                    .WithArgs<PropertyChangedEventArgs>(args => args.PropertyName == "Item[]")
+                    .Should().HaveCount(1); // ToDo: re-enable test if/when https://github.com/dennisdoomen/fluentassertions/issues/337 has been fixed
+
+                observableDictionary
+                    .ShouldRaise(nameof(observableDictionary.PropertyChanged))
+                    .WithSender(observableDictionary)
+                    .WithArgs<PropertyChangedEventArgs>(args => args.PropertyName == nameof(observableDictionary.Count))
+                    .Should().HaveCount(1); // ToDo: re-enable test if/when https://github.com/dennisdoomen/fluentassertions/issues/337 has been fixed
+            }
+        }
+
+        [Fact]
+        public void RemoveRangeRaisesPropertyChangedEventForItemIndexerAndCount()
+        {
+            // given
+            var items = new List<KeyValuePair<int, string>>()
+                {
+                    new KeyValuePair<int, string>(1, "One"),
+                    new KeyValuePair<int, string>(2, "Two"),
+                    new KeyValuePair<int, string>(3, "Three"),
+                };
+
+            using (var observableDictionary = new ObservableDictionary<int, string>(items))
+            {
+                observableDictionary.ThresholdAmountWhenItemChangesAreNotifiedAsReset = 0;
+                observableDictionary.MonitorEvents();
+
+                // when
+                observableDictionary.RemoveRange(items);
+
+                // then
+                observableDictionary
+                    .ShouldRaise(nameof(observableDictionary.PropertyChanged))
+                    .WithSender(observableDictionary)
+                    .WithArgs<PropertyChangedEventArgs>(args => args.PropertyName == "Item[]");
+
+                observableDictionary
+                    .ShouldRaise(nameof(observableDictionary.PropertyChanged))
+                    .WithSender(observableDictionary)
+                    .WithArgs<PropertyChangedEventArgs>(args => args.PropertyName == nameof(observableDictionary.Count));
+            }
+        }
+
+        [Fact]
+        public void RemoveRaisesPropertyChangedEventForItemIndexerAndCount()
+        {
+            // given
+            using (var observableDictionary = new ObservableDictionary<int, string>())
+            {
+                observableDictionary.Add(1, "One");
+
+                observableDictionary.MonitorEvents();
+
+                // when
+                observableDictionary.Remove(1);
+
+                // then
+                observableDictionary
+                    .ShouldRaise(nameof(observableDictionary.PropertyChanged))
+                    .WithSender(observableDictionary)
+                    .WithArgs<PropertyChangedEventArgs>(args => args.PropertyName == "Item[]");
+
+                observableDictionary
+                    .ShouldRaise(nameof(observableDictionary.PropertyChanged))
+                    .WithSender(observableDictionary)
+                    .WithArgs<PropertyChangedEventArgs>(args => args.PropertyName == nameof(observableDictionary.Count));
+            }
+        }
+
+        [Fact]
         public void ClearNotifiesAsReset()
         {
             // given
@@ -340,8 +594,10 @@ namespace JB.Collections.Reactive.Tests
             };
 
             var scheduler = new TestScheduler();
+
             var observer = scheduler.CreateObserver<IObservableDictionaryChange<int, string>>();
             var resetsObserver = scheduler.CreateObserver<Unit>();
+            var observableCollectionChangesObserver = scheduler.CreateObserver<IObservableCollectionChange<KeyValuePair<int, string>>>();
 
             using (var observableDictionary = new ObservableDictionary<int, string>(initialList, scheduler: scheduler))
             {
@@ -350,31 +606,42 @@ namespace JB.Collections.Reactive.Tests
 
                 IDisposable dictionaryChangesSubscription = null;
                 IDisposable resetsSubscription = null;
+                IDisposable observableCollectionChangesSubscription = null;
 
                 try
                 {
                     dictionaryChangesSubscription = observableDictionary.DictionaryChanges.Subscribe(observer);
                     resetsSubscription = observableDictionary.Resets.Subscribe(resetsObserver);
+                    observableCollectionChangesSubscription =
+                        ((INotifyObservableCollectionChanged<KeyValuePair<int, string>>)observableDictionary)
+                        .CollectionChanges
+                        .Subscribe(observableCollectionChangesObserver);
 
                     observableDictionary.Clear();
-                    scheduler.AdvanceBy(2);
+                    scheduler.AdvanceBy(3);
 
                     // then
                     observableDictionary.Count.Should().Be(0);
 
                     resetsObserver.Messages.Count.Should().Be(1);
                     observer.Messages.Count.Should().Be(1);
+                    observableCollectionChangesObserver.Messages.Count.Should().Be(1); 
 
                     observer.Messages.First().Value.Value.ChangeType.Should().Be(ObservableDictionaryChangeType.Reset);
                     observer.Messages.First().Value.Value.Key.Should().Be(default(int));
                     observer.Messages.First().Value.Value.Value.Should().Be(default(string));
                     observer.Messages.First().Value.Value.ReplacedValue.Should().Be(default(string));
                     observer.Messages.First().Value.Value.ChangedPropertyName.Should().BeEmpty();
+
+                    observableCollectionChangesObserver.Messages.First().Value.Value.ChangeType.Should().Be(ObservableCollectionChangeType.Reset);
+                    observableCollectionChangesObserver.Messages.First().Value.Value.Item.Key.Should().Be(default(int));
+                    observableCollectionChangesObserver.Messages.First().Value.Value.Item.Value.Should().Be(default(string));
                 }
                 finally
                 {
                     dictionaryChangesSubscription?.Dispose();
                     resetsSubscription?.Dispose();
+                    observableCollectionChangesSubscription?.Dispose();
                 }
             }
         }
@@ -517,6 +784,7 @@ namespace JB.Collections.Reactive.Tests
 
             var observer = scheduler.CreateObserver<IObservableDictionaryChange<int, MyNotifyPropertyChanged<int, string>>>();
             var itemChangesObserver = scheduler.CreateObserver<IObservableDictionaryChange<int, MyNotifyPropertyChanged<int, string>>>();
+            var collectionItemChangesObserver = scheduler.CreateObserver<IObservableCollectionChange<KeyValuePair<int, MyNotifyPropertyChanged<int, string>>>>();
 
             using (var observableDictionary = new ObservableDictionary<int, MyNotifyPropertyChanged<int, string>>(scheduler: scheduler))
             {
@@ -524,11 +792,15 @@ namespace JB.Collections.Reactive.Tests
 
                 IDisposable dictionaryChangesSubscription = null;
                 IDisposable dictionaryItemChangesSubscription = null;
+                IDisposable observableCollectionItemChangesSubscription = null;
 
                 try
                 {
                     dictionaryChangesSubscription = observableDictionary.DictionaryChanges.Subscribe(observer);
                     dictionaryItemChangesSubscription = observableDictionary.DictionaryItemChanges.Subscribe(itemChangesObserver);
+                    observableCollectionItemChangesSubscription = ((INotifyObservableCollectionItemChanged<KeyValuePair<int, MyNotifyPropertyChanged<int, string>>>)observableDictionary)
+                        .CollectionItemChanges
+                        .Subscribe(collectionItemChangesObserver);
 
                     // when
                     observableDictionary.Add(key, testInpcImplementationInstance);
@@ -539,6 +811,7 @@ namespace JB.Collections.Reactive.Tests
                     // then
                     observer.Messages.Count.Should().Be(2);
                     itemChangesObserver.Messages.Count.Should().Be(1);
+                    collectionItemChangesObserver.Messages.Count.Should().Be(1);
 
                     observer.Messages.First().Value.Value.ChangeType.Should().Be(ObservableDictionaryChangeType.ItemAdded);
                     observer.Messages.First().Value.Value.Key.Should().Be(key);
@@ -555,11 +828,16 @@ namespace JB.Collections.Reactive.Tests
                     itemChangesObserver.Messages.First().Value.Value.Value.Should().Be(testInpcImplementationInstance);
                     itemChangesObserver.Messages.First().Value.Value.ReplacedValue.Should().BeNull();
                     itemChangesObserver.Messages.Last().Value.Value.ChangedPropertyName.Should().Be(nameof(MyNotifyPropertyChanged<int, string>.FirstProperty));
+
+                    collectionItemChangesObserver.Messages.First().Value.Value.ChangeType.Should().Be(ObservableCollectionChangeType.ItemChanged);
+                    collectionItemChangesObserver.Messages.First().Value.Value.Item.Key.Should().Be(key);
+                    collectionItemChangesObserver.Messages.First().Value.Value.Item.Value.Should().Be(testInpcImplementationInstance);
                 }
                 finally
                 {
                     dictionaryChangesSubscription?.Dispose();
                     dictionaryItemChangesSubscription?.Dispose();
+                    observableCollectionItemChangesSubscription?.Dispose();
                 }
             }
         }
@@ -775,6 +1053,7 @@ namespace JB.Collections.Reactive.Tests
             var scheduler = new TestScheduler();
             var observer = scheduler.CreateObserver<IObservableDictionaryChange<int, string>>();
             var resetsObserver = scheduler.CreateObserver<Unit>();
+            var observableCollectionChangesObserver = scheduler.CreateObserver<IObservableCollectionChange<KeyValuePair<int, string>>>();
 
             using (var observableDictionary = new ObservableDictionary<int, string>(scheduler: scheduler))
             {
@@ -783,29 +1062,40 @@ namespace JB.Collections.Reactive.Tests
 
                 IDisposable dictionaryChangesSubscription = null;
                 IDisposable resetsSubscription = null;
+                IDisposable observableCollectionChangesSubscription = null;
 
                 try
                 {
                     dictionaryChangesSubscription = observableDictionary.DictionaryChanges.Subscribe(observer);
                     resetsSubscription = observableDictionary.Resets.Subscribe(resetsObserver);
+                    observableCollectionChangesSubscription =
+                        ((INotifyObservableCollectionChanged<KeyValuePair<int, string>>)observableDictionary)
+                        .CollectionChanges
+                        .Subscribe(observableCollectionChangesObserver);
 
                     observableDictionary.Reset();
-                    scheduler.AdvanceBy(2);
+                    scheduler.AdvanceBy(3);
 
                     // then
                     resetsObserver.Messages.Count.Should().Be(1);
                     observer.Messages.Count.Should().Be(1);
+                    observableCollectionChangesObserver.Messages.Count.Should().Be(1);
 
                     observer.Messages.First().Value.Value.ChangeType.Should().Be(ObservableDictionaryChangeType.Reset);
                     observer.Messages.First().Value.Value.Key.Should().Be(default(int));
                     observer.Messages.First().Value.Value.Value.Should().Be(default(string));
                     observer.Messages.First().Value.Value.ReplacedValue.Should().Be(default(string));
                     observer.Messages.First().Value.Value.ChangedPropertyName.Should().BeEmpty();
+
+                    observableCollectionChangesObserver.Messages.First().Value.Value.ChangeType.Should().Be(ObservableCollectionChangeType.Reset);
+                    observableCollectionChangesObserver.Messages.First().Value.Value.Item.Key.Should().Be(default(int));
+                    observableCollectionChangesObserver.Messages.First().Value.Value.Item.Value.Should().Be(default(string));
                 }
                 finally
                 {
                     dictionaryChangesSubscription?.Dispose();
                     resetsSubscription?.Dispose();
+                    observableCollectionChangesSubscription?.Dispose();
                 }
             }
         }
