@@ -289,14 +289,14 @@ namespace JB.Collections.Reactive
         }
 
         /// <summary>
-        ///     The actual <see cref="ObservableCollectionChanged" /> event.
+        ///     The actual <see cref="CollectionChanged" /> event.
         /// </summary>
         private EventHandler<ObservableCollectionChangedEventArgs<T>> _observableCollectionChanged;
 
         /// <summary>
         ///     Occurs when the corresponding <see cref="IObservableCollection{T}" /> changed.
         /// </summary>
-        public event EventHandler<ObservableCollectionChangedEventArgs<T>> ObservableCollectionChanged
+        public event EventHandler<ObservableCollectionChangedEventArgs<T>> CollectionChanged
         {
             add
             {
@@ -312,7 +312,7 @@ namespace JB.Collections.Reactive
 
 
         /// <summary>
-        ///     Raises the <see cref="E:ObservableCollectionChanged" /> event.
+        ///     Raises the <see cref="E:CollectionChanged" /> event.
         /// </summary>
         /// <param name="observableCollectionChangedEventArgs">
         ///     The <see cref="ObservableCollectionChangedEventArgs{T}" /> instance
@@ -706,7 +706,7 @@ namespace JB.Collections.Reactive
             catch (Exception exception)
             {
                 var observerException = new ObserverException(
-                    $"An error occured notifying {nameof(ObservableCollectionChanged)} Subscribers of this {this.GetType().Name}.",
+                    $"An error occured notifying {nameof(CollectionChanged)} Subscribers of this {this.GetType().Name}.",
                     exception);
 
                 UnhandledObserverExceptionsObserver.OnNext(observerException);
@@ -722,7 +722,7 @@ namespace JB.Collections.Reactive
             catch (Exception exception)
             {
                 var observerException = new ObserverException(
-                    $"An error occured notifying {nameof(CollectionChanged)} Subscribers of this {this.GetType().Name}.",
+                    $"An error occured notifying CollectionChanged Subscribers of this {this.GetType().Name}.",
                     exception);
 
                 UnhandledObserverExceptionsObserver.OnNext(observerException);
@@ -878,16 +878,16 @@ namespace JB.Collections.Reactive
         #endregion
 
         #region Implementation of INotifyCollectionChanged
-        
+
         /// <summary>
-        ///     The actual <see cref="CollectionChanged" /> event.
+        ///     The actual <see cref="INotifyCollectionChanged.CollectionChanged" /> event.
         /// </summary>
         private NotifyCollectionChangedEventHandler _collectionChanged;
         
         /// <summary>
         ///     Occurs when the collection changed.
         /// </summary>
-        public virtual event NotifyCollectionChangedEventHandler CollectionChanged
+        event NotifyCollectionChangedEventHandler INotifyCollectionChanged.CollectionChanged
         {
             add
             {

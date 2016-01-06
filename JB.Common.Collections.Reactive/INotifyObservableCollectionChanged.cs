@@ -15,6 +15,6 @@ namespace JB.Collections.Reactive
         /// <summary>
         /// Occurs when the corresponding <see cref="IObservableCollection{T}"/> changed.
         /// </summary>
-        event EventHandler<ObservableCollectionChangedEventArgs<T>> ObservableCollectionChanged;
+        event EventHandler<ObservableCollectionChangedEventArgs<T>> CollectionChanged;
 	}
 }

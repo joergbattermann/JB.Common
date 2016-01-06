@@ -121,7 +121,7 @@ namespace JB.Collections.Reactive.Tests
                     observerException.Handled = true;
                 });
 
-                ((INotifyObservableCollectionChanged<KeyValuePair<int, string>>)observableDictionary).ObservableCollectionChanged
+                ((INotifyObservableCollectionChanged<KeyValuePair<int, string>>)observableDictionary).CollectionChanged
                     += (sender, args) => { throw new InvalidOperationException("My Marker Message"); };
 
                 // when
@@ -138,7 +138,7 @@ namespace JB.Collections.Reactive.Tests
             // given
             using (var observableDictionary = new ObservableDictionary<int, string>())
             {
-                ((INotifyObservableCollectionChanged<KeyValuePair<int, string>>)observableDictionary).ObservableCollectionChanged
+                ((INotifyObservableCollectionChanged<KeyValuePair<int, string>>)observableDictionary).CollectionChanged
                     += (sender, args) => { throw new InvalidOperationException("My Marker Message"); };
 
                 // when

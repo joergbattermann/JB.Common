@@ -30,16 +30,6 @@ namespace JB.Collections.Reactive
     {
         private const string ItemIndexerName = "Item[]"; // taken from ObservableCollection.cs Line #421
 
-        /// <summary>
-        /// Determines whether the <typeparam name="TKey">key type</typeparam> is a value type. or not.
-        /// </summary>
-        private static readonly Lazy<bool> TypeParameterKeyIsValueType = new Lazy<bool>(() => typeof(TKey).IsValueType);
-
-        /// <summary>
-        /// Determines whether the <typeparam name="TValue">value type</typeparam> is a.. well.. value type. or not.
-        /// </summary>
-        private static readonly Lazy<bool> TypeParameterValueIsValueType = new Lazy<bool>(() => typeof(TValue).IsValueType);
-
         private IDisposable _dictionaryChangesItemIndexerPropertyChangedForwarder;
         private IDisposable _countChangesCountPropertyChangedForwarder;
 
@@ -788,7 +778,7 @@ namespace JB.Collections.Reactive
             catch (Exception exception)
             {
                 var observerException = new ObserverException(
-                    $"An error occured notifying {nameof(ObservableDictionaryChanged)} Subscribers of this {this.GetType().Name}.",
+                    $"An error occured notifying {nameof(DictionaryChanged)} Subscribers of this {this.GetType().Name}.",
                     exception);
 
                 UnhandledObserverExceptionsObserver.OnNext(observerException);
@@ -1395,14 +1385,14 @@ namespace JB.Collections.Reactive
         }
 
         /// <summary>
-        /// The actual event for <see cref="ObservableDictionaryChanged"/>.
+        /// The actual event for <see cref="DictionaryChanged"/>.
         /// </summary>
         private EventHandler<ObservableDictionaryChangedEventArgs<TKey, TValue>> _observableDictionaryChanged;
 
         /// <summary>
         /// Occurs when the corresponding <see cref="IObservableCollection{T}" /> changed.
         /// </summary>
-        public event EventHandler<ObservableDictionaryChangedEventArgs<TKey, TValue>> ObservableDictionaryChanged
+        public event EventHandler<ObservableDictionaryChangedEventArgs<TKey, TValue>> DictionaryChanged
         {
             add
             {
@@ -1417,7 +1407,7 @@ namespace JB.Collections.Reactive
         }
 
         /// <summary>
-        ///     Raises the <see cref="E:ObservableDictionaryChanged" /> event.
+        ///     Raises the <see cref="E:DictionaryChanged" /> event.
         /// </summary>
         /// <param name="observableDictionaryChangedEventArgs">
         ///     The <see cref="ObservableDictionaryChangedEventArgs{TKey,TValue}" /> instance
@@ -2076,14 +2066,14 @@ namespace JB.Collections.Reactive
         }
 
         /// <summary>
-        ///     The actual <see cref="INotifyObservableCollectionChanged{T}.ObservableCollectionChanged" /> event.
+        ///     The actual <see cref="INotifyObservableCollectionChanged{T}.CollectionChanged" /> event.
         /// </summary>
         private EventHandler<ObservableCollectionChangedEventArgs<KeyValuePair<TKey, TValue>>> _observableCollectionChanged;
 
         /// <summary>
         ///     Occurs when the corresponding <see cref="IObservableCollection{T}" /> changed.
         /// </summary>
-        event EventHandler<ObservableCollectionChangedEventArgs<KeyValuePair<TKey, TValue>>> INotifyObservableCollectionChanged<KeyValuePair<TKey,TValue>>.ObservableCollectionChanged
+        event EventHandler<ObservableCollectionChangedEventArgs<KeyValuePair<TKey, TValue>>> INotifyObservableCollectionChanged<KeyValuePair<TKey,TValue>>.CollectionChanged
         {
             add
             {
@@ -2098,7 +2088,7 @@ namespace JB.Collections.Reactive
         }
 
         /// <summary>
-        ///     Raises the <see cref="E:ObservableCollectionChanged" /> event.
+        ///     Raises the <see cref="E:CollectionChanged" /> event.
         /// </summary>
         /// <param name="observableCollectionChangedEventArgs">
         ///     The <see cref="ObservableCollectionChangedEventArgs{T}" /> instance

@@ -23,7 +23,7 @@ namespace JB.Collections.Reactive
         }
 
         /// <summary>
-        /// Handles the ObservableCollectionChanged event of the underlying <see cref="ObservableList{T}"/>.
+        /// Handles the CollectionChanged event of the underlying <see cref="ObservableList{T}"/>.
         /// </summary>
         /// <param name="sender">The source of the event.</param>
         /// <param name="observableListChangedEventArgs">The <see cref="ObservableListChangedEventArgs{T}"/> instance containing the event data.</param>
@@ -74,6 +74,7 @@ namespace JB.Collections.Reactive
         /// <exception cref="T:System.NotSupportedException"><see cref="P:System.ComponentModel.IBindingList.AllowNew" /> is false. </exception>
         public virtual object AddNew()
         {
+            CheckForAndThrowIfDisposed();
             return (InnerList as IBindingList)?.AddNew();
         }
 
@@ -86,6 +87,7 @@ namespace JB.Collections.Reactive
         /// </param>
         public virtual void AddIndex(PropertyDescriptor property)
         {
+            CheckForAndThrowIfDisposed();
             (InnerList as IBindingList)?.AddIndex(property);
         }
 
@@ -101,6 +103,7 @@ namespace JB.Collections.Reactive
         /// </exception>
         public virtual void ApplySort(PropertyDescriptor property, ListSortDirection direction)
         {
+            CheckForAndThrowIfDisposed();
             (InnerList as IBindingList)?.ApplySort(property, direction);
         }
 
@@ -118,6 +121,7 @@ namespace JB.Collections.Reactive
         /// </exception>
         public virtual int Find(PropertyDescriptor property, object key)
         {
+            CheckForAndThrowIfDisposed();
             return (InnerList as IBindingList)?.Find(property, key) ?? -1;
         }
 
@@ -130,6 +134,7 @@ namespace JB.Collections.Reactive
         /// </param>
         public virtual void RemoveIndex(PropertyDescriptor property)
         {
+            CheckForAndThrowIfDisposed();
             (InnerList as IBindingList)?.RemoveIndex(property);
         }
 
@@ -145,6 +150,7 @@ namespace JB.Collections.Reactive
         /// </exception>
         public virtual void RemoveSort()
         {
+            CheckForAndThrowIfDisposed();
             (InnerList as IBindingList)?.RemoveSort();
         }
 
@@ -435,7 +441,7 @@ namespace JB.Collections.Reactive
         }
 
         /// <summary>
-        ///     Raises <see cref="INotifyObservableCollectionChanged{T}.ObservableCollectionChanged" />,
+        ///     Raises <see cref="INotifyObservableCollectionChanged{T}.CollectionChanged" />,
         ///     <see cref="INotifyCollectionChanged.CollectionChanged" />
         ///     and <see cref="IBindingList.ListChanged" /> event(s) as well as notifies the
         ///     <see cref="INotifyObservableCollectionChanged{T}.CollectionChanges" />
@@ -450,7 +456,7 @@ namespace JB.Collections.Reactive
         }
 
         /// <summary>
-        ///     Raises <see cref="INotifyObservableCollectionChanged{T}.ObservableCollectionChanged" />,
+        ///     Raises <see cref="INotifyObservableCollectionChanged{T}.CollectionChanged" />,
         ///     <see cref="INotifyCollectionChanged.CollectionChanged" />
         ///     and <see cref="IBindingList.ListChanged" /> event(s) as well as notifies the
         ///     <see cref="INotifyObservableCollectionChanged{T}.CollectionChanges" />

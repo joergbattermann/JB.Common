@@ -15,6 +15,6 @@ namespace JB.Collections.Reactive
         /// <summary>
         /// Occurs when the corresponding <see cref="IObservableDictionary{TKey,TValue}"/> changed.
         /// </summary>
-        event EventHandler<ObservableDictionaryChangedEventArgs<TKey, TValue>> ObservableDictionaryChanged;
+        event EventHandler<ObservableDictionaryChangedEventArgs<TKey, TValue>> DictionaryChanged;
     }
 }

@@ -536,7 +536,7 @@ namespace JB.Collections.Reactive
 
         /// <summary>
         /// Occurs when the corresponding <see cref="T:JB.Collections.Reactive.IObservableList`1" /> changed.
-        /// This, contrary to <see cref="INotifyObservableCollectionChanged{T}.ObservableCollectionChanged"/>
+        /// This, contrary to <see cref="INotifyObservableCollectionChanged{T}.CollectionChanged"/>
         /// also notifies about move operations inside the underlying list of items and provides index positions
         /// per change event.
         /// </summary>
