@@ -775,7 +775,7 @@ namespace JB.Collections.Reactive
 
             try
             {
-                RaiseObservableDictionaryChanged(new ObservableDictionaryChangedEventArgs<TKey, TValue>(actualObservableDictionaryChange));
+                RaiseDictionaryChanged(new ObservableDictionaryChangedEventArgs<TKey, TValue>(actualObservableDictionaryChange));
             }
             catch (Exception exception)
             {
@@ -1404,6 +1404,7 @@ namespace JB.Collections.Reactive
                     .TakeWhile(_ => !IsDisposing && !IsDisposed)
                     .SkipContinuouslyWhile(change => !IsTrackingChanges)
                     .SkipContinuouslyWhile(change => change.ChangeType == ObservableDictionaryChangeType.ItemChanged && !IsTrackingItemChanges)
+                    .SkipContinuouslyWhile(change => change.ChangeType == ObservableDictionaryChangeType.ItemReplaced && !IsTrackingItemChanges)
                     .SkipContinuouslyWhile(change => change.ChangeType == ObservableDictionaryChangeType.Reset && !IsTrackingResets);
             }
         }
@@ -1437,7 +1438,7 @@ namespace JB.Collections.Reactive
         ///     The <see cref="ObservableDictionaryChangedEventArgs{TKey,TValue}" /> instance
         ///     containing the event data.
         /// </param>
-        protected virtual void RaiseObservableDictionaryChanged(ObservableDictionaryChangedEventArgs<TKey, TValue> observableDictionaryChangedEventArgs)
+        protected virtual void RaiseDictionaryChanged(ObservableDictionaryChangedEventArgs<TKey, TValue> observableDictionaryChangedEventArgs)
         {
             if (observableDictionaryChangedEventArgs == null) throw new ArgumentNullException(nameof(observableDictionaryChangedEventArgs));
 
@@ -1447,6 +1448,7 @@ namespace JB.Collections.Reactive
             // only raise event if it's currently allowed
             if (!IsTrackingChanges
                 || (observableDictionaryChangedEventArgs.ChangeType == ObservableDictionaryChangeType.ItemChanged && !IsTrackingItemChanges)
+                || (observableDictionaryChangedEventArgs.ChangeType == ObservableDictionaryChangeType.ItemReplaced && !IsTrackingItemChanges)
                 || (observableDictionaryChangedEventArgs.ChangeType == ObservableDictionaryChangeType.Reset && !IsTrackingResets))
             {
                 return;
@@ -2036,7 +2038,9 @@ namespace JB.Collections.Reactive
                 return DictionaryChanges
                     .TakeWhile(_ => !IsDisposing && !IsDisposed)
                     .SkipContinuouslyWhile(change => !IsTrackingChanges)
-                    .Where(change => change.ChangeType == ObservableDictionaryChangeType.ItemChanged);
+                    .Where(change =>
+                        change.ChangeType == ObservableDictionaryChangeType.ItemChanged
+                        || change.ChangeType == ObservableDictionaryChangeType.ItemReplaced);
             }
         }
 
@@ -2059,7 +2063,8 @@ namespace JB.Collections.Reactive
                 return DictionaryChanges
                     .TakeWhile(_ => !IsDisposing && !IsDisposed)
                     .SkipContinuouslyWhile(change => !IsTrackingChanges)
-                    .Where(change => change.ChangeType == ObservableDictionaryChangeType.ItemChanged)
+                    .SkipContinuouslyWhile(change => !IsTrackingItemChanges)
+                    .Where(change => change.ChangeType == ObservableDictionaryChangeType.ItemChanged || change.ChangeType == ObservableDictionaryChangeType.ItemReplaced)
                     .SelectMany(change => change.ToObservableCollectionChanges());
             }
         }
@@ -2084,6 +2089,7 @@ namespace JB.Collections.Reactive
                     .TakeWhile(_ => !IsDisposing && !IsDisposed)
                     .SkipContinuouslyWhile(change => !IsTrackingChanges)
                     .SkipContinuouslyWhile(change => change.ChangeType == ObservableDictionaryChangeType.ItemChanged && !IsTrackingItemChanges)
+                    .SkipContinuouslyWhile(change => change.ChangeType == ObservableDictionaryChangeType.ItemReplaced && !IsTrackingItemChanges)
                     .SkipContinuouslyWhile(change => change.ChangeType == ObservableDictionaryChangeType.Reset && !IsTrackingResets)
                     .SelectMany(dictionaryChange => dictionaryChange.ToObservableCollectionChanges());
             }

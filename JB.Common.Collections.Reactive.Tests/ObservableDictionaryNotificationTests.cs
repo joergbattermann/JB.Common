@@ -1334,10 +1334,10 @@ namespace JB.Collections.Reactive.Tests
                     {
                         observableDictionary[1] = "Two";
 
-                        scheduler.AdvanceBy(3);
+                        scheduler.AdvanceBy(4);
                     }
 
-                    scheduler.AdvanceBy(3);
+                    scheduler.AdvanceBy(4);
 
                     // then
                     resetsObserver.Messages.Count.Should().Be(1);
