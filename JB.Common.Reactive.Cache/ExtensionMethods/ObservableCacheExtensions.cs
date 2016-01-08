@@ -17,6 +17,16 @@ namespace JB.Reactive.Cache.ExtensionMethods
     /// </summary>
     public static class ObservableCacheExtensions
     {
+        /// <summary>
+        /// Adds or if it already exists updates the <paramref name="key"/> with the given <paramref name="value"/>.
+        /// </summary>
+        /// <typeparam name="TKey">The type of the key.</typeparam>
+        /// <typeparam name="TValue">The type of the value.</typeparam>
+        /// <param name="cache">The cache to use.</param>
+        /// <param name="key">The key for the <paramref name="value"/>.</param>
+        /// <param name="value">The value to add or update.</param>
+        /// <param name="expiry">The expiry. If none is provided, <see cref="TimeSpan.MaxValue"/> will be used.</param>
+        /// <returns></returns>
         public static IObservable<Unit> AddOrUpdate<TKey, TValue>(this IObservableCache<TKey, TValue> cache, TKey key, TValue value, TimeSpan? expiry = null)
         {
             throw new NotImplementedException();
