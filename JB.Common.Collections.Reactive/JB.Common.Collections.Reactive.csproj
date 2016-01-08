@@ -79,7 +79,6 @@
     <Compile Include="INotifyObservableCollectionItemChanged.cs" />
     <Compile Include="INotifyObservableDictionaryChanged.cs" />
     <Compile Include="INotifyObservableDictionaryItemChanged.cs" />
-    <Compile Include="INotifyUnhandledObserverExceptions.cs" />
     <Compile Include="INotifyObservableListChanged.cs" />
     <Compile Include="INotifyObservableResets.cs" />
     <Compile Include="IObservableBindingDictionary.cs" />
