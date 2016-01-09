@@ -53,15 +53,22 @@
     </Compile>
     <Compile Include="CacheExpirationType.cs" />
     <Compile Include="ExtensionMethods\ObservableCacheExtensions.cs" />
+    <Compile Include="INotifyObservableCacheChanges.cs" />
     <Compile Include="IObservableCache.cs" />
     <Compile Include="IObservableCacheChange.cs" />
     <Compile Include="ObservableCacheChangeType.cs" />
+    <Compile Include="ObservableCachedElement.cs" />
+    <Compile Include="ObservableInMemoryCache.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\JB.Common.Collections.Reactive\JB.Common.Collections.Reactive.csproj">
       <Project>{a30a30a6-9914-42dc-95a1-527b652b165d}</Project>
       <Name>JB.Common.Collections.Reactive</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\JB.Common.Collections\JB.Common.Collections.csproj">
+      <Project>{360b8b3f-5ef4-4cd1-96f2-f3cc67a2b2b3}</Project>
+      <Name>JB.Common.Collections</Name>
     </ProjectReference>
     <ProjectReference Include="..\JB.Common.Reactive\JB.Common.Reactive.csproj">
       <Project>{45f64424-6a73-45cd-942c-841225cb3ad6}</Project>

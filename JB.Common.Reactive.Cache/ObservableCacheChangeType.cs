@@ -33,6 +33,11 @@ namespace JB.Reactive.Cache
         /// <summary>
         ///     The item for a key has been removed.
         /// </summary>
-        ItemRemoved
+        ItemRemoved,
+
+        /// <summary>
+        /// Indicates a major change and observers should, if required, reset any existing knowledge and state about the affected cache.
+        /// </summary>
+        Reset
     }
 }

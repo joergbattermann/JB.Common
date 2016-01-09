@@ -53,7 +53,7 @@ namespace JB.Collections.Reactive
 
         /// <summary>
         /// Prepares and sets up the observables and subjects used, particularly
-        /// <see cref="ListChanges"/>, <see cref="INotifyObservableCountChanged.CountChanges"/> and <see cref="INotifyUnhandledObserverExceptions.UnhandledObserverExceptions"/>.
+        /// <see cref="ListChanges"/>, <see cref="INotifyObservableCountChanges.CountChanges"/> and <see cref="INotifyUnhandledObserverExceptions.UnhandledObserverExceptions"/>.
         /// </summary>
         private void SetupObservablesAndObserversAndSubjects()
         {
@@ -504,11 +504,11 @@ namespace JB.Collections.Reactive
 
         #endregion
 
-        #region Implementation of INotifyObservableListChanged<T>
+        #region Implementation of INotifyObservableListChanges<T>
 
         /// <summary>
         /// Gets the list changes as an observable stream.
-        /// This, contrary to <see cref="INotifyObservableCollectionChanged{T}.CollectionChanges"/>
+        /// This, contrary to <see cref="INotifyObservableCollectionChanges{T}.CollectionChanges"/>
         /// also notifies about move operations inside the underlying list of items and provides index positions
         /// per change event.
         /// </summary>
@@ -536,10 +536,11 @@ namespace JB.Collections.Reactive
 
         /// <summary>
         /// Occurs when the corresponding <see cref="T:JB.Collections.Reactive.IObservableList`1" /> changed.
-        /// This, contrary to <see cref="INotifyObservableCollectionChanged{T}.CollectionChanged"/>
+        /// This, contrary to <see cref="INotifyObservableCollectionChanges{T}.CollectionChanged"/>
         /// also notifies about move operations inside the underlying list of items and provides index positions
         /// per change event.
         /// </summary>
+        [Obsolete("This shall be removed pre 1.0")]
         public event EventHandler<ObservableListChangedEventArgs<T>> ObservableListChanged
         {
             add

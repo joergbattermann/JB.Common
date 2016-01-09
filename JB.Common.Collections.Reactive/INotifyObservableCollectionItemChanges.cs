@@ -8,7 +8,7 @@ namespace JB.Collections.Reactive
     /// <typeparam name="TItem"/> implements the <see cref="INotifyPropertyChanged"/> interface.
     /// </summary>
     /// <typeparam name="TItem"></typeparam>
-    public interface INotifyObservableCollectionItemChanged<out TItem>
+    public interface INotifyObservableCollectionItemChanges<out TItem>
     {
         /// <summary>
         /// (Temporarily) suppresses change notifications for <see cref="ObservableCollectionChangeType.ItemChanged"/> events until the returned <see cref="IDisposable" />

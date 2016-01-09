@@ -7,10 +7,8 @@ namespace JB.Collections.Reactive
         IObservableReadOnlyDictionary<TKey, TValue>,
         IObservableCollection<KeyValuePair<TKey, TValue>>,
         IBulkModifiableDictionary<TKey, TValue>,
-        INotifyObservableDictionaryChanged<TKey, TValue>,
-        IDictionary<TKey, TValue>,
-        IDictionary
+        INotifyObservableDictionaryChanges<TKey, TValue>,
+        IDictionary<TKey, TValue>
     {
-		
 	}
 }

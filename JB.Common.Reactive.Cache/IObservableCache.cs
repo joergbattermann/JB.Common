@@ -15,14 +15,6 @@ namespace JB.Reactive.Cache
     public interface IObservableCache<TKey, TValue>
     {
         /// <summary>
-        ///     Gets an observable stream of changes to the <see cref="IObservableCache{TKey,TValue}" />.
-        /// </summary>
-        /// <value>
-        ///     The changes.
-        /// </value>
-        IObservable<IObservableCacheChange<TKey, TValue>> Changes { get; }
-
-        /// <summary>
         /// Adds the specified <paramref name="key"/> with the given <paramref name="value"/> to the <see cref="IObservableCache{TKey,TValue}"/>.
         /// </summary>
         /// <param name="key">The key of the element to add.</param>

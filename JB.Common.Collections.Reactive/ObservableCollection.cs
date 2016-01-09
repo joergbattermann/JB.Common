@@ -19,7 +19,7 @@ using JB.Reactive.Linq;
 namespace JB.Collections.Reactive
 {
     [DebuggerDisplay("Count={Count}")]
-    public class ObservableCollection<T> : IObservableCollection<T>, IDisposable
+    public class ObservableCollection<T> : IObservableCollection<T>, ICollection, IDisposable
     {
         protected const string ItemIndexerName = "Item[]"; // taken from ObservableCollection.cs Line #421
 
@@ -118,7 +118,7 @@ namespace JB.Collections.Reactive
 
         #endregion
 
-        #region Implementation of INotifyObservableCollectionChanged<T>
+        #region Implementation of INotifyObservableCollectionChanges<T>
 
 
         /// <summary>
@@ -296,6 +296,7 @@ namespace JB.Collections.Reactive
         /// <summary>
         ///     Occurs when the corresponding <see cref="IObservableCollection{T}" /> changed.
         /// </summary>
+        [Obsolete("This will/shall be removed again, soon")]
         public event EventHandler<ObservableCollectionChangedEventArgs<T>> CollectionChanged
         {
             add
@@ -341,7 +342,7 @@ namespace JB.Collections.Reactive
         }
         #endregion
         
-        #region Implementation of INotifyObservableCountChanged
+        #region Implementation of INotifyObservableCountChanges
 
         private readonly object _isTrackingCountChangesLocker = new object();
         private long _isTrackingCountChanges = 0;

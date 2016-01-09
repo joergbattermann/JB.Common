@@ -121,7 +121,7 @@ namespace JB.Collections.Reactive.Tests
                     observerException.Handled = true;
                 });
 
-                ((INotifyObservableCollectionChanged<KeyValuePair<int, string>>)observableDictionary).CollectionChanged
+                ((INotifyObservableCollectionChanges<KeyValuePair<int, string>>)observableDictionary).CollectionChanged
                     += (sender, args) => { throw new InvalidOperationException("My Marker Message"); };
 
                 // when
@@ -138,7 +138,7 @@ namespace JB.Collections.Reactive.Tests
             // given
             using (var observableDictionary = new ObservableDictionary<int, string>())
             {
-                ((INotifyObservableCollectionChanged<KeyValuePair<int, string>>)observableDictionary).CollectionChanged
+                ((INotifyObservableCollectionChanges<KeyValuePair<int, string>>)observableDictionary).CollectionChanged
                     += (sender, args) => { throw new InvalidOperationException("My Marker Message"); };
 
                 // when
@@ -613,7 +613,7 @@ namespace JB.Collections.Reactive.Tests
                     dictionaryChangesSubscription = observableDictionary.DictionaryChanges.Subscribe(observer);
                     resetsSubscription = observableDictionary.Resets.Subscribe(resetsObserver);
                     observableCollectionChangesSubscription =
-                        ((INotifyObservableCollectionChanged<KeyValuePair<int, string>>)observableDictionary)
+                        ((INotifyObservableCollectionChanges<KeyValuePair<int, string>>)observableDictionary)
                         .CollectionChanges
                         .Subscribe(observableCollectionChangesObserver);
 
@@ -798,7 +798,7 @@ namespace JB.Collections.Reactive.Tests
                 {
                     dictionaryChangesSubscription = observableDictionary.DictionaryChanges.Subscribe(observer);
                     dictionaryItemChangesSubscription = observableDictionary.DictionaryItemChanges.Subscribe(itemChangesObserver);
-                    observableCollectionItemChangesSubscription = ((INotifyObservableCollectionItemChanged<KeyValuePair<int, MyNotifyPropertyChanged<int, string>>>)observableDictionary)
+                    observableCollectionItemChangesSubscription = ((INotifyObservableCollectionItemChanges<KeyValuePair<int, MyNotifyPropertyChanged<int, string>>>)observableDictionary)
                         .CollectionItemChanges
                         .Subscribe(collectionItemChangesObserver);
 
@@ -1069,7 +1069,7 @@ namespace JB.Collections.Reactive.Tests
                     dictionaryChangesSubscription = observableDictionary.DictionaryChanges.Subscribe(observer);
                     resetsSubscription = observableDictionary.Resets.Subscribe(resetsObserver);
                     observableCollectionChangesSubscription =
-                        ((INotifyObservableCollectionChanged<KeyValuePair<int, string>>)observableDictionary)
+                        ((INotifyObservableCollectionChanges<KeyValuePair<int, string>>)observableDictionary)
                         .CollectionChanges
                         .Subscribe(observableCollectionChangesObserver);
 
