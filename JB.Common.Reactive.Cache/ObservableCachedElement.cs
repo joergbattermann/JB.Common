@@ -42,13 +42,13 @@ namespace JB.Reactive.Cache
         /// <summary>
         ///     The actual <see cref="ValuePropertyChanged" /> event.
         /// </summary>
-        private EventHandler _valuePropertyChanged;
+        private EventHandler<ForwardedEventArgs<PropertyChangedEventArgs>> _valuePropertyChanged;
 
         /// <summary>
         /// Occurs when this instance's <see cref="Value"/> has raised an <see cref="INotifyPropertyChanged.PropertyChanged"/> event.
         /// </summary>
 
-        public virtual event EventHandler ValuePropertyChanged
+        public virtual event EventHandler<ForwardedEventArgs<PropertyChangedEventArgs>> ValuePropertyChanged
         {
             add
             {
@@ -65,12 +65,14 @@ namespace JB.Reactive.Cache
         /// <summary>
         ///     Raises the <see cref="ValuePropertyChanged"/> event.
         /// </summary>
-        protected virtual void RaiseValuePropertyChanged()
+        protected virtual void RaiseValuePropertyChanged(PropertyChangedEventArgs propertyChangedEventArgs)
         {
+            if (propertyChangedEventArgs == null) throw new ArgumentNullException(nameof(propertyChangedEventArgs));
+
             if (IsDisposed || IsDisposing)
                 return;
 
-            _valuePropertyChanged?.Invoke(this, EventArgs.Empty);
+            _valuePropertyChanged?.Invoke(this, new ForwardedEventArgs<PropertyChangedEventArgs>(Value, propertyChangedEventArgs));
         }
 
         /// <summary>
@@ -352,7 +354,7 @@ namespace JB.Reactive.Cache
             CheckForAndThrowIfDisposed();
 
             RaisePropertyChanged(nameof(Value));
-            RaiseValuePropertyChanged();
+            RaiseValuePropertyChanged(e);
         }
 
         /// <summary>

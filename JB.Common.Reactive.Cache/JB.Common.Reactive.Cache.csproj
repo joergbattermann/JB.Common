@@ -74,6 +74,10 @@
       <Project>{45f64424-6a73-45cd-942c-841225cb3ad6}</Project>
       <Name>JB.Common.Reactive</Name>
     </ProjectReference>
+    <ProjectReference Include="..\JB.Common\JB.Common.csproj">
+      <Project>{248fadaf-12c1-41d1-8faa-8b786b4feb36}</Project>
+      <Name>JB.Common</Name>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
