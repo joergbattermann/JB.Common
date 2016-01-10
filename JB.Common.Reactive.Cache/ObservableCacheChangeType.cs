@@ -27,6 +27,8 @@ namespace JB.Reactive.Cache
 
         /// <summary>
         ///     The item for a key has expired.
+        ///     Depending on the <see cref="ObservableCacheExpirationType"/> for the affected element,
+        ///     this may be followed by either an <see cref="ItemRemoved"/> or <see cref="ItemReplaced"/>.
         /// </summary>
         ItemExpired,
 

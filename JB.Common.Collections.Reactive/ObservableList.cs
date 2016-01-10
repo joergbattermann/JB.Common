@@ -100,10 +100,10 @@ namespace JB.Collections.Reactive
             CheckForAndThrowIfDisposed();
 
             // go ahead and check whether a Reset or item add, -change, -move or -remove shall be signaled
-            // .. based on the ThresholdAmountWhenItemChangesAreNotifiedAsReset value
+            // .. based on the ThresholdAmountWhenChangesAreNotifiedAsReset value
             var actualObservableListChange =
                 (observableListChange.ChangeType == ObservableListChangeType.Reset
-                 || IsItemsChangedAmountGreaterThanResetThreshold(1, ThresholdAmountWhenItemChangesAreNotifiedAsReset))
+                 || IsItemsChangedAmountGreaterThanResetThreshold(1, ThresholdAmountWhenChangesAreNotifiedAsReset))
                     ? ObservableListChange<T>.Reset
                     : observableListChange;
 

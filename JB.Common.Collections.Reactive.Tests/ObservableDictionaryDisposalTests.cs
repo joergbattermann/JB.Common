@@ -75,8 +75,8 @@ namespace JB.Collections.Reactive.Tests
             Action keysPropertyAccess = () => { var keys = observableDictionary.Keys; };
             Action valuesPropertyAccess = () => { var values = observableDictionary.Values; };
 
-            Action thresholdAmountWhenItemChangesAreNotifiedAsResetPropertyGetAccess = () => { var thresholdAmountWhenItemChangesAreNotifiedAsReset = observableDictionary.ThresholdAmountWhenItemChangesAreNotifiedAsReset; };
-            Action thresholdAmountWhenItemChangesAreNotifiedAsResetPropertySetAccess = () => { observableDictionary.ThresholdAmountWhenItemChangesAreNotifiedAsReset = 1; };
+            Action thresholdAmountWhenItemChangesAreNotifiedAsResetPropertyGetAccess = () => { var thresholdAmountWhenItemChangesAreNotifiedAsReset = observableDictionary.ThresholdAmountWhenChangesAreNotifiedAsReset; };
+            Action thresholdAmountWhenItemChangesAreNotifiedAsResetPropertySetAccess = () => { observableDictionary.ThresholdAmountWhenChangesAreNotifiedAsReset = 1; };
 
             // then
             countPropertyAccess.ShouldThrow<ObjectDisposedException>();

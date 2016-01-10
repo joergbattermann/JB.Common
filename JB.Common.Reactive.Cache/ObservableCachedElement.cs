@@ -16,7 +16,7 @@ namespace JB.Reactive.Cache
 {
     public class ObservableCachedElement<TKey, TValue> : INotifyPropertyChanged, IDisposable
     {
-        private CacheExpirationType _expirationType;
+        private ObservableCacheExpirationType _expirationType;
         private DateTime _expiryDateTime;
 
         private long _hasExpired = 0;
@@ -217,7 +217,7 @@ namespace JB.Reactive.Cache
         /// <value>
         /// The type of the cache expiration.
         /// </value>
-        public CacheExpirationType ExpirationType
+        public ObservableCacheExpirationType ExpirationType
         {
             get
             {
@@ -278,12 +278,14 @@ namespace JB.Reactive.Cache
         /// <param name="value">The value.</param>
         /// <param name="expiry">The expiry.</param>
         /// <param name="expirationType">Type of the expiration.</param>
-        public ObservableCachedElement(TKey key, TValue value, TimeSpan expiry, CacheExpirationType expirationType)
+        public ObservableCachedElement(TKey key, TValue value, TimeSpan expiry, ObservableCacheExpirationType expirationType)
         {
             Key = key;
             Value = value;
 
-            _expirationType = expirationType;
+            AddValueToPropertyChangedHandling(Value);
+
+            ExpirationType = expirationType;
             ExpiryDateTime = DateTime.Now.Add(expiry);
 
             SetupAndStartExpirationTimer(ExpiryDateTime);
@@ -358,11 +360,11 @@ namespace JB.Reactive.Cache
         }
 
         /// <summary>
-        /// Updates the expiration <see cref="TimeSpan"/> and <see cref="CacheExpirationType"/> of this instance.
+        /// Updates the expiration <see cref="TimeSpan"/> and <see cref="ObservableCacheExpirationType"/> of this instance.
         /// </summary>
         /// <param name="expiry">The expiry.</param>
         /// <param name="expirationType">Type of the expiration.</param>
-        public virtual void UpdateExpiration(TimeSpan expiry, CacheExpirationType expirationType)
+        public virtual void UpdateExpiration(TimeSpan expiry, ObservableCacheExpirationType expirationType)
         {
             CheckForAndThrowIfDisposed();
 

@@ -24,7 +24,7 @@ namespace JB.Reactive.Cache
         /// <returns>
         /// An observable stream that, when done, returns an <see cref="Unit" />.
         /// </returns>
-        IObservable<Unit> Add(TKey key, TValue value, TimeSpan? expiry = null, CacheExpirationType expirationType = CacheExpirationType.Remove);
+        IObservable<Unit> Add(TKey key, TValue value, TimeSpan? expiry = null, ObservableCacheExpirationType expirationType = ObservableCacheExpirationType.Remove);
 
         /// <summary>
         /// Adds the specified <paramref name="keyValuePairs"/> to the <see cref="IObservableCache{TKey,TValue}"/>.
@@ -35,7 +35,7 @@ namespace JB.Reactive.Cache
         /// <returns>
         /// An observable stream that, when done, returns an <see cref="Unit" />.
         /// </returns>
-        IObservable<Unit> AddRange(IEnumerable<KeyValuePair<TKey, TValue>> keyValuePairs, TimeSpan? expiry = null, CacheExpirationType expirationType = CacheExpirationType.Remove);
+        IObservable<Unit> AddRange(IEnumerable<KeyValuePair<TKey, TValue>> keyValuePairs, TimeSpan? expiry = null, ObservableCacheExpirationType expirationType = ObservableCacheExpirationType.Remove);
 
         /// <summary>
         /// Clears this instance.
@@ -154,7 +154,7 @@ namespace JB.Reactive.Cache
         /// <returns>
         /// An observable stream that, when done, returns an <see cref="Unit" />.
         /// </returns>
-        IObservable<Unit> UpdateExpiration(TKey key, TimeSpan expiry, CacheExpirationType expirationType);
+        IObservable<Unit> UpdateExpiration(TKey key, TimeSpan expiry, ObservableCacheExpirationType expirationType);
 
         /// <summary>
         /// Updates the expiration behavior for the specified <paramref name="keys"/>.
@@ -165,6 +165,6 @@ namespace JB.Reactive.Cache
         /// <returns>
         /// An observable stream that, when done, returns an <see cref="Unit" />.
         /// </returns>
-        IObservable<Unit> UpdateExpiration(IEnumerable<TKey> keys, TimeSpan expiry, CacheExpirationType expirationType);
+        IObservable<Unit> UpdateExpiration(IEnumerable<TKey> keys, TimeSpan expiry, ObservableCacheExpirationType expirationType);
     }
 }

@@ -9,6 +9,7 @@
 using System;
 using System.Collections.Generic;
 using System.Reactive;
+using System.Runtime.Remoting.Channels;
 
 namespace JB.Reactive.Cache.ExtensionMethods
 {
@@ -29,7 +30,7 @@ namespace JB.Reactive.Cache.ExtensionMethods
         /// <returns>
         /// An observable stream that, when done, returns an <see cref="Unit" />.
         /// </returns>
-        public static IObservable<Unit> Add<TKey, TValue>(this IObservableCache<TKey, TValue> cache, KeyValuePair<TKey, TValue> keyValuePair, TimeSpan? expiry = null, CacheExpirationType expirationType = CacheExpirationType.Remove)
+        public static IObservable<Unit> Add<TKey, TValue>(this IObservableCache<TKey, TValue> cache, KeyValuePair<TKey, TValue> keyValuePair, TimeSpan? expiry = null, ObservableCacheExpirationType expirationType = ObservableCacheExpirationType.Remove)
         {
             throw new NotImplementedException();
         }
@@ -47,7 +48,7 @@ namespace JB.Reactive.Cache.ExtensionMethods
         /// <returns>
         /// An observable stream that, when done, returns an <see cref="Unit" />.
         /// </returns>
-        public static IObservable<Unit> AddOrUpdate<TKey, TValue>(this IObservableCache<TKey, TValue> cache, TKey key, TValue value, TimeSpan? expiry = null, CacheExpirationType expirationType = CacheExpirationType.Remove)
+        public static IObservable<Unit> AddOrUpdate<TKey, TValue>(this IObservableCache<TKey, TValue> cache, TKey key, TValue value, TimeSpan? expiry = null, ObservableCacheExpirationType expirationType = ObservableCacheExpirationType.Remove)
         {
             throw new NotImplementedException();
         }
@@ -66,7 +67,7 @@ namespace JB.Reactive.Cache.ExtensionMethods
         /// <returns>
         /// An observable stream that, when done, returns an <see cref="Unit" />.
         /// </returns>
-        public static IObservable<Unit> AddOrUpdate<TKey, TValue>(this IObservableCache<TKey, TValue> cache, TKey key, TValue value, Func<TKey, TValue, TValue, TValue> valueSelector, TimeSpan? expiry = null, CacheExpirationType expirationType = CacheExpirationType.Remove)
+        public static IObservable<Unit> AddOrUpdate<TKey, TValue>(this IObservableCache<TKey, TValue> cache, TKey key, TValue value, Func<TKey, TValue, TValue, TValue> valueSelector, TimeSpan? expiry = null, ObservableCacheExpirationType expirationType = ObservableCacheExpirationType.Remove)
         {
             throw new NotImplementedException();
         }
@@ -83,7 +84,7 @@ namespace JB.Reactive.Cache.ExtensionMethods
         /// <returns>
         /// An observable stream that, when done, returns an <see cref="Unit" />.
         /// </returns>
-        public static IObservable<Unit> AddOrUpdate<TKey, TValue>(this IObservableCache<TKey, TValue> cache, KeyValuePair<TKey, TValue> keyValuePair, TimeSpan? expiry = null, CacheExpirationType expirationType = CacheExpirationType.Remove)
+        public static IObservable<Unit> AddOrUpdate<TKey, TValue>(this IObservableCache<TKey, TValue> cache, KeyValuePair<TKey, TValue> keyValuePair, TimeSpan? expiry = null, ObservableCacheExpirationType expirationType = ObservableCacheExpirationType.Remove)
         {
             throw new NotImplementedException();
         }
@@ -101,7 +102,7 @@ namespace JB.Reactive.Cache.ExtensionMethods
         /// <returns>
         /// An observable stream that, when done, returns an <see cref="Unit" />.
         /// </returns>
-        public static IObservable<Unit> AddOrUpdate<TKey, TValue>(this IObservableCache<TKey, TValue> cache, KeyValuePair<TKey, TValue> keyValuePair, Func<TKey, TValue, TValue, TValue> valueSelector, TimeSpan? expiry = null, CacheExpirationType expirationType = CacheExpirationType.Remove)
+        public static IObservable<Unit> AddOrUpdate<TKey, TValue>(this IObservableCache<TKey, TValue> cache, KeyValuePair<TKey, TValue> keyValuePair, Func<TKey, TValue, TValue, TValue> valueSelector, TimeSpan? expiry = null, ObservableCacheExpirationType expirationType = ObservableCacheExpirationType.Remove)
         {
             throw new NotImplementedException();
         }
@@ -118,7 +119,7 @@ namespace JB.Reactive.Cache.ExtensionMethods
         /// <returns>
         /// An observable stream that, when done, returns an <see cref="Unit" />.
         /// </returns>
-        public static IObservable<Unit> AddOrUpdate<TKey, TValue>(this IObservableCache<TKey, TValue> cache, IEnumerable<KeyValuePair<TKey, TValue>> keyValuePairs, TimeSpan? expiry = null, CacheExpirationType expirationType = CacheExpirationType.Remove)
+        public static IObservable<Unit> AddOrUpdate<TKey, TValue>(this IObservableCache<TKey, TValue> cache, IEnumerable<KeyValuePair<TKey, TValue>> keyValuePairs, TimeSpan? expiry = null, ObservableCacheExpirationType expirationType = ObservableCacheExpirationType.Remove)
         {
             throw new NotImplementedException();
         }
@@ -136,7 +137,7 @@ namespace JB.Reactive.Cache.ExtensionMethods
         /// <returns>
         /// An observable stream that, when done, returns an <see cref="Unit" />.
         /// </returns>
-        public static IObservable<Unit> AddOrUpdate<TKey, TValue>(this IObservableCache<TKey, TValue> cache, IEnumerable<KeyValuePair<TKey, TValue>> keyValuePairs, Func<TKey, TValue, TValue, TValue> valueSelector, TimeSpan? expiry = null, CacheExpirationType expirationType = CacheExpirationType.Remove)
+        public static IObservable<Unit> AddOrUpdate<TKey, TValue>(this IObservableCache<TKey, TValue> cache, IEnumerable<KeyValuePair<TKey, TValue>> keyValuePairs, Func<TKey, TValue, TValue, TValue> valueSelector, TimeSpan? expiry = null, ObservableCacheExpirationType expirationType = ObservableCacheExpirationType.Remove)
         {
             throw new NotImplementedException();
         }
@@ -169,7 +170,7 @@ namespace JB.Reactive.Cache.ExtensionMethods
         /// <returns>
         /// An observable stream containing the corresponding <typeparamref name="TValue"/> instance(s).
         /// </returns>
-        public static IObservable<TValue> GetOrAdd<TKey, TValue>(this IObservableCache<TKey, TValue> cache, TKey key, Func<TKey, TValue> producer, TimeSpan? expiry = null, CacheExpirationType expirationType = CacheExpirationType.Remove)
+        public static IObservable<TValue> GetOrAdd<TKey, TValue>(this IObservableCache<TKey, TValue> cache, TKey key, Func<TKey, TValue> producer, TimeSpan? expiry = null, ObservableCacheExpirationType expirationType = ObservableCacheExpirationType.Remove)
         {
             throw new NotImplementedException();
         }
@@ -187,7 +188,7 @@ namespace JB.Reactive.Cache.ExtensionMethods
         /// <returns>
         /// An observable stream containing the corresponding <typeparamref name="TValue"/> instance(s).
         /// </returns>
-        public static IObservable<TValue> GetOrAdd<TKey, TValue>(this IObservableCache<TKey, TValue> cache, IEnumerable<TKey> keys, Func<TKey, TValue> producer, TimeSpan? expiry = null, CacheExpirationType expirationType = CacheExpirationType.Remove)
+        public static IObservable<TValue> GetOrAdd<TKey, TValue>(this IObservableCache<TKey, TValue> cache, IEnumerable<TKey> keys, Func<TKey, TValue> producer, TimeSpan? expiry = null, ObservableCacheExpirationType expirationType = ObservableCacheExpirationType.Remove)
         {
             throw new NotImplementedException();
         }
@@ -205,7 +206,7 @@ namespace JB.Reactive.Cache.ExtensionMethods
         /// <returns>
         /// An observable stream containing the corresponding <typeparamref name="TValue"/> instance(s).
         /// </returns>
-        public static IObservable<TValue> GetOrAdd<TKey, TValue>(this IObservableCache<TKey, TValue> cache, IEnumerable<TKey> keys, Func<IEnumerable<TKey>, IEnumerable<KeyValuePair<TKey, TValue>>> producer, TimeSpan? expiry = null, CacheExpirationType expirationType = CacheExpirationType.Remove)
+        public static IObservable<TValue> GetOrAdd<TKey, TValue>(this IObservableCache<TKey, TValue> cache, IEnumerable<TKey> keys, Func<IEnumerable<TKey>, IEnumerable<KeyValuePair<TKey, TValue>>> producer, TimeSpan? expiry = null, ObservableCacheExpirationType expirationType = ObservableCacheExpirationType.Remove)
         {
             throw new NotImplementedException();
         }
@@ -223,7 +224,7 @@ namespace JB.Reactive.Cache.ExtensionMethods
         /// <returns>
         /// An observable stream that returns [true] if successful, [false] if not.
         /// </returns>
-        public static IObservable<bool> TryAdd<TKey, TValue>(this IObservableCache<TKey, TValue> cache, TKey key, TValue value, TimeSpan? expiry = null, CacheExpirationType expirationType = CacheExpirationType.Remove)
+        public static IObservable<bool> TryAdd<TKey, TValue>(this IObservableCache<TKey, TValue> cache, TKey key, TValue value, TimeSpan? expiry = null, ObservableCacheExpirationType expirationType = ObservableCacheExpirationType.Remove)
         {
             throw new NotImplementedException();
         }
@@ -240,7 +241,7 @@ namespace JB.Reactive.Cache.ExtensionMethods
         /// <returns>
         /// An observable stream that returns [true] if successful, [false] if not.
         /// </returns>
-        public static IObservable<bool> TryAdd<TKey, TValue>(this IObservableCache<TKey, TValue> cache, KeyValuePair<TKey, TValue> keyValuePair, TimeSpan? expiry = null, CacheExpirationType expirationType = CacheExpirationType.Remove)
+        public static IObservable<bool> TryAdd<TKey, TValue>(this IObservableCache<TKey, TValue> cache, KeyValuePair<TKey, TValue> keyValuePair, TimeSpan? expiry = null, ObservableCacheExpirationType expirationType = ObservableCacheExpirationType.Remove)
         {
             throw new NotImplementedException();
         }
@@ -273,7 +274,7 @@ namespace JB.Reactive.Cache.ExtensionMethods
         /// <returns>
         /// An observable stream that returns [true] if the <paramref name="key"/> was in the <paramref name="cache"/> and updated, [false] if not.
         /// </returns>
-        public static IObservable<bool> TryUpdate<TKey, TValue>(this IObservableCache<TKey, TValue> cache, TKey key, TValue value, TimeSpan? expiry = null, CacheExpirationType? expirationType = CacheExpirationType.Remove)
+        public static IObservable<bool> TryUpdate<TKey, TValue>(this IObservableCache<TKey, TValue> cache, TKey key, TValue value, TimeSpan? expiry = null, ObservableCacheExpirationType? expirationType = ObservableCacheExpirationType.Remove)
         {
             throw new NotImplementedException();
         }

@@ -51,13 +51,16 @@
     <Compile Include="..\CommonAssemblyInfo.cs">
       <Link>Properties\CommonAssemblyInfo.cs</Link>
     </Compile>
-    <Compile Include="CacheExpirationType.cs" />
+    <Compile Include="ExtensionMethods\ObservableDictionaryChangeExtensions.cs" />
+    <Compile Include="ObservableCacheExpirationType.cs" />
     <Compile Include="ExtensionMethods\ObservableCacheExtensions.cs" />
     <Compile Include="INotifyObservableCacheChanges.cs" />
     <Compile Include="IObservableCache.cs" />
     <Compile Include="IObservableCacheChange.cs" />
+    <Compile Include="ObservableCacheChange.cs" />
     <Compile Include="ObservableCacheChangeType.cs" />
     <Compile Include="ObservableCachedElement.cs" />
+    <Compile Include="ObservableCachedElementValueEqualityComparer.cs" />
     <Compile Include="ObservableInMemoryCache.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

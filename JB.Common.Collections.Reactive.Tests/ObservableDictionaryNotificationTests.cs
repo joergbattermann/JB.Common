@@ -207,7 +207,7 @@ namespace JB.Collections.Reactive.Tests
             using (var observableDictionary = new ObservableDictionary<int, string>(scheduler: scheduler))
             {
                 // when
-                observableDictionary.ThresholdAmountWhenItemChangesAreNotifiedAsReset = 0;
+                observableDictionary.ThresholdAmountWhenChangesAreNotifiedAsReset = 0;
 
                 using (observableDictionary.DictionaryChanges.Subscribe(dictionaryChangesObserver))
                 {
@@ -262,7 +262,7 @@ namespace JB.Collections.Reactive.Tests
             using (var observableDictionary = new ObservableDictionary<int, string>(initialList))
             {
                 // when
-                observableDictionary.ThresholdAmountWhenItemChangesAreNotifiedAsReset = int.MaxValue;
+                observableDictionary.ThresholdAmountWhenChangesAreNotifiedAsReset = int.MaxValue;
                 observableDictionary.CountChanges.Subscribe(i =>
                 {
                     observableReportedCount = i;
@@ -299,7 +299,7 @@ namespace JB.Collections.Reactive.Tests
             using (var observableDictionary = new ObservableDictionary<int, string>(scheduler: scheduler))
             {
                 // when
-                observableDictionary.ThresholdAmountWhenItemChangesAreNotifiedAsReset = int.MaxValue;
+                observableDictionary.ThresholdAmountWhenChangesAreNotifiedAsReset = int.MaxValue;
 
                 using (observableDictionary.DictionaryChanges.Subscribe(observer))
                 {
@@ -359,7 +359,7 @@ namespace JB.Collections.Reactive.Tests
             // given
             using (var observableDictionary = new ObservableDictionary<int, string>())
             {
-                observableDictionary.ThresholdAmountWhenItemChangesAreNotifiedAsReset = 0;
+                observableDictionary.ThresholdAmountWhenChangesAreNotifiedAsReset = 0;
                 observableDictionary.MonitorEvents();
 
                 var items = new List<KeyValuePair<int, string>>()
@@ -503,7 +503,7 @@ namespace JB.Collections.Reactive.Tests
 
             using (var observableDictionary = new ObservableDictionary<int, string>(items))
             {
-                observableDictionary.ThresholdAmountWhenItemChangesAreNotifiedAsReset = 0;
+                observableDictionary.ThresholdAmountWhenChangesAreNotifiedAsReset = 0;
                 observableDictionary.MonitorEvents();
 
                 // when
@@ -537,7 +537,7 @@ namespace JB.Collections.Reactive.Tests
 
             using (var observableDictionary = new ObservableDictionary<int, string>(items))
             {
-                observableDictionary.ThresholdAmountWhenItemChangesAreNotifiedAsReset = 0;
+                observableDictionary.ThresholdAmountWhenChangesAreNotifiedAsReset = 0;
                 observableDictionary.MonitorEvents();
 
                 // when
@@ -602,7 +602,7 @@ namespace JB.Collections.Reactive.Tests
             using (var observableDictionary = new ObservableDictionary<int, string>(initialList, scheduler: scheduler))
             {
                 // when
-                observableDictionary.ThresholdAmountWhenItemChangesAreNotifiedAsReset = int.MaxValue;
+                observableDictionary.ThresholdAmountWhenChangesAreNotifiedAsReset = int.MaxValue;
 
                 IDisposable dictionaryChangesSubscription = null;
                 IDisposable resetsSubscription = null;
@@ -724,7 +724,7 @@ namespace JB.Collections.Reactive.Tests
 
             using (var observableDictionary = new ObservableDictionary<int, MyNotifyPropertyChanged<int, string>>(scheduler: scheduler))
             {
-                observableDictionary.ThresholdAmountWhenItemChangesAreNotifiedAsReset = int.MaxValue;
+                observableDictionary.ThresholdAmountWhenChangesAreNotifiedAsReset = int.MaxValue;
 
                 IDisposable dictionaryChangesSubscription = null;
                 IDisposable dictionaryItemChangesSubscription = null;
@@ -788,7 +788,7 @@ namespace JB.Collections.Reactive.Tests
 
             using (var observableDictionary = new ObservableDictionary<int, MyNotifyPropertyChanged<int, string>>(scheduler: scheduler))
             {
-                observableDictionary.ThresholdAmountWhenItemChangesAreNotifiedAsReset = int.MaxValue;
+                observableDictionary.ThresholdAmountWhenChangesAreNotifiedAsReset = int.MaxValue;
 
                 IDisposable dictionaryChangesSubscription = null;
                 IDisposable dictionaryItemChangesSubscription = null;
@@ -857,7 +857,7 @@ namespace JB.Collections.Reactive.Tests
 
             using (var observableDictionary = new ObservableDictionary<int, MyNotifyPropertyChanged<int, string>>(scheduler: scheduler))
             {
-                observableDictionary.ThresholdAmountWhenItemChangesAreNotifiedAsReset = Int32.MaxValue;
+                observableDictionary.ThresholdAmountWhenChangesAreNotifiedAsReset = Int32.MaxValue;
 
                 IDisposable dictionaryChangesSubscription = null;
                 IDisposable dictionaryItemChangesSubscription = null;
@@ -872,7 +872,7 @@ namespace JB.Collections.Reactive.Tests
                     // when
                     observableDictionary.Add(key, testInpcImplementationInstance);
 
-                    observableDictionary.ThresholdAmountWhenItemChangesAreNotifiedAsReset = 0;
+                    observableDictionary.ThresholdAmountWhenChangesAreNotifiedAsReset = 0;
                     testInpcImplementationInstance.FirstProperty = Guid.NewGuid().ToString();
                     scheduler.AdvanceBy(100);
 
@@ -918,7 +918,7 @@ namespace JB.Collections.Reactive.Tests
             using (var observableDictionary = new ObservableDictionary<int, string>(initialValues))
             {
                 // when
-                observableDictionary.ThresholdAmountWhenItemChangesAreNotifiedAsReset = int.MaxValue;
+                observableDictionary.ThresholdAmountWhenChangesAreNotifiedAsReset = int.MaxValue;
                 observableDictionary.CountChanges.Subscribe(i =>
                 {
                     observableReportedCount = i;
@@ -959,7 +959,7 @@ namespace JB.Collections.Reactive.Tests
             using (var observableDictionary = new ObservableDictionary<int, string>(initialValues, scheduler: scheduler))
             {
                 // when
-                observableDictionary.ThresholdAmountWhenItemChangesAreNotifiedAsReset = int.MaxValue;
+                observableDictionary.ThresholdAmountWhenChangesAreNotifiedAsReset = int.MaxValue;
 
                 using (observableDictionary.DictionaryChanges.Subscribe(observer))
                 {
@@ -1010,7 +1010,7 @@ namespace JB.Collections.Reactive.Tests
             using (var observableDictionary = new ObservableDictionary<int, string>(initialValues, scheduler: scheduler))
             {
                 // when
-                observableDictionary.ThresholdAmountWhenItemChangesAreNotifiedAsReset = 0;
+                observableDictionary.ThresholdAmountWhenChangesAreNotifiedAsReset = 0;
 
                 using (observableDictionary.DictionaryChanges.Subscribe(observer))
                 {
@@ -1058,7 +1058,7 @@ namespace JB.Collections.Reactive.Tests
             using (var observableDictionary = new ObservableDictionary<int, string>(scheduler: scheduler))
             {
                 // when
-                observableDictionary.ThresholdAmountWhenItemChangesAreNotifiedAsReset = int.MaxValue;
+                observableDictionary.ThresholdAmountWhenChangesAreNotifiedAsReset = int.MaxValue;
 
                 IDisposable dictionaryChangesSubscription = null;
                 IDisposable resetsSubscription = null;
@@ -1177,7 +1177,7 @@ namespace JB.Collections.Reactive.Tests
             using (var observableDictionary = new ObservableDictionary<int, string>(scheduler: scheduler))
             {
                 // when
-                observableDictionary.ThresholdAmountWhenItemChangesAreNotifiedAsReset = int.MaxValue;
+                observableDictionary.ThresholdAmountWhenChangesAreNotifiedAsReset = int.MaxValue;
 
                 IDisposable countChangedSubscription = null;
                 IDisposable dictionaryChangesSubscription = null;
@@ -1254,7 +1254,7 @@ namespace JB.Collections.Reactive.Tests
             using (var observableDictionary = new ObservableDictionary<int, string>(scheduler: scheduler))
             {
                 // when
-                observableDictionary.ThresholdAmountWhenItemChangesAreNotifiedAsReset = int.MaxValue;
+                observableDictionary.ThresholdAmountWhenChangesAreNotifiedAsReset = int.MaxValue;
 
                 IDisposable countChangesSubscription = null;
 
@@ -1318,7 +1318,7 @@ namespace JB.Collections.Reactive.Tests
             using (var observableDictionary = new ObservableDictionary<int, string>(initialKvps, scheduler: scheduler))
             {
                 // when
-                observableDictionary.ThresholdAmountWhenItemChangesAreNotifiedAsReset = int.MaxValue;
+                observableDictionary.ThresholdAmountWhenChangesAreNotifiedAsReset = int.MaxValue;
 
                 IDisposable dictionaryChangesSubscription = null;
                 IDisposable dictionaryItemChangesSubscription = null;
@@ -1409,7 +1409,7 @@ namespace JB.Collections.Reactive.Tests
             using (var observableDictionary = new ObservableDictionary<int, string>(initialKvps, scheduler: scheduler))
             {
                 // when
-                observableDictionary.ThresholdAmountWhenItemChangesAreNotifiedAsReset = int.MaxValue;
+                observableDictionary.ThresholdAmountWhenChangesAreNotifiedAsReset = int.MaxValue;
 
                 IDisposable dictionaryItemChangesSubscription = null;
                 IDisposable resetsSubscription = null;
@@ -1467,7 +1467,7 @@ namespace JB.Collections.Reactive.Tests
             using (var observableDictionary = new ObservableDictionary<int, string>(scheduler: scheduler))
             {
                 // when
-                observableDictionary.ThresholdAmountWhenItemChangesAreNotifiedAsReset = int.MaxValue;
+                observableDictionary.ThresholdAmountWhenChangesAreNotifiedAsReset = int.MaxValue;
 
                 IDisposable dictionaryChangesSubscription = null;
                 IDisposable resetsSubscription = null;
@@ -1550,7 +1550,7 @@ namespace JB.Collections.Reactive.Tests
             using (var observableDictionary = new ObservableDictionary<int, string>(scheduler: scheduler))
             {
                 // when
-                observableDictionary.ThresholdAmountWhenItemChangesAreNotifiedAsReset = int.MaxValue;
+                observableDictionary.ThresholdAmountWhenChangesAreNotifiedAsReset = int.MaxValue;
 
                 IDisposable dictionaryChangesSubscription = null;
                 IDisposable resetsSubscription = null;

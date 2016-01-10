@@ -26,16 +26,7 @@ namespace JB.Collections.Reactive
         /// <c>true</c> if this instance has item change tracking enabled; otherwise, <c>false</c>.
         /// </value>
         bool IsTrackingItemChanges { get; }
-
-        /// <summary>
-        /// Gets the minimum amount of items that have been changed to be notified / considered a
-        /// <see cref="ObservableCollectionChangeType.Reset"/> rather than individual <see cref="ObservableCollectionChangeType"/> notifications.
-        /// </summary>
-        /// <value>
-        /// The minimum items changed to be considered reset.
-        /// </value>
-        int ThresholdAmountWhenItemChangesAreNotifiedAsReset { get; set; }
-
+        
         /// <summary>
         /// Gets the observable streams of collection item changes.
         /// </summary>

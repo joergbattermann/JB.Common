@@ -36,7 +36,7 @@ namespace JB.Collections.Reactive
         private Subject<int> _countChangesSubject = new Subject<int>();
         private Subject<ObserverException> _unhandledObserverExceptionsSubject = new Subject<ObserverException>();
         private Subject<IObservableDictionaryChange<TKey, TValue>> _dictionaryChangesSubject = new Subject<IObservableDictionaryChange<TKey, TValue>>();
-        
+
         /// <summary>
         /// Gets the count changes observer.
         /// </summary>
@@ -114,8 +114,8 @@ namespace JB.Collections.Reactive
                     ? new ConcurrentDictionary<TKey, TValue>(collection, KeyComparer)
                     : new ConcurrentDictionary<TKey, TValue>(KeyComparer);
 
-            ThresholdAmountWhenItemChangesAreNotifiedAsReset = 100;
-            
+            ThresholdAmountWhenChangesAreNotifiedAsReset = 100;
+
             IsTrackingChanges = true;
             IsTrackingItemChanges = true;
             IsTrackingCountChanges = true;
@@ -131,7 +131,7 @@ namespace JB.Collections.Reactive
         }
 
         #region Implementation of ObservableDictionary<TKey, TValue>
-        
+
         /// <summary>
         /// Adds a key/value pair if the key does not already exist, or performs an update by replacing the existing, old value with the new one.
         /// </summary>
@@ -178,7 +178,7 @@ namespace JB.Collections.Reactive
             else
             {
                 NotifyObserversAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.ItemReplaced(key, value, oldValueIfReplaced));
-                
+
             }
         }
 
@@ -296,12 +296,12 @@ namespace JB.Collections.Reactive
 
             var itemsAsList = items.ToList();
             var itemsThatCouldBeAdded = new List<KeyValuePair<TKey, TValue>>();
-            
+
             if (itemsAsList.Count == 0)
                 return true;
 
             // check whether change(s) shall be notified as individual changes OR as one final reset at the end
-            var useResetInsteadOfIndividualChanges = IsItemsChangedAmountGreaterThanResetThreshold(itemsAsList.Count, ThresholdAmountWhenItemChangesAreNotifiedAsReset);
+            var useResetInsteadOfIndividualChanges = IsItemsChangedAmountGreaterThanResetThreshold(itemsAsList.Count, ThresholdAmountWhenChangesAreNotifiedAsReset);
             var signalIndividualItemChanges = !useResetInsteadOfIndividualChanges;
 
             // then perform change itself
@@ -324,7 +324,7 @@ namespace JB.Collections.Reactive
 
             // finally and if originally determined (and currently wanted), signal a reset
             // finally and if still correct, signal a reset OR individual change(s)
-            useResetInsteadOfIndividualChanges = IsItemsChangedAmountGreaterThanResetThreshold(itemsThatCouldBeAdded.Count, ThresholdAmountWhenItemChangesAreNotifiedAsReset);
+            useResetInsteadOfIndividualChanges = IsItemsChangedAmountGreaterThanResetThreshold(itemsThatCouldBeAdded.Count, ThresholdAmountWhenChangesAreNotifiedAsReset);
             if (useResetInsteadOfIndividualChanges)
             {
                 NotifyObserversAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.Reset());
@@ -354,7 +354,7 @@ namespace JB.Collections.Reactive
             if (key == null) throw new ArgumentNullException(nameof(key));
 
             CheckForAndThrowIfDisposed();
-            
+
             return TryRemove(key, out value, IsTrackingChanges);
         }
 
@@ -415,7 +415,7 @@ namespace JB.Collections.Reactive
                 return true;
 
             // check whether change(s) shall be notified as individual changes OR as one final reset at the end
-            var useResetInsteadOfIndividualChanges = IsItemsChangedAmountGreaterThanResetThreshold(keyValuePairs.Count, ThresholdAmountWhenItemChangesAreNotifiedAsReset);
+            var useResetInsteadOfIndividualChanges = IsItemsChangedAmountGreaterThanResetThreshold(keyValuePairs.Count, ThresholdAmountWhenChangesAreNotifiedAsReset);
             var signalIndividualItemChanges = !useResetInsteadOfIndividualChanges;
 
             // then perform removal itself
@@ -448,7 +448,7 @@ namespace JB.Collections.Reactive
                 return false;
 
             // finally and if still correct, signal a reset OR individual change(s)
-            useResetInsteadOfIndividualChanges = IsItemsChangedAmountGreaterThanResetThreshold(keyValuePairsThatCouldBeRemoved.Count, ThresholdAmountWhenItemChangesAreNotifiedAsReset);
+            useResetInsteadOfIndividualChanges = IsItemsChangedAmountGreaterThanResetThreshold(keyValuePairsThatCouldBeRemoved.Count, ThresholdAmountWhenChangesAreNotifiedAsReset);
             if (useResetInsteadOfIndividualChanges)
             {
                 NotifyObserversAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.Reset());
@@ -490,7 +490,7 @@ namespace JB.Collections.Reactive
                 return true;
 
             // check whether change(s) shall be notified as individual changes OR as one final reset at the end
-            var useResetInsteadOfIndividualChanges = IsItemsChangedAmountGreaterThanResetThreshold(keysAsList.Count, ThresholdAmountWhenItemChangesAreNotifiedAsReset);
+            var useResetInsteadOfIndividualChanges = IsItemsChangedAmountGreaterThanResetThreshold(keysAsList.Count, ThresholdAmountWhenChangesAreNotifiedAsReset);
             var signalIndividualItemChanges = !useResetInsteadOfIndividualChanges;
 
             // then perform removal itself
@@ -513,7 +513,7 @@ namespace JB.Collections.Reactive
                 return false;
 
             // finally and if still correct, signal a reset OR individual change(s)
-            useResetInsteadOfIndividualChanges = IsItemsChangedAmountGreaterThanResetThreshold(keysThatCouldBeRemoved.Count, ThresholdAmountWhenItemChangesAreNotifiedAsReset);
+            useResetInsteadOfIndividualChanges = IsItemsChangedAmountGreaterThanResetThreshold(keysThatCouldBeRemoved.Count, ThresholdAmountWhenChangesAreNotifiedAsReset);
             if (useResetInsteadOfIndividualChanges)
             {
                 NotifyObserversAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.Reset());
@@ -655,7 +655,7 @@ namespace JB.Collections.Reactive
                 else
                 {
                     // otherwise check whether the amount of notifications would be greater than the individual messages threshold
-                    if(IsItemsChangedAmountGreaterThanResetThreshold(observableDictionaryChanges.Count, ThresholdAmountWhenItemChangesAreNotifiedAsReset))
+                    if (IsItemsChangedAmountGreaterThanResetThreshold(observableDictionaryChanges.Count, ThresholdAmountWhenChangesAreNotifiedAsReset))
                     {
                         NotifyObserversAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.Reset());
                     }
@@ -681,8 +681,8 @@ namespace JB.Collections.Reactive
             CheckForAndThrowIfDisposed();
 
             return from keyValuePair in this
-                    where AreTheSameValue(keyValuePair.Value, value)
-                    select keyValuePair.Key;
+                   where AreTheSameValue(keyValuePair.Value, value)
+                   select keyValuePair.Key;
         }
 
         /// <summary>
@@ -692,7 +692,7 @@ namespace JB.Collections.Reactive
         private void AddValueToPropertyChangedHandling(TValue value)
         {
             CheckForAndThrowIfDisposed();
-            
+
             var valueAsINotifyPropertyChanged = (value as INotifyPropertyChanged);
 
             if (valueAsINotifyPropertyChanged != null)
@@ -708,7 +708,7 @@ namespace JB.Collections.Reactive
         private void RemoveValueFromPropertyChangedHandling(TValue value)
         {
             CheckForAndThrowIfDisposed();
-            
+
             var valueAsINotifyPropertyChanged = (value as INotifyPropertyChanged);
 
             if (valueAsINotifyPropertyChanged != null)
@@ -729,10 +729,10 @@ namespace JB.Collections.Reactive
             CheckForAndThrowIfDisposed();
 
             // go ahead and check whether a Reset or item add, -change, -move or -remove shall be signaled
-            // .. based on the ThresholdAmountWhenItemChangesAreNotifiedAsReset value
+            // .. based on the ThresholdAmountWhenChangesAreNotifiedAsReset value
             var actualObservableDictionaryChange =
                 (observableDictionaryChange.ChangeType == ObservableDictionaryChangeType.Reset
-                 || IsItemsChangedAmountGreaterThanResetThreshold(1, ThresholdAmountWhenItemChangesAreNotifiedAsReset))
+                 || IsItemsChangedAmountGreaterThanResetThreshold(1, ThresholdAmountWhenChangesAreNotifiedAsReset))
                     ? ObservableDictionaryChange<TKey, TValue>.Reset()
                     : observableDictionaryChange;
 
@@ -824,7 +824,7 @@ namespace JB.Collections.Reactive
                         throw;
                 }
             }
-            
+
             foreach (var observableCollectionChange in observableCollectionChanges)
             {
                 try
@@ -879,7 +879,7 @@ namespace JB.Collections.Reactive
             UnhandledObserverExceptionsObserver = _unhandledObserverExceptionsSubject.NotifyOn(Scheduler);
             DictionaryChangesObserver = _dictionaryChangesSubject.NotifyOn(Scheduler);
             CountChangesObserver = _countChangesSubject.NotifyOn(Scheduler);
-            
+
             //// 'Count' and 'Item[]' PropertyChanged events are used by WPF typically via / for ObservableCollections, see
             //// http://referencesource.microsoft.com/#System/compmod/system/collections/objectmodel/observablecollection.cs,421
             _countChangesCountPropertyChangedForwarder = CountChanges
@@ -1351,13 +1351,12 @@ namespace JB.Collections.Reactive
         private volatile int _thresholdAmountWhenItemChangesAreNotifiedAsReset;
 
         /// <summary>
-        /// Gets the minimum amount of items that have been changed to be notified / considered a
-        /// <see cref="ObservableCollectionChangeType.Reset" /> rather than individual <see cref="ObservableCollectionChangeType" /> notifications.
+        /// Gets or sets the threshold of the minimum amount of changes to switch individual notifications to a reset one.
         /// </summary>
         /// <value>
-        /// The minimum items changed to be considered reset.
+        /// The minimum items changed to be considered as a reset.
         /// </value>
-        public int ThresholdAmountWhenItemChangesAreNotifiedAsReset
+        public int ThresholdAmountWhenChangesAreNotifiedAsReset
         {
             get
             {
@@ -1442,7 +1441,7 @@ namespace JB.Collections.Reactive
 
             if (IsDisposed || IsDisposing)
                 return;
-            
+
             // only raise event if it's currently allowed
             if (!IsTrackingChanges
                 || (observableDictionaryChangedEventArgs.ChangeType == ObservableDictionaryChangeType.ItemChanged && !IsTrackingItemChanges)
@@ -1524,7 +1523,7 @@ namespace JB.Collections.Reactive
         #endregion
 
         #region Implementation of ICollection
-        
+
         /// <summary>
         /// Copies the elements of the <see cref="T:System.Collections.ICollection"/> to an <see cref="T:System.Array"/>, starting at a particular <see cref="T:System.Array"/> index.
         /// </summary>
@@ -1533,7 +1532,7 @@ namespace JB.Collections.Reactive
         {
             CheckForAndThrowIfDisposed();
 
-            ((ICollection) InnerDictionary).CopyTo(array, index);
+            ((ICollection)InnerDictionary).CopyTo(array, index);
         }
 
         /// <summary>
@@ -1548,7 +1547,7 @@ namespace JB.Collections.Reactive
             {
                 CheckForAndThrowIfDisposed();
 
-                return ((ICollection) InnerDictionary).SyncRoot;
+                return ((ICollection)InnerDictionary).SyncRoot;
             }
         }
 
@@ -1564,7 +1563,7 @@ namespace JB.Collections.Reactive
             {
                 CheckForAndThrowIfDisposed();
 
-                return ((ICollection) InnerDictionary).IsSynchronized;
+                return ((ICollection)InnerDictionary).IsSynchronized;
             }
         }
 
@@ -1621,7 +1620,7 @@ namespace JB.Collections.Reactive
         }
 
         #endregion
-        
+
         #region Implementation of IEnumerable<out KeyValuePair<TKey,TValue>>
 
         /// <summary>
@@ -1772,7 +1771,7 @@ namespace JB.Collections.Reactive
 
             InnerDictionary.Clear();
 
-            if(hadItemsBeforeClearing)
+            if (hadItemsBeforeClearing)
                 NotifyObserversAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.Reset());
         }
 
@@ -1816,7 +1815,7 @@ namespace JB.Collections.Reactive
                 AddOrUpdate(key, value);
             }
         }
-        
+
         /// <summary>
         /// Gets an enumerable collection that contains the keys in the read-only dictionary. 
         /// </summary>
@@ -1832,7 +1831,7 @@ namespace JB.Collections.Reactive
                 return InnerDictionary.Keys;
             }
         }
-        
+
         /// <summary>
         /// Gets an enumerable collection that contains the values in the read-only dictionary.
         /// </summary>
@@ -1849,9 +1848,9 @@ namespace JB.Collections.Reactive
             }
         }
 
-#endregion
+        #endregion
 
-#region Implementation of INotifyObservableDictionaryItemChanges<out TKey,out TValue>
+        #region Implementation of INotifyObservableDictionaryItemChanges<out TKey,out TValue>
 
         /// <summary>
         /// Gets the observable streams of item changes, however these will only have their
@@ -1935,7 +1934,7 @@ namespace JB.Collections.Reactive
         ///     Occurs when the corresponding <see cref="IObservableCollection{T}" /> changed.
         /// </summary>
         [Obsolete("This will/shall be removed again, soon")]
-        event EventHandler<ObservableCollectionChangedEventArgs<KeyValuePair<TKey, TValue>>> INotifyObservableCollectionChanges<KeyValuePair<TKey,TValue>>.CollectionChanged
+        event EventHandler<ObservableCollectionChangedEventArgs<KeyValuePair<TKey, TValue>>> INotifyObservableCollectionChanges<KeyValuePair<TKey, TValue>>.CollectionChanged
         {
             add
             {
@@ -1980,9 +1979,9 @@ namespace JB.Collections.Reactive
             }
         }
 
-#endregion
+        #endregion
 
-#region Implementation of IObservableReadOnlyDictionary<TKey,TValue>
+        #region Implementation of IObservableReadOnlyDictionary<TKey,TValue>
 
         /// <summary>
         /// Gets a value indicating whether this instance is empty.
@@ -2042,7 +2041,7 @@ namespace JB.Collections.Reactive
         {
             CheckForAndThrowIfDisposed();
 
-            return ((ICollection<KeyValuePair<TKey, TValue>>) InnerDictionary).Contains(item);
+            return ((ICollection<KeyValuePair<TKey, TValue>>)InnerDictionary).Contains(item);
         }
 
         /// <summary>
@@ -2078,9 +2077,9 @@ namespace JB.Collections.Reactive
             return wasRemoved;
         }
 
-#endregion
+        #endregion
 
-#region Implementation of IBulkModifiableDictionary<TKey,TValue>
+        #region Implementation of IBulkModifiableDictionary<TKey,TValue>
 
         /// <summary>
         /// Adds a range of items.

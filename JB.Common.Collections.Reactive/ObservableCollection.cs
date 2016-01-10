@@ -84,7 +84,7 @@ namespace JB.Collections.Reactive
 
             InnerList = new SynchronizedBindingList<T>(list, syncRoot ?? new object());
 
-            ThresholdAmountWhenItemChangesAreNotifiedAsReset = 100;
+            ThresholdAmountWhenChangesAreNotifiedAsReset = 100;
 
             IsTrackingChanges = true;
             IsTrackingItemChanges = true;
@@ -487,7 +487,7 @@ namespace JB.Collections.Reactive
         /// <value>
         /// The minimum items changed to be considered reset.
         /// </value>
-        public int ThresholdAmountWhenItemChangesAreNotifiedAsReset
+        public int ThresholdAmountWhenChangesAreNotifiedAsReset
         {
             get { return _thresholdAmountWhenItemChangesAreNotifiedAsReset; }
             set
@@ -654,10 +654,10 @@ namespace JB.Collections.Reactive
             CheckForAndThrowIfDisposed();
 
             // go ahead and check whether a Reset or item add, -change, -move or -remove shall be signaled
-            // .. based on the ThresholdAmountWhenItemChangesAreNotifiedAsReset value
+            // .. based on the ThresholdAmountWhenChangesAreNotifiedAsReset value
             var actualObservableCollectionChange =
                 (observableCollectionChange.ChangeType == ObservableCollectionChangeType.Reset
-                 || IsItemsChangedAmountGreaterThanResetThreshold(1, ThresholdAmountWhenItemChangesAreNotifiedAsReset))
+                 || IsItemsChangedAmountGreaterThanResetThreshold(1, ThresholdAmountWhenChangesAreNotifiedAsReset))
                     ? ObservableCollectionChange<T>.Reset
                     : observableCollectionChange;
 
@@ -1142,7 +1142,7 @@ namespace JB.Collections.Reactive
                 return;
 
             // check whether change(s) shall be notified as individual changes OR as one final reset at the end
-            var useResetInsteadOfIndividualChanges = IsItemsChangedAmountGreaterThanResetThreshold(itemsAsList.Count, ThresholdAmountWhenItemChangesAreNotifiedAsReset);
+            var useResetInsteadOfIndividualChanges = IsItemsChangedAmountGreaterThanResetThreshold(itemsAsList.Count, ThresholdAmountWhenChangesAreNotifiedAsReset);
             var signalIndividualItemChanges = !useResetInsteadOfIndividualChanges;
             
             var originalRaiseListChangedEvents = InnerList.RaiseListChangedEvents;
@@ -1184,7 +1184,7 @@ namespace JB.Collections.Reactive
                 return;
 
             // check whether change(s) shall be notified as individual changes OR as one final reset at the end
-            var useResetInsteadOfIndividualChanges = IsItemsChangedAmountGreaterThanResetThreshold(itemsAsList.Count, ThresholdAmountWhenItemChangesAreNotifiedAsReset);
+            var useResetInsteadOfIndividualChanges = IsItemsChangedAmountGreaterThanResetThreshold(itemsAsList.Count, ThresholdAmountWhenChangesAreNotifiedAsReset);
             var signalIndividualItemChanges = !useResetInsteadOfIndividualChanges;
 
             var originalRaiseListChangedEvents = InnerList.RaiseListChangedEvents;

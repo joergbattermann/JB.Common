@@ -1,5 +1,5 @@
 ﻿// -----------------------------------------------------------------------
-// <copyright file="CacheExpirationType.cs" company="Joerg Battermann">
+// <copyright file="ObservableCacheExpirationType.cs" company="Joerg Battermann">
 //   Copyright (c) 2016 Joerg Battermann. All rights reserved.
 // </copyright>
 // <author>Joerg Battermann</author>
@@ -7,9 +7,9 @@
 // -----------------------------------------------------------------------
 namespace JB.Reactive.Cache
 {
-    public enum CacheExpirationType
+    public enum ObservableCacheExpirationType
     {
         Remove,
-        Refresh
+        Update
     }
 }

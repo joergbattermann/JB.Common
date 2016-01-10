@@ -93,10 +93,10 @@ namespace JB.Collections.Reactive.Tests
             using (var observableDictionary = new ObservableDictionary<int, string>())
             {
                 // when
-                observableDictionary.ThresholdAmountWhenItemChangesAreNotifiedAsReset = value;
+                observableDictionary.ThresholdAmountWhenChangesAreNotifiedAsReset = value;
 
                 // then
-                observableDictionary.ThresholdAmountWhenItemChangesAreNotifiedAsReset.Should().Be(value);
+                observableDictionary.ThresholdAmountWhenChangesAreNotifiedAsReset.Should().Be(value);
             }
         }
 
@@ -107,7 +107,7 @@ namespace JB.Collections.Reactive.Tests
             using (var observableDictionary = new ObservableDictionary<int, string>())
             {
                 // when
-                Action action = () => observableDictionary.ThresholdAmountWhenItemChangesAreNotifiedAsReset = -1;
+                Action action = () => observableDictionary.ThresholdAmountWhenChangesAreNotifiedAsReset = -1;
 
                 // then
                 action
