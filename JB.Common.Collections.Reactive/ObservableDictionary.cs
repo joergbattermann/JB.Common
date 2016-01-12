@@ -1767,12 +1767,23 @@ namespace JB.Collections.Reactive
         {
             CheckForAndThrowIfDisposed();
 
-            var hadItemsBeforeClearing = InnerDictionary.Count > 0;
+            var hasHadItemsBeforeClearing = InnerDictionary.Count > 0;
+            var valuesBeforeClearing = InnerDictionary.Values;
 
             InnerDictionary.Clear();
 
-            if (hadItemsBeforeClearing)
+            if (valuesBeforeClearing.Count > 0)
+            {
+                foreach (var value in valuesBeforeClearing)
+                {
+                    RemoveValueFromPropertyChangedHandling(value);
+                }
+            }
+
+            if (hasHadItemsBeforeClearing)
+            {
                 NotifyObserversAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.Reset());
+            }
         }
 
         /// <summary>
