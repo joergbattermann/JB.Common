@@ -77,20 +77,43 @@ namespace JB.Reactive.Cache
         protected IEqualityComparer<TValue> ValueComparer { get; }
 
         /// <summary>
+        /// Gets the single key updater.
+        /// </summary>
+        /// <value>
+        /// The single key updater.
+        /// </value>
+        protected Func<TKey, TValue> SingleKeyUpdater { get; }
+
+        /// <summary>
+        /// Gets the multiple keys updater.
+        /// </summary>
+        /// <value>
+        /// The multiple keys updater.
+        /// </value>
+        protected Func<IEnumerable<TKey>, IEnumerable<KeyValuePair<TKey, TValue>>> MultipleKeysUpdater { get; }
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="T:ObservableInMemoryCache" />.
         /// </summary>
         /// <param name="keyComparer">The <see cref="IEqualityComparer{T}" /> implementation to use when comparing keys.</param>
         /// <param name="valueComparer">The <see cref="IEqualityComparer{T}" /> implementation to use when comparing values.</param>
         /// <param name="scheduler">The scheduler to to send out observer messages & raise events on. If none is provided <see cref="System.Reactive.Concurrency.Scheduler.CurrentThread"/> will be used.</param>
+        /// <param name="singleKeyUpdater">The action that will be invoked whenever a single key has expired and has his expiration type set to <see cref="ObservableCacheExpirationType.Update"/>.</param>
+        /// <param name="multipleKeysUpdater">The action that will be invoked whenever multiple keys have expired and had their expiration type set to <see cref="ObservableCacheExpirationType.Update"/>.</param>
         public ObservableInMemoryCache(
             IEqualityComparer<TKey> keyComparer = null,
             IEqualityComparer<TValue> valueComparer = null,
+            Func<TKey, TValue> singleKeyUpdater = null,
+            Func<IEnumerable<TKey>, IEnumerable<KeyValuePair<TKey, TValue>>> multipleKeysUpdater = null,
             IScheduler scheduler = null)
         {
             Scheduler = scheduler ?? System.Reactive.Concurrency.Scheduler.CurrentThread;
 
             KeyComparer = keyComparer ?? EqualityComparer<TKey>.Default;
             ValueComparer = valueComparer ?? EqualityComparer<TValue>.Default;
+
+            SingleKeyUpdater = singleKeyUpdater;
+            MultipleKeysUpdater = multipleKeysUpdater;
 
             InnerDictionary = new ObservableDictionary<TKey, ObservableCachedElement<TKey, TValue>>(
                 keyComparer: KeyComparer,
