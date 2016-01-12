@@ -9,11 +9,24 @@
 using System;
 using System.Collections.Generic;
 using System.Reactive;
+using JB.Collections.Reactive;
 
 namespace JB.Reactive.Cache
 {
-    public interface IObservableCache<TKey, TValue>
+    public interface IObservableCache<TKey, TValue> :
+        INotifyObservableCacheChanges<TKey, TValue>,
+        INotifyObservableCacheItemChanges<TKey, TValue>,
+        INotifyObservableResets,
+        INotifyUnhandledObserverExceptions
     {
+        /// <summary>
+        /// Gets the count of keys in this instance.
+        /// </summary>
+        /// <value>
+        /// The count of keys in this instance.
+        /// </value>
+        int Count { get; }
+
         /// <summary>
         /// Adds the specified <paramref name="key"/> with the given <paramref name="value"/> to the <see cref="IObservableCache{TKey,TValue}"/>.
         /// </summary>

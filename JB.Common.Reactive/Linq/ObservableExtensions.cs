@@ -256,7 +256,10 @@ namespace JB.Reactive.Linq
                 return observable;
 
             // else
-            return others.Aggregate(observable, (current, analyzer) => scheduler != null ? current.Merge(analyzer, scheduler) : current.Merge(analyzer));
+            return others.Aggregate(observable,
+                (current, analyzer) => scheduler != null
+                    ? current.Merge(analyzer, scheduler)
+                    : current.Merge(analyzer));
         }
 
         /// <summary>
@@ -768,18 +771,7 @@ namespace JB.Reactive.Linq
             if (source == null) throw new ArgumentNullException(nameof(source));
             if (predicate == null) throw new ArgumentNullException(nameof(predicate));
 
-            return Observable.Create<TSource>(observer =>
-            {
-                var subscription = source.Subscribe(value =>
-                {
-                    if (predicate.Invoke(value) == false)
-                        observer.OnNext(value);
-                },
-                observer.OnError,
-                observer.OnCompleted);
-
-                return () => subscription.Dispose();
-            });
+            return source.Where(value => predicate.Invoke(value) == false);
         }
 
         /// <summary>
@@ -795,18 +787,10 @@ namespace JB.Reactive.Linq
         /// <exception cref="T:System.ArgumentNullException"><paramref name="source"/> or <paramref name="predicate"/> is null.</exception>
         public static IObservable<TSource> SkipContinuouslyWhile<TSource>(this IObservable<TSource> source, Func<bool> predicate)
         {
-            return Observable.Create<TSource>(observer =>
-            {
-                var subscription = source.Subscribe(value =>
-                {
-                    if (predicate.Invoke() == false)
-                        observer.OnNext(value);
-                },
-                observer.OnError,
-                observer.OnCompleted);
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            if (predicate == null) throw new ArgumentNullException(nameof(predicate));
 
-                return () => subscription.Dispose();
-            });
+            return source.Where(_ => predicate.Invoke() == false);
         }
 
         /// <summary>
@@ -825,18 +809,7 @@ namespace JB.Reactive.Linq
             if (source == null) throw new ArgumentNullException(nameof(source));
             if (predicate == null) throw new ArgumentNullException(nameof(predicate));
 
-            return Observable.Create<TSource>(observer =>
-            {
-                var subscription = source.Subscribe(value =>
-                {
-                    if (predicate.Invoke(value))
-                        observer.OnNext(value);
-                },
-                observer.OnError,
-                observer.OnCompleted);
-
-                return () => subscription.Dispose();
-            });
+            return source.Where(predicate.Invoke);
         }
 
         /// <summary>
@@ -855,18 +828,7 @@ namespace JB.Reactive.Linq
             if (source == null) throw new ArgumentNullException(nameof(source));
             if (predicate == null) throw new ArgumentNullException(nameof(predicate));
 
-            return Observable.Create<TSource>(observer =>
-            {
-                var subscription = source.Subscribe(value =>
-                {
-                    if (predicate.Invoke())
-                        observer.OnNext(value);
-                },
-                observer.OnError,
-                observer.OnCompleted);
-
-                return () => subscription.Dispose();
-            });
+            return source.Where(_ => predicate.Invoke());
         }
     }
 }

@@ -1157,6 +1157,7 @@ namespace JB.Collections.Reactive
                 CheckForAndThrowIfDisposed();
 
                 return DictionaryChanges
+                    .TakeWhile(_ => !IsDisposing && !IsDisposed)
                     .Where(change => change.ChangeType == ObservableDictionaryChangeType.Reset)
                     .SkipContinuouslyWhile(_ => !IsTrackingResets)
                     .Select(_ => Unit.Default);
@@ -1568,6 +1569,22 @@ namespace JB.Collections.Reactive
         }
 
         /// <summary>
+        /// Gets the number of elements in the collection.
+        /// </summary>
+        /// <returns>
+        /// The number of elements in the collection. 
+        /// </returns>
+        int ICollection.Count
+        {
+            get
+            {
+                CheckForAndThrowIfDisposed();
+
+                return Count;
+            }
+        }
+
+        /// <summary>
         /// Gets an <see cref="T:System.Collections.Generic.ICollection`1"/> containing the values in the <see cref="T:System.Collections.Generic.IDictionary`2"/>.
         /// </summary>
         /// <returns>
@@ -1859,6 +1876,23 @@ namespace JB.Collections.Reactive
             }
         }
 
+        /// <summary>
+        /// Gets the number of elements in the collection.
+        /// </summary>
+        /// 
+        /// <returns>
+        /// The number of elements in the collection.
+        /// </returns>
+        int IReadOnlyCollection<KeyValuePair<TKey, TValue>>.Count
+        {
+            get
+            {
+                CheckForAndThrowIfDisposed();
+
+                return Count;
+            }
+        }
+
         #endregion
 
         #region Implementation of INotifyObservableDictionaryItemChanges<out TKey,out TValue>
@@ -1878,10 +1912,8 @@ namespace JB.Collections.Reactive
 
                 return DictionaryChanges
                     .TakeWhile(_ => !IsDisposing && !IsDisposed)
-                    .SkipContinuouslyWhile(change => !IsTrackingChanges)
-                    .Where(change =>
-                        change.ChangeType == ObservableDictionaryChangeType.ItemChanged
-                        || change.ChangeType == ObservableDictionaryChangeType.ItemReplaced);
+                    .Where(change => change.ChangeType == ObservableDictionaryChangeType.ItemChanged || change.ChangeType == ObservableDictionaryChangeType.ItemReplaced)
+                    .SkipContinuouslyWhile(change => !IsTrackingItemChanges);
             }
         }
 
@@ -2027,6 +2059,22 @@ namespace JB.Collections.Reactive
                 CheckForAndThrowIfDisposed();
 
                 return ((ICollection<KeyValuePair<TKey, TValue>>)InnerDictionary).IsReadOnly;
+            }
+        }
+
+        /// <summary>
+        /// Gets the number of elements in the collection.
+        /// </summary>
+        /// <returns>
+        /// The number of elements in the collection. 
+        /// </returns>
+        int ICollection<KeyValuePair<TKey, TValue>>.Count
+        {
+            get
+            {
+                CheckForAndThrowIfDisposed();
+
+                return Count;
             }
         }
 

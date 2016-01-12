@@ -9,22 +9,48 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
+using System.Reactive;
 using System.Reactive.Concurrency;
+using System.Reactive.Linq;
+using System.Reactive.Subjects;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using JB.Collections.Reactive;
+using JB.Reactive.Cache.ExtensionMethods;
+using JB.Reactive.Linq;
 
 namespace JB.Reactive.Cache
 {
-    public class ObservableInMemoryCache<TKey, TValue> : IObservableCache<TKey, TValue>, INotifyObservableCacheChanges<TKey, TValue>, IDisposable
+    [DebuggerDisplay("Count={Count}")]
+    public class ObservableInMemoryCache<TKey, TValue> : IObservableCache<TKey, TValue>, IDisposable
     {
+        private Subject<IObservableCacheChange<TKey, TValue>> _cacheChangesSubject = new Subject<IObservableCacheChange<TKey, TValue>>();
+        private Subject<ObserverException> _unhandledObserverExceptionsSubject = new Subject<ObserverException>();
+        
+        /// <summary>
+        /// Gets the cache changes observer.
+        /// </summary>
+        /// <value>
+        /// The cache changes observer.
+        /// </value>
+        protected IObserver<IObservableCacheChange<TKey, TValue>> CacheChangesObserver { get; private set; }
+
+        /// <summary>
+        /// Gets the thrown exceptions observer.
+        /// </summary>
+        /// <value>
+        /// The thrown exceptions observer.
+        /// </value>
+        protected IObserver<ObserverException> UnhandledObserverExceptionsObserver { get; private set; }
+
         /// <summary>
         /// Gets or sets the inner dictionary.
         /// </summary>
         /// <value>
         /// The inner dictionary.
         /// </value>
-        protected IObservableDictionary<TKey, ObservableCachedElement<TKey, TValue>> InnerDictionary { get; private set; }
+        protected ObservableDictionary<TKey, ObservableCachedElement<TKey, TValue>> InnerDictionary { get; private set; }
 
         /// <summary>
         /// Gets the scheduler.
@@ -72,8 +98,89 @@ namespace JB.Reactive.Cache
                 scheduler: scheduler);
 
             ThresholdAmountWhenChangesAreNotifiedAsReset = Int32.MaxValue;
+
+            SetupObservablesAndObserversAndSubjects();
         }
-        
+
+        #region Helper Methods
+
+        /// <summary>
+        /// Prepares and sets up the observables and subjects used, particularly
+        /// <see cref="_cacheChangesSubject"/> and <see cref="_unhandledObserverExceptionsSubject"/>.
+        /// </summary>
+        private void SetupObservablesAndObserversAndSubjects()
+        {
+            // prepare subjects for RX
+            UnhandledObserverExceptionsObserver = _unhandledObserverExceptionsSubject.NotifyOn(Scheduler);
+            CacheChangesObserver = _cacheChangesSubject.NotifyOn(Scheduler);
+        }
+
+        /// <summary>
+        /// Adds <see cref="OnCachedElementValuePropertyChanged"/> as event handler for <paramref name="cachedElement"/>'s <see cref="ObservableCachedElement{TKey,TValue}.ValuePropertyChanged"/> event.
+        /// </summary>
+        /// <param name="cachedElement">The value.</param>
+        private void AddToForwardedPropertyChangedHandling(ObservableCachedElement<TKey, TValue> cachedElement)
+        {
+            CheckForAndThrowIfDisposed();
+
+            if (cachedElement != null)
+            {
+                cachedElement.ValuePropertyChanged += OnCachedElementValuePropertyChanged;
+            }
+        }
+
+        /// <summary>
+        /// Called when a cached element's value property changed.
+        /// </summary>
+        /// <param name="sender">The sender.</param>
+        /// <param name="forwardedEventArgs">The <see cref="ForwardedEventArgs{PropertyChangedEventArgs}"/> instance containing the event data.</param>
+        private void OnCachedElementValuePropertyChanged(object sender, ForwardedEventArgs<PropertyChangedEventArgs> forwardedEventArgs)
+        {
+            if (forwardedEventArgs == null)
+                throw new ArgumentNullException(nameof(forwardedEventArgs));
+
+            var senderAsObservableCachedElement = sender as ObservableCachedElement<TKey, TValue>;
+            if (senderAsObservableCachedElement == null)
+                throw new InvalidOperationException($"This should not happen - {nameof(sender)} must be {typeof(ObservableCachedElement<TKey, TValue>).Name} instances");
+
+            try
+            {
+                CacheChangesObserver.OnNext(ObservableCacheChange<TKey, TValue>.ItemChanged(
+                    senderAsObservableCachedElement.Key,
+                    senderAsObservableCachedElement.Value,
+                    forwardedEventArgs.OriginalEventArgs.PropertyName,
+                    senderAsObservableCachedElement.ExpiresAt(),
+                    senderAsObservableCachedElement.ExpirationType));
+            }
+            catch (Exception exception)
+            {
+                var observerException = new ObserverException(
+                    $"An error occured notifying {nameof(Changes)} Observers of this {this.GetType().Name}.",
+                    exception);
+
+                UnhandledObserverExceptionsObserver.OnNext(observerException);
+
+                if (observerException.Handled == false)
+                    throw;
+            }
+        }
+
+        /// <summary>
+        /// Removes <see cref="OnCachedElementValuePropertyChanged"/> as event handler for <paramref name="cachedElement"/>'s <see cref="ObservableCachedElement{TKey,TValue}.ValuePropertyChanged"/> event.
+        /// </summary>
+        /// <param name="cachedElement">The value.</param>
+        private void RemoveFromForwardedPropertyChangedHandling(ObservableCachedElement<TKey, TValue> cachedElement)
+        {
+            CheckForAndThrowIfDisposed();
+
+            if (cachedElement != null)
+            {
+                cachedElement.ValuePropertyChanged -= OnCachedElementValuePropertyChanged;
+            }
+        }
+
+        #endregion
+
         #region Implementation of IDisposable
 
         private long _isDisposing = 0;
@@ -143,6 +250,26 @@ namespace JB.Reactive.Cache
 
                 if (disposeManagedResources)
                 {
+                    var cacheChangesObserverAsDisposable = CacheChangesObserver as IDisposable;
+                    cacheChangesObserverAsDisposable?.Dispose();
+                    CacheChangesObserver = null;
+
+                    if (_cacheChangesSubject != null)
+                    {
+                        _cacheChangesSubject.Dispose();
+                        _cacheChangesSubject = null;
+                    }
+
+                    var thrownExceptionsObserverAsDisposable = UnhandledObserverExceptionsObserver as IDisposable;
+                    thrownExceptionsObserverAsDisposable?.Dispose();
+                    UnhandledObserverExceptionsObserver = null;
+
+                    if (_unhandledObserverExceptionsSubject != null)
+                    {
+                        _unhandledObserverExceptionsSubject.Dispose();
+                        _unhandledObserverExceptionsSubject = null;
+                    }
+
                     if (InnerDictionary != null)
                     {
                         var innerDictionaryAsDisposable = InnerDictionary as IDisposable;
@@ -219,6 +346,30 @@ namespace JB.Reactive.Cache
 
         #endregion
 
+        #region Implementation of INotifyUnhandledObserverExceptions
+
+        /// <summary>
+        /// Provides an observable sequence of unhandled <see cref="ObserverException">exceptions</see> thrown by observers.
+        /// An <see cref="ObserverException" /> provides a <see cref="ObserverException.Handled" /> property, if set to [true] by
+        /// any of the observers of <see cref="UnhandledObserverExceptions" /> observable, it is assumed to be safe to continue
+        /// without re-throwing the exception.
+        /// </summary>
+        /// <value>
+        /// An observable stream of unhandled exceptions.
+        /// </value>
+        public virtual IObservable<ObserverException> UnhandledObserverExceptions
+        {
+            get
+            {
+                CheckForAndThrowIfDisposed();
+
+                // not caring about IsDisposing / IsDisposed on purpose once subscribed, so corresponding Exceptions are forwarded 'til the "end" to already existing subscribers
+                return _unhandledObserverExceptionsSubject.Merge(InnerDictionary.UnhandledObserverExceptions);
+            }
+        }
+
+        #endregion
+
         #region Implementation of INotifyObservableChanges
 
         /// <summary>
@@ -241,7 +392,7 @@ namespace JB.Reactive.Cache
         /// <c>true</c> if this instance is suppressing observable change notifications; otherwise, <c>false</c>.
         /// </value>
         /// <exception cref="System.InvalidOperationException">A Change Notification Suppression is currently already ongoing, multiple concurrent suppressions are not supported.</exception>
-        public bool IsTrackingChanges
+        public virtual bool IsTrackingChanges
         {
             get
             {
@@ -269,7 +420,7 @@ namespace JB.Reactive.Cache
             {
                 CheckForAndThrowIfDisposed();
 
-                ThresholdAmountWhenChangesAreNotifiedAsReset = value;
+                InnerDictionary.ThresholdAmountWhenChangesAreNotifiedAsReset = value;
             }
         }
 
@@ -283,7 +434,154 @@ namespace JB.Reactive.Cache
         /// <value>
         ///     The changes.
         /// </value>
-        public IObservable<IObservableCacheChange<TKey, TValue>> Changes { get; }
+        public virtual IObservable<IObservableCacheChange<TKey, TValue>> Changes
+        {
+            get
+            {
+                CheckForAndThrowIfDisposed();
+
+                return InnerDictionary.DictionaryChanges
+                        .SkipContinuouslyWhile(change => change.ChangeType != ObservableDictionaryChangeType.ItemChanged) // this must be handled here separately from the underlying dictionary
+                        .Select(dictionaryChange => dictionaryChange.ToObservableCacheChange())
+                    .Merge(_cacheChangesSubject)
+                    .TakeWhile(_ => !IsDisposing && !IsDisposed)
+                    .SkipContinuouslyWhile(change => !IsTrackingChanges)
+                    .SkipContinuouslyWhile(change => change.ChangeType == ObservableCacheChangeType.ItemChanged && !IsTrackingItemChanges)
+                    .SkipContinuouslyWhile(change => change.ChangeType == ObservableCacheChangeType.ItemReplaced && !IsTrackingItemChanges)
+                    .SkipContinuouslyWhile(change => change.ChangeType == ObservableCacheChangeType.Reset && !IsTrackingResets);
+            }
+        }
+
+        #endregion
+
+        #region Implementation of IObservableCache<TKey,TValue>
+
+        /// <summary>
+        /// Gets the count of keys in this instance.
+        /// </summary>
+        /// <value>
+        /// The count of keys in this instance.
+        /// </value>
+        public virtual int Count
+        {
+            get
+            {
+                CheckForAndThrowIfDisposed(false);
+
+                return InnerDictionary.Count;
+            }
+        }
+
+        #endregion
+
+        #region Implementation of INotifyObservableResets
+
+        /// <summary>
+        /// Gets a value indicating whether this instance is tracking and notifying about
+        /// list / collection resets, typically for data binding.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if this instance is tracking resets; otherwise, <c>false</c>.
+        /// </value>
+        public virtual bool IsTrackingResets
+        {
+            get
+            {
+                CheckForAndThrowIfDisposed();
+
+                return InnerDictionary.IsTrackingResets;
+            }
+        }
+
+        /// <summary>
+        /// Gets the reset notifications as an observable stream.  Whenever signaled,
+        /// observers should reset any knowledge / state etc about the list.
+        /// </summary>
+        /// <value>
+        /// The resets.
+        /// </value>
+        public virtual IObservable<Unit> Resets
+        {
+            get
+            {
+                CheckForAndThrowIfDisposed();
+
+                return InnerDictionary
+                    .Resets
+                    .TakeWhile(_ => !IsDisposing && !IsDisposed)
+                    .SkipContinuouslyWhile(_ => !IsTrackingResets);
+            }
+        }
+
+        /// <summary>
+        /// (Temporarily) suppresses change notifications for resets until the <see cref="IDisposable" /> handed over to the caller
+        /// has been Disposed and then a Reset will be signaled, if wanted and applicable.
+        /// </summary>
+        /// <param name="signalResetWhenFinished">if set to <c>true</c> signals a reset when finished.</param>
+        /// <returns></returns>
+        public virtual IDisposable SuppressResetNotifications(bool signalResetWhenFinished = true)
+        {
+            CheckForAndThrowIfDisposed();
+
+            return InnerDictionary.SuppressResetNotifications(signalResetWhenFinished);
+        }
+
+        #endregion
+
+        #region Implementation of INotifyObservableCacheItemChanges<out TKey,out TValue>
+
+        /// <summary>
+        /// Gets the observable streams of collection item changes.
+        /// </summary>
+        /// <value>
+        /// The item changes.
+        /// </value>
+        public virtual IObservable<IObservableCacheChange<TKey, TValue>> ItemChanges
+        {
+            get
+            {
+                CheckForAndThrowIfDisposed();
+                
+                return Changes
+                    .TakeWhile(_ => !IsDisposing && !IsDisposed)
+                    .Where(change => change.ChangeType == ObservableCacheChangeType.ItemChanged || change.ChangeType == ObservableCacheChangeType.ItemReplaced)
+                    .SkipContinuouslyWhile(change => !IsTrackingItemChanges);
+            }
+        }
+
+        #endregion
+
+        #region Implementation of INotifyObservableItemChanges
+
+        /// <summary>
+        /// (Temporarily) suppresses item change notifications until the returned <see cref="IDisposable" />
+        /// has been Disposed and a Reset will be signaled, if applicable.
+        /// </summary>
+        /// <param name="signalResetWhenFinished">if set to <c>true</c> signals a reset when finished.</param>
+        /// <returns></returns>
+        public virtual IDisposable SuppressItemChangedNotifications(bool signalResetWhenFinished = true)
+        {
+            CheckForAndThrowIfDisposed();
+
+            return InnerDictionary.SuppressItemChangedNotifications(signalResetWhenFinished);
+        }
+
+        /// <summary>
+        /// Gets a value indicating whether this instance has per item change tracking enabled and therefore listens to
+        /// <see cref="INotifyPropertyChanged.PropertyChanged"/> events, if that interface is implemented, too.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if this instance has item change tracking enabled; otherwise, <c>false</c>.
+        /// </value>
+        public virtual bool IsTrackingItemChanges
+        {
+            get
+            {
+                CheckForAndThrowIfDisposed();
+
+                return InnerDictionary.IsTrackingItemChanges;
+            }
+        }
 
         #endregion
     }
