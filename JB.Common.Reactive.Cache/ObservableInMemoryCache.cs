@@ -12,6 +12,7 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Reactive;
 using System.Reactive.Concurrency;
+using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Runtime.CompilerServices;
@@ -493,6 +494,230 @@ namespace JB.Reactive.Cache
 
                 return InnerDictionary.Count;
             }
+        }
+
+        /// <summary>
+        /// Adds the specified <paramref name="key"/> with the given <paramref name="value"/> to the <see cref="IObservableCache{TKey,TValue}"/>.
+        /// </summary>
+        /// <param name="key">The key of the element to add.</param>
+        /// <param name="value">The value of the element to add.</param>
+        /// <param name="expiry">The expiry of the <paramref name="key"/>. If none is provided the <paramref name="key"/> will virtually never expire.</param>
+        /// <param name="expirationType">Defines how the <paramref name="key" /> shall expire.</param>
+        /// <returns>
+        /// An observable stream that, when done, returns an <see cref="Unit" />.
+        /// </returns>
+        public IObservable<Unit> Add(TKey key, TValue value, TimeSpan? expiry = null, ObservableCacheExpirationType expirationType = ObservableCacheExpirationType.Remove)
+        {
+            if (key == null) throw new ArgumentNullException(nameof(key));
+
+            CheckForAndThrowIfDisposed();
+
+            return Observable.Create<Unit>(observer =>
+            {
+                try
+                {
+                    var observableCachedElement = new ObservableCachedElement<TKey, TValue>(key, value, expiry ?? TimeSpan.MaxValue, expirationType);
+
+                    InnerDictionary.Add(key, observableCachedElement);
+                    
+                    AddToForwardedPropertyChangedHandling(observableCachedElement);
+
+                    observer.OnNext(Unit.Default);
+                    observer.OnCompleted();
+                }
+                catch (Exception exception)
+                {
+                    observer.OnError(exception);
+                }
+                
+                return Disposable.Empty;
+            });
+        }
+
+        /// <summary>
+        /// Adds the specified <paramref name="keyValuePairs"/> to the <see cref="IObservableCache{TKey,TValue}"/>.
+        /// </summary>
+        /// <param name="keyValuePairs">The key/value pairs to add.</param>
+        /// <param name="expiry">The expiry of the <paramref name="keyValuePairs"/>. If none is provided the <paramref name="keyValuePairs"/> will virtually never expire.</param>
+        /// <param name="expirationType">Defines how the <paramref name="keyValuePairs" /> shall expire.</param>
+        /// <returns>
+        /// An observable stream that, when done, returns an <see cref="Unit" />.
+        /// </returns>
+        public IObservable<Unit> AddRange(IEnumerable<KeyValuePair<TKey, TValue>> keyValuePairs, TimeSpan? expiry = null, ObservableCacheExpirationType expirationType = ObservableCacheExpirationType.Remove)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// Clears this instance.
+        /// </summary>
+        /// <returns>
+        /// An observable stream that, when done, returns an <see cref="Unit" />.
+        /// </returns>
+        public IObservable<Unit> Clear()
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// Determines whether this instance contains the specified <paramref name="key"/>.
+        /// </summary>
+        /// <param name="key">The key to check.</param>
+        /// <returns>
+        /// An observable stream that returns [true] if the <paramref name="key"/> is is contained in this instance, [false] if not.
+        /// </returns>
+        public IObservable<bool> Contains(TKey key)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// Determines whether this instance contains the specified <paramref name="keys"/>.
+        /// </summary>
+        /// <param name="keys">The keys to check.</param>
+        /// <returns>
+        /// An observable stream that returns [true] if all <paramref name="keys"/> are contained in this instance, [false] if not.
+        /// </returns>
+        public IObservable<bool> ContainsAll(IEnumerable<TKey> keys)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// Determines whether which ones of the specified <paramref name="keys"/> are contained in this instance.
+        /// </summary>
+        /// <param name="keys">The keys to check.</param>
+        /// <returns>
+        /// An observable stream that returns the subset of keys of the provided <paramref name="keys"/> that are contained in this instance.
+        /// </returns>
+        public IObservable<TKey> ContainsWhich(IEnumerable<TKey> keys)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// Determines the <see cref="DateTime"/> (UTC) the <paramref name="key"/> expires.
+        /// </summary>
+        /// <param name="key">The key to check.</param>
+        /// <returns>
+        /// An observable stream that returns the <see cref="DateTime"/> (UTC) the <paramref name="key"/> expires.
+        /// </returns>
+        public IObservable<DateTime> ExpiresWhen(TKey key)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// Determines the <see cref="TimeSpan"/> in which the <paramref name="key"/> expires.
+        /// </summary>
+        /// <param name="key">The key to check.</param>
+        /// <returns>
+        /// An observable stream that returns the <see cref="TimeSpan"/> in which the <paramref name="key"/> expires.
+        /// </returns>
+        public IObservable<TimeSpan> ExpiresIn(TKey key)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// Gets the <typeparamref name="TValue"/> for the specified <paramref name="key"/>.
+        /// </summary>
+        /// <param name="key">The key to retrieve the <typeparamref name="TValue"/> for.</param>
+        /// <returns>
+        /// An observable stream that returns the <see cref="TValue"/> for the provided <paramref name="key"/>.
+        /// </returns>
+        public IObservable<TValue> Get(TKey key)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// Gets the values for the specified <paramref name="keys"/>.
+        /// </summary>
+        /// <param name="keys">The keys to retrieve the values for.</param>
+        /// <returns>
+        /// An observable stream that returns the values for the provided <paramref name="keys"/>.
+        /// </returns>
+        public IObservable<TValue> Get(IEnumerable<TKey> keys)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// Removes the specified <paramref name="key"/> from this instance.
+        /// </summary>
+        /// <param name="key">The key to remove.</param>
+        /// <returns>
+        /// An observable stream that, when done, returns an <see cref="Unit" />.
+        /// </returns>
+        public IObservable<Unit> Remove(TKey key)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// Removes the specified <paramref name="keys"/> from this instance.
+        /// </summary>
+        /// <param name="keys">The keys to remove.</param>
+        /// <returns>
+        /// An observable stream that, when done, returns an <see cref="Unit" />.
+        /// </returns>
+        public IObservable<Unit> RemoveRange(IEnumerable<TKey> keys)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// Updates the specified <paramref name="key"/> with the given <paramref name="value"/>.
+        /// </summary>
+        /// <param name="key">The key to update.</param>
+        /// <param name="value">The value to update the <paramref name="key"/> with.</param>
+        /// <returns>
+        /// An observable stream that, when done, returns an <see cref="Unit" />.
+        /// </returns>
+        public IObservable<Unit> Update(TKey key, TValue value)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// Updates a range of <paramref name="keyValuePairs"/>.
+        /// </summary>
+        /// <param name="keyValuePairs">The key/value pairs that each contain the key to update and the value to update it with.</param>
+        /// <returns>
+        /// An observable stream that, when done, returns an <see cref="Unit" />.
+        /// </returns>
+        public IObservable<Unit> Update(IEnumerable<KeyValuePair<TKey, TValue>> keyValuePairs)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// Updates the expiration behavior for the specified <paramref name="key"/>.
+        /// </summary>
+        /// <param name="key">The key to update.</param>
+        /// <param name="expiry">The expiry of the <paramref name="key"/>.</param>
+        /// <param name="expirationType">Defines how the <paramref name="key" /> shall expire.</param>
+        /// <returns>
+        /// An observable stream that, when done, returns an <see cref="Unit" />.
+        /// </returns>
+        public IObservable<Unit> UpdateExpiration(TKey key, TimeSpan expiry, ObservableCacheExpirationType expirationType)
+        {
+            throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// Updates the expiration behavior for the specified <paramref name="keys"/>.
+        /// </summary>
+        /// <param name="keys">The keys to update.</param>
+        /// <param name="expiry">The expiry of the <paramref name="keys"/>.</param>
+        /// <param name="expirationType">Defines how the <paramref name="keys" /> shall expire.</param>
+        /// <returns>
+        /// An observable stream that, when done, returns an <see cref="Unit" />.
+        /// </returns>
+        public IObservable<Unit> UpdateExpiration(IEnumerable<TKey> keys, TimeSpan expiry, ObservableCacheExpirationType expirationType)
+        {
+            throw new NotImplementedException();
         }
 
         #endregion

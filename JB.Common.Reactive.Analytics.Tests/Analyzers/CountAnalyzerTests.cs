@@ -15,7 +15,7 @@ using JB.Reactive.Analytics.ExtensionMethods;
 using Microsoft.Reactive.Testing;
 using Xunit;
 
-namespace JB.Common.Reactive.Analytics.Tests.Analyzers
+namespace JB.Reactive.Analytics.Tests.Analyzers
 {
     public class CountAnalyzerTests
     {

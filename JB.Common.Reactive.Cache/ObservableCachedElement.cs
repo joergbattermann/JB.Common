@@ -123,7 +123,7 @@ namespace JB.Reactive.Cache
         protected void SetupAndStartExpirationTimer(DateTime expirationDateTime)
         {
             CheckForAndThrowIfDisposed();
-
+            
             Timer = new System.Timers.Timer
             {
                 AutoReset = false,
@@ -141,7 +141,11 @@ namespace JB.Reactive.Cache
         /// <returns></returns>
         private double GetTimerIntervalMillisecondsForExpiry(TimeSpan expiry)
         {
-            return expiry > TimeSpan.Zero ? expiry.TotalMilliseconds : TimeSpan.FromTicks(0).TotalMilliseconds;
+            var interval = expiry > TimeSpan.Zero
+                ? (expiry.TotalMilliseconds > Int32.MaxValue ? Int32.MaxValue : expiry.TotalMilliseconds) // Int32.MaxValue is the max value System.Timers.Timer supports..
+                : TimeSpan.FromTicks(0).TotalMilliseconds;
+
+            return interval;
         }
 
         /// <summary>
@@ -242,10 +246,10 @@ namespace JB.Reactive.Cache
         }
 
         /// <summary>
-        /// Gets the expiry date time UTC.
+        /// Gets the expiry <see cref="DateTime"/>.
         /// </summary>
         /// <value>
-        /// The expiry date time UTC.
+        /// The expiry <see cref="DateTime"/>.
         /// </value>
         protected DateTime ExpiryDateTime
         {
@@ -286,7 +290,7 @@ namespace JB.Reactive.Cache
             AddValueToPropertyChangedHandling(Value);
 
             ExpirationType = expirationType;
-            ExpiryDateTime = DateTime.Now.Add(expiry);
+            ExpiryDateTime = CalculateExpiryDateTime(expiry);
 
             SetupAndStartExpirationTimer(ExpiryDateTime);
         }
@@ -368,8 +372,27 @@ namespace JB.Reactive.Cache
         {
             CheckForAndThrowIfDisposed();
 
-            ExpiryDateTime = DateTime.Now.Add(expiry);
+            ExpiryDateTime = CalculateExpiryDateTime(expiry);
             SetupAndStartExpirationTimer(ExpiryDateTime);
+        }
+
+        /// <summary>
+        /// Calculates the (valid) expiry date time.
+        /// </summary>
+        /// <param name="expiry">The expiry.</param>
+        /// <returns></returns>
+        protected DateTime CalculateExpiryDateTime(TimeSpan expiry)
+        {
+            if(expiry > TimeSpan.FromMilliseconds(Int32.MaxValue))
+                throw new ArgumentOutOfRangeException(nameof(expiry), $"{nameof(expiry)} cannot be greater than {typeof(Int32).Name}.{nameof(Int32.MaxValue)}");
+
+            var now = DateTime.Now;
+            var maxExpiry = DateTime.MaxValue - now;
+
+            if (expiry >= maxExpiry)
+                return DateTime.MaxValue;
+
+            return now.Add(expiry);
         }
 
         #region Implementation of INotifyPropertyChanged

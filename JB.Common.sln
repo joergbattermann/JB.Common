@@ -45,6 +45,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JB.Common.Reactive.Cache", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JB.Common.Reactive.Logging", "JB.Common.Reactive.Logging\JB.Common.Reactive.Logging.csproj", "{407A0B3A-58F2-444F-99D8-6D9FDC1F61D2}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JB.Common.Reactive.Cache.Tests", "JB.Common.Reactive.Cache.Tests\JB.Common.Reactive.Cache.Tests.csproj", "{21239505-BBAE-4C3A-AAB7-77DB5C513C01}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -103,6 +105,10 @@ Global
 		{407A0B3A-58F2-444F-99D8-6D9FDC1F61D2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{407A0B3A-58F2-444F-99D8-6D9FDC1F61D2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{407A0B3A-58F2-444F-99D8-6D9FDC1F61D2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{21239505-BBAE-4C3A-AAB7-77DB5C513C01}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{21239505-BBAE-4C3A-AAB7-77DB5C513C01}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{21239505-BBAE-4C3A-AAB7-77DB5C513C01}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{21239505-BBAE-4C3A-AAB7-77DB5C513C01}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -112,5 +118,6 @@ Global
 		{98EC53DF-00F5-4FB8-BE75-C1B530B418BF} = {26BE593D-322B-408F-BFC7-3F2B3273DE21}
 		{5215AC7E-41FF-4A49-8EEB-F3515D813EF5} = {26BE593D-322B-408F-BFC7-3F2B3273DE21}
 		{66781C50-92C1-4832-85DE-5BF3E8EC14C2} = {26BE593D-322B-408F-BFC7-3F2B3273DE21}
+		{21239505-BBAE-4C3A-AAB7-77DB5C513C01} = {26BE593D-322B-408F-BFC7-3F2B3273DE21}
 	EndGlobalSection
 EndGlobal

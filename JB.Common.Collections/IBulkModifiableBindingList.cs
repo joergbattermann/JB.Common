@@ -4,6 +4,10 @@ using System.ComponentModel;
 
 namespace JB.Collections
 {
+    /// <summary>
+    /// A <see cref="IBindingList"/> that allows bulk modification of its elements
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
     public interface IBulkModifiableBindingList<T> :
         IBulkModifiableCollection<T>,
         IReadOnlyCollection<T>,

@@ -4,12 +4,12 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{66781C50-92C1-4832-85DE-5BF3E8EC14C2}</ProjectGuid>
+    <ProjectGuid>{21239505-BBAE-4C3A-AAB7-77DB5C513C01}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>JB.Reactive.Analytics.Tests</RootNamespace>
-    <AssemblyName>JB.Common.Reactive.Analytics.Tests</AssemblyName>
-    <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
+    <RootNamespace>JB.Reactive.Cache.Tests</RootNamespace>
+    <AssemblyName>JB.Common.Reactive.Cache.Tests</AssemblyName>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
@@ -85,20 +85,34 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="..\CommonAssemblyInfo.cs">
-      <Link>Properties\CommonAssemblyInfo.cs</Link>
-    </Compile>
-    <Compile Include="Analyzers\CountAnalyzerTests.cs" />
+    <Compile Include="ObservableInMemoryCacheInitializationTests.cs" />
+    <Compile Include="ObservableInMemoryCacheItemsTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\JB.Common.Reactive.Analytics\JB.Common.Reactive.Analytics.csproj">
-      <Project>{450b98c1-5f88-48e7-808e-7bdd4cf0d179}</Project>
-      <Name>JB.Common.Reactive.Analytics</Name>
-    </ProjectReference>
+    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="packages.config" />
+    <ProjectReference Include="..\JB.Common.Collections.Reactive\JB.Common.Collections.Reactive.csproj">
+      <Project>{a30a30a6-9914-42dc-95a1-527b652b165d}</Project>
+      <Name>JB.Common.Collections.Reactive</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\JB.Common.Collections\JB.Common.Collections.csproj">
+      <Project>{360b8b3f-5ef4-4cd1-96f2-f3cc67a2b2b3}</Project>
+      <Name>JB.Common.Collections</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\JB.Common.Reactive.Cache\JB.Common.Reactive.Cache.csproj">
+      <Project>{950b0468-d1c7-410a-910c-54afef706e87}</Project>
+      <Name>JB.Common.Reactive.Cache</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\JB.Common.Reactive\JB.Common.Reactive.csproj">
+      <Project>{45f64424-6a73-45cd-942c-841225cb3ad6}</Project>
+      <Name>JB.Common.Reactive</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\JB.Common\JB.Common.csproj">
+      <Project>{248fadaf-12c1-41d1-8faa-8b786b4feb36}</Project>
+      <Name>JB.Common</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
