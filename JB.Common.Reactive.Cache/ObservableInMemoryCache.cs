@@ -516,7 +516,7 @@ namespace JB.Reactive.Cache
             {
                 try
                 {
-                    var observableCachedElement = new ObservableCachedElement<TKey, TValue>(key, value, expiry ?? TimeSpan.MaxValue, expirationType);
+                    var observableCachedElement = new ObservableCachedElement<TKey, TValue>(key, value, expiry ?? TimeSpan.FromMilliseconds(Int32.MaxValue), expirationType);
 
                     InnerDictionary.Add(key, observableCachedElement);
                     
@@ -556,6 +556,34 @@ namespace JB.Reactive.Cache
         /// </returns>
         public IObservable<Unit> Clear()
         {
+            CheckForAndThrowIfDisposed();
+
+            return Observable.Create<Unit>(observer =>
+            {
+                try
+                {
+                    var valuesBeforeClearing = InnerDictionary.Values;
+
+                    InnerDictionary.Clear();
+
+                    if (valuesBeforeClearing.Count > 0)
+                    {
+                        foreach (var value in valuesBeforeClearing)
+                        {
+                            RemoveFromForwardedPropertyChangedHandling(value);
+                        }
+                    }
+                    observer.OnNext(Unit.Default);
+                    observer.OnCompleted();
+                }
+                catch (Exception exception)
+                {
+                    observer.OnError(exception);
+                }
+
+                return Disposable.Empty;
+            });
+
             throw new NotImplementedException();
         }
 

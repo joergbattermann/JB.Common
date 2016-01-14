@@ -284,6 +284,10 @@ namespace JB.Reactive.Cache
         /// <param name="expirationType">Type of the expiration.</param>
         public ObservableCachedElement(TKey key, TValue value, TimeSpan expiry, ObservableCacheExpirationType expirationType)
         {
+            if (key == null) throw new ArgumentNullException(nameof(key));
+            if(expiry > TimeSpan.FromMilliseconds(Int32.MaxValue))
+                throw new ArgumentOutOfRangeException(nameof(expiry), $"{nameof(expiry)} cannot be greater than {typeof(Int32).Name}.{nameof(Int32.MaxValue)}");
+
             Key = key;
             Value = value;
 
