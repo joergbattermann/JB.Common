@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
+using System.Reactive.Threading.Tasks;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using FluentAssertions;
@@ -26,7 +28,7 @@ namespace JB.Reactive.Cache.Tests
         }
 
         [Fact]
-        public async Task ShouldContainAddedItems()
+        public async Task ShouldContainAddedItem()
         {
             // given
             using (var cache = new ObservableInMemoryCache<int, string>())
@@ -40,6 +42,48 @@ namespace JB.Reactive.Cache.Tests
                 // then
                 containsAddedKey.Should().BeTrue();
                 containsNonAddedKey.Should().BeFalse();
+            }
+        }
+
+        [Fact]
+        public async Task ContainsAllShouldReturnCorrespondingly()
+        {
+            // given
+            using (var cache = new ObservableInMemoryCache<int, string>())
+            {
+                await cache.Add(1, "One");
+                await cache.Add(2, "Two");
+
+                // when
+                var containsAllAddedKey = await cache.ContainsWhich(new[] { 1, 2 }).ToTask();
+                var doesNotContainOneOftheAddedKeysAndOneUnAddedOne = await cache.ContainsAll(new[] { 2, 3 });
+                var resultForEmptyContainsAllKeys = await cache.ContainsAll(new List<int>());
+
+                // then
+                containsAllAddedKey.Should().BeTrue();
+                doesNotContainOneOftheAddedKeysAndOneUnAddedOne.Should().BeFalse();
+                resultForEmptyContainsAllKeys.Should().BeTrue();
+            }
+        }
+
+        [Fact]
+        public async Task ContainsAllShouldReturnCorrespondingly()
+        {
+            // given
+            using (var cache = new ObservableInMemoryCache<int, string>())
+            {
+                await cache.Add(1, "One");
+                await cache.Add(2, "Two");
+
+                // when
+                var containsAllAddedKey = await cache.ContainsAll(new [] {1,2});
+                var doesNotContainOneOftheAddedKeysAndOneUnAddedOne = await cache.ContainsAll(new [] {2,3});
+                var resultForEmptyContainsAllKeys = await cache.ContainsAll(new List<int>());
+
+                // then
+                containsAllAddedKey.Should().BeTrue();
+                doesNotContainOneOftheAddedKeysAndOneUnAddedOne.Should().BeFalse();
+                resultForEmptyContainsAllKeys.Should().BeTrue();
             }
         }
 

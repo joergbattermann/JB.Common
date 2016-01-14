@@ -10,6 +10,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Linq;
 using System.Reactive;
 using System.Reactive.Concurrency;
 using System.Reactive.Disposables;
@@ -621,9 +622,13 @@ namespace JB.Reactive.Cache
         /// <returns>
         /// An observable stream that returns [true] if all <paramref name="keys"/> are contained in this instance, [false] if not.
         /// </returns>
-        public IObservable<bool> ContainsAll(IEnumerable<TKey> keys)
+        public IObservable<bool> ContainsAll(ICollection<TKey> keys)
         {
-            throw new NotImplementedException();
+            if (keys == null) throw new ArgumentNullException(nameof(keys));
+
+            CheckForAndThrowIfDisposed();
+
+            return keys.Select(Contains).Merge().All(result => result);
         }
 
         /// <summary>
@@ -635,7 +640,27 @@ namespace JB.Reactive.Cache
         /// </returns>
         public IObservable<TKey> ContainsWhich(IEnumerable<TKey> keys)
         {
-            throw new NotImplementedException();
+            if (keys == null) throw new ArgumentNullException(nameof(keys));
+
+            CheckForAndThrowIfDisposed();
+
+            return Observable.Create<TKey>(observer =>
+            {
+                try
+                {
+                    foreach (var key in keys.Where(key => InnerDictionary.ContainsKey(key)))
+                    {
+                        observer.OnNext(key);
+                    }
+                    observer.OnCompleted();
+                }
+                catch (Exception exception)
+                {
+                    observer.OnError(exception);
+                }
+
+                return Disposable.Empty;
+            });
         }
 
         /// <summary>

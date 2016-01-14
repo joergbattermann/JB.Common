@@ -74,7 +74,7 @@ namespace JB.Reactive.Cache
         /// <returns>
         /// An observable stream that returns [true] if all <paramref name="keys"/> are contained in this instance, [false] if not.
         /// </returns>
-        IObservable<bool> ContainsAll(IEnumerable<TKey> keys);
+        IObservable<bool> ContainsAll(ICollection<TKey> keys);
 
         /// <summary>
         /// Determines whether which ones of the specified <paramref name="keys"/> are contained in this instance.
