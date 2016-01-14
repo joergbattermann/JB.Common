@@ -26,6 +26,24 @@ namespace JB.Reactive.Cache.Tests
         }
 
         [Fact]
+        public async Task ShouldContainAddedItems()
+        {
+            // given
+            using (var cache = new ObservableInMemoryCache<int, string>())
+            {
+                await cache.Add(1, "One");
+
+                // when
+                var containsAddedKey = await cache.Contains(1);
+                var containsNonAddedKey = await cache.Contains(2);
+
+                // then
+                containsAddedKey.Should().BeTrue();
+                containsNonAddedKey.Should().BeFalse();
+            }
+        }
+
+        [Fact]
         public async Task ShouldAllowClearingOfCache()
         {
             // given

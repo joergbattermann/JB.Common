@@ -583,8 +583,6 @@ namespace JB.Reactive.Cache
 
                 return Disposable.Empty;
             });
-
-            throw new NotImplementedException();
         }
 
         /// <summary>
@@ -596,7 +594,24 @@ namespace JB.Reactive.Cache
         /// </returns>
         public IObservable<bool> Contains(TKey key)
         {
-            throw new NotImplementedException();
+            if (key == null) throw new ArgumentNullException(nameof(key));
+
+            CheckForAndThrowIfDisposed();
+
+            return Observable.Create<bool>(observer =>
+            {
+                try
+                {
+                    observer.OnNext(InnerDictionary.ContainsKey(key));
+                    observer.OnCompleted();
+                }
+                catch (Exception exception)
+                {
+                    observer.OnError(exception);
+                }
+
+                return Disposable.Empty;
+            });
         }
 
         /// <summary>
