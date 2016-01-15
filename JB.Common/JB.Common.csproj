@@ -46,6 +46,7 @@
     <Compile Include="..\CommonAssemblyInfo.cs">
       <Link>Properties\CommonAssemblyInfo.cs</Link>
     </Compile>
+    <Compile Include="ExtensionMethods\ExceptionExtensions.cs" />
     <Compile Include="ExtensionMethods\ObjectExtensions.cs" />
     <Compile Include="ExtensionMethods\ServiceProviderExtensions.cs" />
     <Compile Include="ExtensionMethods\TypeExtensions.cs" />
