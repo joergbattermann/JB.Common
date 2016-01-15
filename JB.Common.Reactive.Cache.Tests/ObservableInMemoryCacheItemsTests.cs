@@ -44,28 +44,7 @@ namespace JB.Reactive.Cache.Tests
                 containsNonAddedKey.Should().BeFalse();
             }
         }
-
-        [Fact]
-        public async Task ContainsAllShouldReturnCorrespondingly()
-        {
-            // given
-            using (var cache = new ObservableInMemoryCache<int, string>())
-            {
-                await cache.Add(1, "One");
-                await cache.Add(2, "Two");
-
-                // when
-                var containsAllAddedKey = await cache.ContainsWhich(new[] { 1, 2 }).ToTask();
-                var doesNotContainOneOftheAddedKeysAndOneUnAddedOne = await cache.ContainsAll(new[] { 2, 3 });
-                var resultForEmptyContainsAllKeys = await cache.ContainsAll(new List<int>());
-
-                // then
-                containsAllAddedKey.Should().BeTrue();
-                doesNotContainOneOftheAddedKeysAndOneUnAddedOne.Should().BeFalse();
-                resultForEmptyContainsAllKeys.Should().BeTrue();
-            }
-        }
-
+        
         [Fact]
         public async Task ContainsAllShouldReturnCorrespondingly()
         {
