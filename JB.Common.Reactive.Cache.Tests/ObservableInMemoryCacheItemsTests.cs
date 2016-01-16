@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Reactive.Linq;
 using System.Threading.Tasks;
 using FluentAssertions;
+using System.Reactive.Linq;
 using Xunit;
 using ObservableExtensions = JB.Reactive.Linq.ObservableExtensions;
 
@@ -53,11 +53,13 @@ namespace JB.Reactive.Cache.Tests
                 await cache.Add(2, "Two");
 
                 // when
-                var resultForNonEmptyList = await ObservableExtensions.GetAwaiter(cache.ContainsWhich(new List<int>() { 1, 3, 4 }));
-                var resultForEmptyList = await ObservableExtensions.GetAwaiter(cache.ContainsWhich(new List<int>()));
+                var resultForNonEmptyList = await cache.ContainsWhich(new List<int>() { 1, 2, 3, 4 }).ToList();
+                var resultForEmptyList = await cache.ContainsWhich(new List<int>()).ToList();
 
                 // then
+                resultForNonEmptyList.Should().HaveCount(2);
                 resultForNonEmptyList.Should().Contain(1);
+                resultForNonEmptyList.Should().Contain(2);
                 resultForEmptyList.Should().BeEmpty();
             }
         }
