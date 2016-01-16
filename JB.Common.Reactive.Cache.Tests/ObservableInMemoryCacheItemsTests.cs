@@ -1,12 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Reactive.Linq;
-using System.Reactive.Subjects;
-using System.Reactive.Threading.Tasks;
-using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Xunit;
+using ObservableExtensions = JB.Reactive.Linq.ObservableExtensions;
 
 namespace JB.Reactive.Cache.Tests
 {
@@ -44,7 +42,26 @@ namespace JB.Reactive.Cache.Tests
                 containsNonAddedKey.Should().BeFalse();
             }
         }
-        
+
+        [Fact]
+        public async Task ContainsWhichShouldReturnCorrespondingly()
+        {
+            // given
+            using (var cache = new ObservableInMemoryCache<int, string>())
+            {
+                await cache.Add(1, "One");
+                await cache.Add(2, "Two");
+
+                // when
+                var resultForNonEmptyList = await ObservableExtensions.GetAwaiter(cache.ContainsWhich(new List<int>() { 1, 3, 4 }));
+                var resultForEmptyList = await ObservableExtensions.GetAwaiter(cache.ContainsWhich(new List<int>()));
+
+                // then
+                resultForNonEmptyList.Should().Contain(1);
+                resultForEmptyList.Should().BeEmpty();
+            }
+        }
+
         [Fact]
         public async Task ContainsAllShouldReturnCorrespondingly()
         {

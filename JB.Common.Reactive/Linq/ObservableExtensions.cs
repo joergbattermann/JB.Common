@@ -12,6 +12,11 @@ using System.Linq;
 using System.Reactive;
 using System.Reactive.Concurrency;
 using System.Reactive.Linq;
+using System.Reactive.Subjects;
+using System.Reactive.Threading.Tasks;
+using System.Threading;
+using System.Threading.Tasks;
+using JB.Reactive.Subjects;
 
 namespace JB.Reactive.Linq
 {
@@ -20,6 +25,105 @@ namespace JB.Reactive.Linq
     /// </summary>
     public static class ObservableExtensions
     {
+        /// <summary>
+        /// Returns a task that will receive and buffer all future values of the <see cref="source"/> observable sequence until completion
+        /// or the exception produced by the <see cref="source"/>.
+        /// </summary>
+        /// <typeparam name="TResult">The type of the elements in the source sequence.</typeparam>
+        /// <param name="source">Observable sequence to convert to a task.</param>
+        /// <param name="cancellationToken">Cancellation token that can be used to cancel the task, causing unsubscription from the observable sequence.</param>
+        /// <returns>
+        /// A task that will receive all future elements or the exception produced by the observable <see cref="source"/> sequence.
+        /// </returns>
+        /// <exception cref="T:System.ArgumentNullException"><paramref name="source"/> is null.</exception>
+        public static Task<IList<TResult>> ToBufferingTask<TResult>(this IObservable<TResult> source, CancellationToken cancellationToken = default(CancellationToken))
+        {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+
+            return TaskObservableExtensions.ToTask<TResult>(source, cancellationToken, (object)null);
+        }
+
+        /// <summary>
+        /// Gets an awaiter that returns all buffered, future values of the observable <paramref name="source"/> sequence.
+        /// This operation subscribes to the observable sequence, making it hot.
+        /// </summary>
+        /// <typeparam name="TSource">The type of the elements in the source sequence.</typeparam>
+        /// <param name="source">Source sequence to await.</param>
+        /// <returns>
+        /// Object that can be awaited.
+        /// </returns>
+        /// <exception cref="T:System.ArgumentNullException"><paramref name="source"/> is null.</exception>
+        public static AsyncBufferingSubject<TSource> GetAwaiter<TSource>(this IObservable<TSource> source)
+        {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            
+            return source.GetAwaiter(CancellationToken.None);
+        }
+
+        /// <summary>
+        /// Gets an awaiter that returns all buffered, future values of the observable <paramref name="source" /> sequence.
+        /// This operation subscribes to the observable sequence, making it hot.
+        /// </summary>
+        /// <typeparam name="TSource">The type of the elements in the source sequence.</typeparam>
+        /// <param name="source">Source sequence to await.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>
+        /// Object that can be awaited.
+        /// </returns>
+        /// <exception cref="T:System.ArgumentNullException"><paramref name="source" /> is null.</exception>
+        public static AsyncBufferingSubject<TSource> GetAwaiter<TSource>(this IObservable<TSource> source, CancellationToken cancellationToken)
+        {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+
+            return source.GetBufferingAwaiter(cancellationToken);
+        }
+
+        /// <summary>
+        /// Gets an awaiter that returns all buffered, future values of the observable <paramref name="source" /> sequence.
+        /// This operation subscribes to the observable sequence, making it hot.
+        /// </summary>
+        /// <typeparam name="TSource">The type of the elements in the source sequence.</typeparam>
+        /// <param name="source">Source sequence to await.</param>
+        /// <param name="cancellationToken">The cancellation token.</param>
+        /// <returns>
+        /// Object that can be awaited.
+        /// </returns>
+        /// <exception cref="T:System.ArgumentNullException"><paramref name="source" /> is null.</exception>
+        public static AsyncBufferingSubject<TSource> GetBufferingAwaiter<TSource>(this IObservable<TSource> source, CancellationToken cancellationToken = default(CancellationToken))
+        {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+
+            return source.RunAsyncAndBuffer(cancellationToken);
+        }
+
+        /// <summary>
+        /// Gets an awaiter that returns all buffered, future values of the observable <paramref name="source"/> sequence.
+        /// This operation subscribes to the observable sequence, making it hot.
+        /// The supplied <paramref name="cancellationToken"/> can be used to cancel the subscription.
+        /// </summary>
+        /// <typeparam name="TSource">The type of the elements in the source sequence.</typeparam>
+        /// <param name="source">Source sequence to await.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns>
+        /// Object that can be awaited.
+        /// </returns>
+        /// <exception cref="T:System.ArgumentNullException"><paramref name="source"/> is null.</exception>
+        public static AsyncBufferingSubject<TSource> RunAsyncAndBuffer<TSource>(this IObservable<TSource> source, CancellationToken cancellationToken = default(CancellationToken))
+        {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+
+            AsyncBufferingSubject<TSource> asyncBufferingSubject = new AsyncBufferingSubject<TSource>();
+            if (cancellationToken.IsCancellationRequested)
+                return asyncBufferingSubject.Cancel();
+
+            IDisposable subscription = source.SubscribeSafe(asyncBufferingSubject);
+
+            if (cancellationToken.CanBeCanceled)
+                asyncBufferingSubject.RegisterCancellation(subscription, cancellationToken);
+
+            return asyncBufferingSubject;
+        }
+        
         /// <summary>
         /// Takes a source observable and splits its sequence forwarding into two target observers based on a given <paramref name="predicate"/> condition.
         /// </summary>
