@@ -9,6 +9,7 @@
 using System;
 using System.Collections.Generic;
 using System.Reactive;
+using System.Reactive.Concurrency;
 using JB.Collections.Reactive;
 
 namespace JB.Reactive.Cache
@@ -71,10 +72,12 @@ namespace JB.Reactive.Cache
         /// Determines whether this instance contains the specified <paramref name="keys"/>.
         /// </summary>
         /// <param name="keys">The keys to check.</param>
+        /// <param name="maxConcurrent">Maximum number of concurrent <see cref="Contains"/> checks.</param>
+        /// <param name="scheduler">Scheduler to run the concurrent <see cref="Contains"/> checks on.</param>
         /// <returns>
         /// An observable stream that returns [true] if all <paramref name="keys"/> are contained in this instance, [false] if not.
         /// </returns>
-        IObservable<bool> ContainsAll(ICollection<TKey> keys);
+        IObservable<bool> ContainsAll(ICollection<TKey> keys, int maxConcurrent = 1, IScheduler scheduler = null);
 
         /// <summary>
         /// Determines whether which ones of the specified <paramref name="keys"/> are contained in this instance.
@@ -116,10 +119,12 @@ namespace JB.Reactive.Cache
         /// Gets the values for the specified <paramref name="keys"/>.
         /// </summary>
         /// <param name="keys">The keys to retrieve the values for.</param>
+        /// <param name="maxConcurrent">Maximum number of concurrent retrievals.</param>
+        /// <param name="scheduler">Scheduler to run the concurrent retrievals on.</param>
         /// <returns>
         /// An observable stream that returns the values for the provided <paramref name="keys"/>.
         /// </returns>
-        IObservable<TValue> Get(IEnumerable<TKey> keys);
+        IObservable<TValue> Get(IEnumerable<TKey> keys, int maxConcurrent = 1, IScheduler scheduler = null);
 
         /// <summary>
         /// Removes the specified <paramref name="key"/> from this instance.

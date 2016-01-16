@@ -4,14 +4,13 @@ using System.Threading.Tasks;
 using FluentAssertions;
 using System.Reactive.Linq;
 using Xunit;
-using ObservableExtensions = JB.Reactive.Linq.ObservableExtensions;
 
 namespace JB.Reactive.Cache.Tests
 {
     public class ObservableInMemoryCacheItemsTests
     {
         [Fact]
-        public async Task ShouldAllowAddingOfNewItems()
+        public async Task ShouldAddNewItem()
         {
             // given
             using (var cache = new ObservableInMemoryCache<int, string>())
@@ -26,7 +25,24 @@ namespace JB.Reactive.Cache.Tests
         }
 
         [Fact]
-        public async Task ShouldContainAddedItem()
+        public async Task ShouldRemoveExistingItem()
+        {
+            // given
+            using (var cache = new ObservableInMemoryCache<int, string>())
+            {
+                await cache.Add(1, "One");
+                await cache.Add(2, "Two");
+
+                // when
+                await cache.Remove(2);
+
+                // then
+                cache.Count.Should().Be(1);
+            }
+        }
+
+        [Fact]
+        public async Task ShouldContainExistingItem()
         {
             // given
             using (var cache = new ObservableInMemoryCache<int, string>())
@@ -43,6 +59,22 @@ namespace JB.Reactive.Cache.Tests
             }
         }
 
+        [Fact]
+        public async Task ShouldGetExistingItem()
+        {
+            // given
+            using (var cache = new ObservableInMemoryCache<int, string>())
+            {
+                await cache.Add(1, "One");
+
+                // when
+                var reRetrievedValue = await cache.Get(1);
+
+                // then
+                reRetrievedValue.Should().Be("One");
+            }
+        }
+        
         [Fact]
         public async Task ContainsWhichShouldReturnCorrespondingly()
         {
@@ -86,7 +118,7 @@ namespace JB.Reactive.Cache.Tests
         }
 
         [Fact]
-        public async Task ShouldAllowClearingOfCache()
+        public async Task ShouldClearCache()
         {
             // given
             using (var cache = new ObservableInMemoryCache<int, string>())
@@ -104,7 +136,7 @@ namespace JB.Reactive.Cache.Tests
         }
 
         [Fact]
-        public async Task ShouldNotAllowAddingOfMultipleItemsWithSameKey()
+        public async Task ShouldThrowOnAddingOfItemWithExistingKey()
         {
             // given
             using (var cache = new ObservableInMemoryCache<int, string>())
@@ -116,10 +148,47 @@ namespace JB.Reactive.Cache.Tests
                 {
                     await cache.Add(1, "One");
                 };
-
-
+                
                 // then
                 action.ShouldThrow<ArgumentException>().WithMessage("The key already existed in the dictionary.");
+            }
+        }
+
+        [Fact]
+        public async Task ShouldThrowOnRemovalOfNonExistingKey()
+        {
+            // given
+            using (var cache = new ObservableInMemoryCache<int, string>())
+            {
+                await cache.Add(1, "One");
+
+                // when
+                Func<Task> action = async () =>
+                {
+                    await cache.Remove(2);
+                };
+
+                // then
+                action.ShouldThrow<KeyNotFoundException>();
+            }
+        }
+
+        [Fact]
+        public async Task ShouldThrowOnGetOfNonExistingKey()
+        {
+            // given
+            using (var cache = new ObservableInMemoryCache<int, string>())
+            {
+                await cache.Add(1, "One");
+
+                // when
+                Func<Task> action = async () =>
+                {
+                    await cache.Get(2);
+                };
+
+                // then
+                action.ShouldThrow<KeyNotFoundException>();
             }
         }
     }

@@ -30,7 +30,7 @@ namespace JB.Reactive.Cache.ExtensionMethods
                     return ObservableCacheChange<TKey, TValue>.ItemAdded(
                         observableDictionaryChange.Key,
                         observableDictionaryChange.Value.Value,
-                        observableDictionaryChange.Value.ExpiresAt(),
+                        observableDictionaryChange.Value.ExpiresWhen(),
                         observableDictionaryChange.Value.ExpirationType);
                 // item changed is not supported
                 //case ObservableDictionaryChangeType.ItemChanged:
@@ -38,20 +38,20 @@ namespace JB.Reactive.Cache.ExtensionMethods
                 //        observableDictionaryChange.Key,
                 //        observableDictionaryChange.Value.Value,
                 //        observableDictionaryChange.ChangedPropertyName,
-                //        observableDictionaryChange.Value.ExpiresAt(),
+                //        observableDictionaryChange.Value.ExpiresWhen(),
                 //        observableDictionaryChange.Value.ExpirationType);
                 case ObservableDictionaryChangeType.ItemReplaced:
                     return ObservableCacheChange<TKey, TValue>.ItemReplaced(
                         observableDictionaryChange.Key,
                         observableDictionaryChange.Value.Value,
                         observableDictionaryChange.OldValue.Value,
-                        observableDictionaryChange.Value.ExpiresAt(),
+                        observableDictionaryChange.Value.ExpiresWhen(),
                         observableDictionaryChange.Value.ExpirationType);
                 case ObservableDictionaryChangeType.ItemRemoved:
                     return ObservableCacheChange<TKey, TValue>.ItemRemoved(
                         observableDictionaryChange.Key,
                         observableDictionaryChange.Value.Value,
-                        observableDictionaryChange.Value.ExpiresAt(),
+                        observableDictionaryChange.Value.ExpiresWhen(),
                         observableDictionaryChange.Value.ExpirationType);
                 default:
                     throw new InvalidOperationException($"The {nameof(ObservableDictionaryChangeType)}.{observableDictionaryChange.ChangeType} is not supported.");

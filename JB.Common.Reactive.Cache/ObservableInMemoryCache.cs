@@ -55,6 +55,14 @@ namespace JB.Reactive.Cache
         protected ObservableDictionary<TKey, ObservableCachedElement<TKey, TValue>> InnerDictionary { get; private set; }
 
         /// <summary>
+        /// Gets the default expiry.
+        /// </summary>
+        /// <value>
+        /// The default expiry.
+        /// </value>
+        protected TimeSpan DefaultExpiry { get; } = TimeSpan.FromMilliseconds(Int32.MaxValue);
+
+        /// <summary>
         /// Gets the scheduler.
         /// </summary>
         /// <value>
@@ -141,17 +149,30 @@ namespace JB.Reactive.Cache
         }
 
         /// <summary>
-        /// Adds <see cref="OnCachedElementValuePropertyChanged"/> as event handler for <paramref name="cachedElement"/>'s <see cref="ObservableCachedElement{TKey,TValue}.ValuePropertyChanged"/> event.
+        /// Adds <see cref="OnCachedElementValuePropertyChanged"/> as event handlers for <paramref name="cachedElement"/>'s
+        /// <see cref="ObservableCachedElement{TKey,TValue}.ValuePropertyChanged"/> as well as
+        /// <see cref="ObservableCachedElement{TKey,TValue}.Expired"/> event.
         /// </summary>
         /// <param name="cachedElement">The value.</param>
-        private void AddToForwardedPropertyChangedHandling(ObservableCachedElement<TKey, TValue> cachedElement)
+        private void AddToObservableCachedElementEventHandling(ObservableCachedElement<TKey, TValue> cachedElement)
         {
             CheckForAndThrowIfDisposed();
 
             if (cachedElement != null)
             {
                 cachedElement.ValuePropertyChanged += OnCachedElementValuePropertyChanged;
+                cachedElement.Expired += OnCachedElementExpired;
             }
+        }
+
+        /// <summary>
+        /// Called when a cached element has expired.
+        /// </summary>
+        /// <param name="sender">The sender.</param>
+        /// <param name="eventArgs">The <see cref="EventArgs"/> instance containing the event data.</param>
+        private void OnCachedElementExpired(object sender, EventArgs eventArgs)
+        {
+            throw new NotImplementedException();
         }
 
         /// <summary>
@@ -174,7 +195,7 @@ namespace JB.Reactive.Cache
                     senderAsObservableCachedElement.Key,
                     senderAsObservableCachedElement.Value,
                     forwardedEventArgs.OriginalEventArgs.PropertyName,
-                    senderAsObservableCachedElement.ExpiresAt(),
+                    senderAsObservableCachedElement.ExpiresWhen(),
                     senderAsObservableCachedElement.ExpirationType));
             }
             catch (Exception exception)
@@ -191,16 +212,18 @@ namespace JB.Reactive.Cache
         }
 
         /// <summary>
-        /// Removes <see cref="OnCachedElementValuePropertyChanged"/> as event handler for <paramref name="cachedElement"/>'s <see cref="ObservableCachedElement{TKey,TValue}.ValuePropertyChanged"/> event.
+        /// Removes <see cref="OnCachedElementValuePropertyChanged"/> as event handlers for <paramref name="cachedElement"/>'s
+        /// <see cref="ObservableCachedElement{TKey,TValue}.ValuePropertyChanged"/> and <see cref="ObservableCachedElement{TKey,TValue}.Expired"/> event.
         /// </summary>
         /// <param name="cachedElement">The value.</param>
-        private void RemoveFromForwardedPropertyChangedHandling(ObservableCachedElement<TKey, TValue> cachedElement)
+        private void RemoveFromObservableCachedElementEventHandling(ObservableCachedElement<TKey, TValue> cachedElement)
         {
             CheckForAndThrowIfDisposed();
 
             if (cachedElement != null)
             {
                 cachedElement.ValuePropertyChanged -= OnCachedElementValuePropertyChanged;
+                cachedElement.Expired -= OnCachedElementExpired;
             }
         }
 
@@ -517,11 +540,11 @@ namespace JB.Reactive.Cache
             {
                 try
                 {
-                    var observableCachedElement = new ObservableCachedElement<TKey, TValue>(key, value, expiry ?? TimeSpan.FromMilliseconds(Int32.MaxValue), expirationType);
+                    var observableCachedElement = new ObservableCachedElement<TKey, TValue>(key, value, expiry ?? DefaultExpiry, expirationType);
 
                     InnerDictionary.Add(key, observableCachedElement);
                     
-                    AddToForwardedPropertyChangedHandling(observableCachedElement);
+                    AddToObservableCachedElementEventHandling(observableCachedElement);
 
                     observer.OnNext(Unit.Default);
                     observer.OnCompleted();
@@ -571,7 +594,7 @@ namespace JB.Reactive.Cache
                     {
                         foreach (var value in valuesBeforeClearing)
                         {
-                            RemoveFromForwardedPropertyChangedHandling(value);
+                            RemoveFromObservableCachedElementEventHandling(value);
                         }
                     }
                     observer.OnNext(Unit.Default);
@@ -619,16 +642,21 @@ namespace JB.Reactive.Cache
         /// Determines whether this instance contains the specified <paramref name="keys"/>.
         /// </summary>
         /// <param name="keys">The keys to check.</param>
+        /// <param name="maxConcurrent">Maximum number of concurrent <see cref="Contains"/> checks.</param>
+        /// <param name="scheduler">Scheduler to run the concurrent <see cref="Contains"/> checks on.</param>
         /// <returns>
         /// An observable stream that returns [true] if all <paramref name="keys"/> are contained in this instance, [false] if not.
         /// </returns>
-        public IObservable<bool> ContainsAll(ICollection<TKey> keys)
+        public IObservable<bool> ContainsAll(ICollection<TKey> keys, int maxConcurrent = 1, IScheduler scheduler = null)
         {
             if (keys == null) throw new ArgumentNullException(nameof(keys));
+            if (maxConcurrent <= 0) throw new ArgumentOutOfRangeException(nameof(maxConcurrent), "Must be 1 or higher");
 
             CheckForAndThrowIfDisposed();
 
-            return keys.Select(Contains).Merge().All(result => result);
+            return scheduler != null
+                ? keys.Select(Contains).Merge(maxConcurrent, scheduler).All(result => result)
+                : keys.Select(Contains).Merge(maxConcurrent).All(result => result);
         }
 
         /// <summary>
@@ -672,7 +700,27 @@ namespace JB.Reactive.Cache
         /// </returns>
         public IObservable<DateTime> ExpiresWhen(TKey key)
         {
-            throw new NotImplementedException();
+            if (key == null) throw new ArgumentNullException(nameof(key));
+
+            CheckForAndThrowIfDisposed();
+
+            return Observable.Create<DateTime>(observer =>
+            {
+                try
+                {
+                    var value = InnerDictionary[key];
+
+                    observer.OnNext(value.ExpiresWhen());
+
+                    observer.OnCompleted();
+                }
+                catch (Exception exception)
+                {
+                    observer.OnError(exception);
+                }
+
+                return Disposable.Empty;
+            });
         }
 
         /// <summary>
@@ -684,7 +732,27 @@ namespace JB.Reactive.Cache
         /// </returns>
         public IObservable<TimeSpan> ExpiresIn(TKey key)
         {
-            throw new NotImplementedException();
+            if (key == null) throw new ArgumentNullException(nameof(key));
+
+            CheckForAndThrowIfDisposed();
+
+            return Observable.Create<TimeSpan>(observer =>
+            {
+                try
+                {
+                    var value = InnerDictionary[key];
+
+                    observer.OnNext(value.ExpiresIn());
+
+                    observer.OnCompleted();
+                }
+                catch (Exception exception)
+                {
+                    observer.OnError(exception);
+                }
+
+                return Disposable.Empty;
+            });
         }
 
         /// <summary>
@@ -696,19 +764,45 @@ namespace JB.Reactive.Cache
         /// </returns>
         public IObservable<TValue> Get(TKey key)
         {
-            throw new NotImplementedException();
+            if (key == null) throw new ArgumentNullException(nameof(key));
+
+            CheckForAndThrowIfDisposed();
+
+            return Observable.Create<TValue>(observer =>
+            {
+                try
+                {
+                    observer.OnNext(InnerDictionary[key].Value);
+                    observer.OnCompleted();
+                }
+                catch (Exception exception)
+                {
+                    observer.OnError(exception);
+                }
+
+                return Disposable.Empty;
+            });
         }
 
         /// <summary>
         /// Gets the values for the specified <paramref name="keys"/>.
         /// </summary>
         /// <param name="keys">The keys to retrieve the values for.</param>
+        /// <param name="maxConcurrent">Maximum number of concurrent retrievals.</param>
+        /// <param name="scheduler">Scheduler to run the concurrent retrievals on.</param>
         /// <returns>
         /// An observable stream that returns the values for the provided <paramref name="keys"/>.
         /// </returns>
-        public IObservable<TValue> Get(IEnumerable<TKey> keys)
+        public IObservable<TValue> Get(IEnumerable<TKey> keys, int maxConcurrent = 1, IScheduler scheduler = null)
         {
-            throw new NotImplementedException();
+            if (keys == null) throw new ArgumentNullException(nameof(keys));
+            if (maxConcurrent <= 0) throw new ArgumentOutOfRangeException(nameof(maxConcurrent), "Must be 1 or higher");
+
+            CheckForAndThrowIfDisposed();
+
+            return scheduler != null
+                ? keys.Select(Get).Merge(maxConcurrent, scheduler)
+                : keys.Select(Get).Merge(maxConcurrent);
         }
 
         /// <summary>
@@ -720,7 +814,30 @@ namespace JB.Reactive.Cache
         /// </returns>
         public IObservable<Unit> Remove(TKey key)
         {
-            throw new NotImplementedException();
+            if (key == null) throw new ArgumentNullException(nameof(key));
+
+            CheckForAndThrowIfDisposed();
+
+            return Observable.Create<Unit>(observer =>
+            {
+                try
+                {
+                    ObservableCachedElement<TKey, TValue> observableCachedElement;
+                    if(InnerDictionary.TryRemove(key, out observableCachedElement) == false)
+                        throw new KeyNotFoundException();
+
+                    RemoveFromObservableCachedElementEventHandling(observableCachedElement);
+
+                    observer.OnNext(Unit.Default);
+                    observer.OnCompleted();
+                }
+                catch (Exception exception)
+                {
+                    observer.OnError(exception);
+                }
+
+                return Disposable.Empty;
+            });
         }
 
         /// <summary>

@@ -20,6 +20,7 @@ namespace JB.Reactive.Cache
         private DateTime _expiryDateTime;
 
         private long _hasExpired = 0;
+        private readonly object _expiryModificationLocker = new object();
 
         /// <summary>
         /// Gets or sets a value indicating whether this instance has expired.
@@ -122,16 +123,23 @@ namespace JB.Reactive.Cache
         /// <param name="expirationDateTime">The expiration date time.</param>
         protected void SetupAndStartExpirationTimer(DateTime expirationDateTime)
         {
+            if(expirationDateTime < DateTime.Now)
+                throw new ArgumentOutOfRangeException(nameof(expirationDateTime), "Must be now or in the future");
+
             CheckForAndThrowIfDisposed();
             
-            Timer = new System.Timers.Timer
+            lock (_expiryModificationLocker)
             {
-                AutoReset = false,
-                Interval = GetTimerIntervalMillisecondsForExpiry(CalculateExpirationTimespan(expirationDateTime))
-            };
+                ExpiryDateTime = expirationDateTime;
+                Timer = new System.Timers.Timer
+                {
+                    AutoReset = false,
+                    Interval = GetTimerIntervalMillisecondsForExpiry(CalculateExpirationTimespan(expirationDateTime))
+                };
 
-            Timer.Elapsed += OnExpirationTimerElapsed;
-            Timer.Start();
+                Timer.Elapsed += OnExpirationTimerElapsed;
+                Timer.Start();
+            }
         }
 
         /// <summary>
@@ -193,10 +201,21 @@ namespace JB.Reactive.Cache
         {
             CheckForAndThrowIfDisposed();
 
-            Timer.Stop();
+            if(HasExpired)
+                throw new InvalidOperationException("This instance has already expired.");
 
-            Timer.Interval = GetTimerIntervalMillisecondsForExpiry(CalculateExpirationTimespan(expirationDateTime));
-            Timer.Start();
+            lock (_expiryModificationLocker)
+            {
+                if (Timer.Enabled)
+                {
+                    Timer.Stop();
+                }
+
+                ExpiryDateTime = expirationDateTime;
+                
+                Timer.Interval = GetTimerIntervalMillisecondsForExpiry(CalculateExpirationTimespan(expirationDateTime));
+                Timer.Start();
+            }
         }
 
         /// <summary>
@@ -285,7 +304,9 @@ namespace JB.Reactive.Cache
         public ObservableCachedElement(TKey key, TValue value, TimeSpan expiry, ObservableCacheExpirationType expirationType)
         {
             if (key == null) throw new ArgumentNullException(nameof(key));
-            if(expiry > TimeSpan.FromMilliseconds(Int32.MaxValue))
+            if (expiry < TimeSpan.Zero)
+                throw new ArgumentOutOfRangeException(nameof(expiry), $"{nameof(expiry)} cannot be negative");
+            if (expiry > TimeSpan.FromMilliseconds(Int32.MaxValue))
                 throw new ArgumentOutOfRangeException(nameof(expiry), $"{nameof(expiry)} cannot be greater than {typeof(Int32).Name}.{nameof(Int32.MaxValue)}");
 
             Key = key;
@@ -294,9 +315,7 @@ namespace JB.Reactive.Cache
             AddValueToPropertyChangedHandling(Value);
 
             ExpirationType = expirationType;
-            ExpiryDateTime = CalculateExpiryDateTime(expiry);
-
-            SetupAndStartExpirationTimer(ExpiryDateTime);
+            SetupAndStartExpirationTimer(CalculateExpiryDateTime(expiry));
         }
 
         /// <summary>
@@ -314,7 +333,7 @@ namespace JB.Reactive.Cache
         /// Calculates the <see cref="DateTime"/> this instance will expire in or already has expired.
         /// </summary>
         /// <returns>The <see cref="TimeSpan"/> this instance has or will expire in.</returns>
-        public virtual DateTime ExpiresAt()
+        public virtual DateTime ExpiresWhen()
         {
             CheckForAndThrowIfDisposed();
 
@@ -374,10 +393,18 @@ namespace JB.Reactive.Cache
         /// <param name="expirationType">Type of the expiration.</param>
         public virtual void UpdateExpiration(TimeSpan expiry, ObservableCacheExpirationType expirationType)
         {
+            if (expiry < TimeSpan.Zero)
+                throw new ArgumentOutOfRangeException(nameof(expiry), $"{nameof(expiry)} cannot be negative");
+            if (expiry > TimeSpan.FromMilliseconds(Int32.MaxValue))
+                throw new ArgumentOutOfRangeException(nameof(expiry), $"{nameof(expiry)} cannot be greater than {typeof(Int32).Name}.{nameof(Int32.MaxValue)}");
+
             CheckForAndThrowIfDisposed();
 
-            ExpiryDateTime = CalculateExpiryDateTime(expiry);
-            SetupAndStartExpirationTimer(ExpiryDateTime);
+            if (HasExpired)
+                throw new InvalidOperationException("This instance has already expired.");
+
+
+            UpdateAndRestartExpirationTimer(CalculateExpiryDateTime(expiry));
         }
 
         /// <summary>
@@ -387,7 +414,9 @@ namespace JB.Reactive.Cache
         /// <returns></returns>
         protected DateTime CalculateExpiryDateTime(TimeSpan expiry)
         {
-            if(expiry > TimeSpan.FromMilliseconds(Int32.MaxValue))
+            if (expiry < TimeSpan.Zero)
+                throw new ArgumentOutOfRangeException(nameof(expiry), $"{nameof(expiry)} cannot be negative");
+            if (expiry > TimeSpan.FromMilliseconds(Int32.MaxValue))
                 throw new ArgumentOutOfRangeException(nameof(expiry), $"{nameof(expiry)} cannot be greater than {typeof(Int32).Name}.{nameof(Int32.MaxValue)}");
 
             var now = DateTime.Now;
