@@ -19,5 +19,13 @@ namespace JB.Collections.Reactive
         /// <c>true</c> if this instance is suppressing observable collection changed notifications; otherwise, <c>false</c>.
         /// </value>
         bool IsTrackingChanges { get; }
+
+        /// <summary>
+        /// Gets or sets the threshold of the minimum amount of changes to switch individual notifications to a reset one.
+        /// </summary>
+        /// <value>
+        /// The minimum items changed to be considered as a reset.
+        /// </value>
+        int ThresholdAmountWhenChangesAreNotifiedAsReset { get; set; }
     }
 }

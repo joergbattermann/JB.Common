@@ -27,12 +27,19 @@ namespace JB.Reactive.Cache
 
         /// <summary>
         ///     The item for a key has expired.
+        ///     Depending on the <see cref="ObservableCacheExpirationType"/> for the affected element,
+        ///     this may be followed by either an <see cref="ItemRemoved"/> or <see cref="ItemReplaced"/>.
         /// </summary>
         ItemExpired,
 
         /// <summary>
         ///     The item for a key has been removed.
         /// </summary>
-        ItemRemoved
+        ItemRemoved,
+
+        /// <summary>
+        /// Indicates a major change and observers should, if required, reset any existing knowledge and state about the affected cache.
+        /// </summary>
+        Reset
     }
 }

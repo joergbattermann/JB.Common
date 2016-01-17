@@ -4,6 +4,10 @@ using System.ComponentModel;
 
 namespace JB.Collections
 {
+    /// <summary>
+    /// A slightly enhanced <see cref="IBindingList"/>.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
     public interface IEnhancedBindingList<T> :
         IBindingList,
         ICollection<T>,

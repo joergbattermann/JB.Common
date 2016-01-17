@@ -2,7 +2,7 @@ using System;
 
 namespace JB.Collections.Reactive
 {
-    public interface INotifyObservableListChanged<T> : INotifyObservableChanges
+    public interface INotifyObservableListChanges<T> : INotifyObservableChanges
     {
         /// <summary>
         /// Gets the list changes as an observable stream.
@@ -15,6 +15,7 @@ namespace JB.Collections.Reactive
         /// <summary>
         /// Occurs when the corresponding <see cref="IObservableList{T}"/> changed.
         /// </summary>
+        [Obsolete("This shall be removed pre 1.0")]
         event EventHandler<ObservableListChangedEventArgs<T>> ObservableListChanged;
     }
 }

@@ -1,7 +1,6 @@
 using System;
-using JB.Reactive;
 
-namespace JB.Collections.Reactive
+namespace JB.Reactive
 {
     public interface INotifyUnhandledObserverExceptions
     {

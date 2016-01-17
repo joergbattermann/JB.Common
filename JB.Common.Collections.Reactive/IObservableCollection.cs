@@ -7,11 +7,10 @@ namespace JB.Collections.Reactive
 {
 	public interface IObservableCollection<T> :
         IObservableReadOnlyCollection<T>,
-        INotifyObservableCollectionChanged<T>,
+        INotifyObservableCollectionChanges<T>,
         IBulkModifiableCollection<T>,
         IReadOnlyCollection<T>,
         ICollection<T>,
-        ICollection,
         IEnumerable<T>,
         IEnumerable,
         INotifyCollectionChanged,

@@ -26,7 +26,7 @@ namespace JB.Collections.Reactive
     /// <typeparam name="TKey">The type of the keys in the dictionary.</typeparam>
     /// <typeparam name="TValue">The type of the values in the dictionary.</typeparam>
     [DebuggerDisplay("Count={Count}")]
-    public class ObservableDictionary<TKey, TValue> : IObservableDictionary<TKey, TValue>, IDisposable
+    public class ObservableDictionary<TKey, TValue> : IObservableDictionary<TKey, TValue>, ICollection, IDisposable
     {
         private const string ItemIndexerName = "Item[]"; // taken from ObservableCollection.cs Line #421
 
@@ -36,7 +36,7 @@ namespace JB.Collections.Reactive
         private Subject<int> _countChangesSubject = new Subject<int>();
         private Subject<ObserverException> _unhandledObserverExceptionsSubject = new Subject<ObserverException>();
         private Subject<IObservableDictionaryChange<TKey, TValue>> _dictionaryChangesSubject = new Subject<IObservableDictionaryChange<TKey, TValue>>();
-        
+
         /// <summary>
         /// Gets the count changes observer.
         /// </summary>
@@ -114,8 +114,8 @@ namespace JB.Collections.Reactive
                     ? new ConcurrentDictionary<TKey, TValue>(collection, KeyComparer)
                     : new ConcurrentDictionary<TKey, TValue>(KeyComparer);
 
-            ThresholdAmountWhenItemChangesAreNotifiedAsReset = 100;
-            
+            ThresholdAmountWhenChangesAreNotifiedAsReset = 100;
+
             IsTrackingChanges = true;
             IsTrackingItemChanges = true;
             IsTrackingCountChanges = true;
@@ -131,7 +131,7 @@ namespace JB.Collections.Reactive
         }
 
         #region Implementation of ObservableDictionary<TKey, TValue>
-        
+
         /// <summary>
         /// Adds a key/value pair if the key does not already exist, or performs an update by replacing the existing, old value with the new one.
         /// </summary>
@@ -178,7 +178,7 @@ namespace JB.Collections.Reactive
             else
             {
                 NotifyObserversAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.ItemReplaced(key, value, oldValueIfReplaced));
-                
+
             }
         }
 
@@ -296,12 +296,12 @@ namespace JB.Collections.Reactive
 
             var itemsAsList = items.ToList();
             var itemsThatCouldBeAdded = new List<KeyValuePair<TKey, TValue>>();
-            
+
             if (itemsAsList.Count == 0)
                 return true;
 
             // check whether change(s) shall be notified as individual changes OR as one final reset at the end
-            var useResetInsteadOfIndividualChanges = IsItemsChangedAmountGreaterThanResetThreshold(itemsAsList.Count, ThresholdAmountWhenItemChangesAreNotifiedAsReset);
+            var useResetInsteadOfIndividualChanges = IsItemsChangedAmountGreaterThanResetThreshold(itemsAsList.Count, ThresholdAmountWhenChangesAreNotifiedAsReset);
             var signalIndividualItemChanges = !useResetInsteadOfIndividualChanges;
 
             // then perform change itself
@@ -324,7 +324,7 @@ namespace JB.Collections.Reactive
 
             // finally and if originally determined (and currently wanted), signal a reset
             // finally and if still correct, signal a reset OR individual change(s)
-            useResetInsteadOfIndividualChanges = IsItemsChangedAmountGreaterThanResetThreshold(itemsThatCouldBeAdded.Count, ThresholdAmountWhenItemChangesAreNotifiedAsReset);
+            useResetInsteadOfIndividualChanges = IsItemsChangedAmountGreaterThanResetThreshold(itemsThatCouldBeAdded.Count, ThresholdAmountWhenChangesAreNotifiedAsReset);
             if (useResetInsteadOfIndividualChanges)
             {
                 NotifyObserversAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.Reset());
@@ -354,7 +354,7 @@ namespace JB.Collections.Reactive
             if (key == null) throw new ArgumentNullException(nameof(key));
 
             CheckForAndThrowIfDisposed();
-            
+
             return TryRemove(key, out value, IsTrackingChanges);
         }
 
@@ -415,7 +415,7 @@ namespace JB.Collections.Reactive
                 return true;
 
             // check whether change(s) shall be notified as individual changes OR as one final reset at the end
-            var useResetInsteadOfIndividualChanges = IsItemsChangedAmountGreaterThanResetThreshold(keyValuePairs.Count, ThresholdAmountWhenItemChangesAreNotifiedAsReset);
+            var useResetInsteadOfIndividualChanges = IsItemsChangedAmountGreaterThanResetThreshold(keyValuePairs.Count, ThresholdAmountWhenChangesAreNotifiedAsReset);
             var signalIndividualItemChanges = !useResetInsteadOfIndividualChanges;
 
             // then perform removal itself
@@ -448,7 +448,7 @@ namespace JB.Collections.Reactive
                 return false;
 
             // finally and if still correct, signal a reset OR individual change(s)
-            useResetInsteadOfIndividualChanges = IsItemsChangedAmountGreaterThanResetThreshold(keyValuePairsThatCouldBeRemoved.Count, ThresholdAmountWhenItemChangesAreNotifiedAsReset);
+            useResetInsteadOfIndividualChanges = IsItemsChangedAmountGreaterThanResetThreshold(keyValuePairsThatCouldBeRemoved.Count, ThresholdAmountWhenChangesAreNotifiedAsReset);
             if (useResetInsteadOfIndividualChanges)
             {
                 NotifyObserversAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.Reset());
@@ -490,7 +490,7 @@ namespace JB.Collections.Reactive
                 return true;
 
             // check whether change(s) shall be notified as individual changes OR as one final reset at the end
-            var useResetInsteadOfIndividualChanges = IsItemsChangedAmountGreaterThanResetThreshold(keysAsList.Count, ThresholdAmountWhenItemChangesAreNotifiedAsReset);
+            var useResetInsteadOfIndividualChanges = IsItemsChangedAmountGreaterThanResetThreshold(keysAsList.Count, ThresholdAmountWhenChangesAreNotifiedAsReset);
             var signalIndividualItemChanges = !useResetInsteadOfIndividualChanges;
 
             // then perform removal itself
@@ -513,7 +513,7 @@ namespace JB.Collections.Reactive
                 return false;
 
             // finally and if still correct, signal a reset OR individual change(s)
-            useResetInsteadOfIndividualChanges = IsItemsChangedAmountGreaterThanResetThreshold(keysThatCouldBeRemoved.Count, ThresholdAmountWhenItemChangesAreNotifiedAsReset);
+            useResetInsteadOfIndividualChanges = IsItemsChangedAmountGreaterThanResetThreshold(keysThatCouldBeRemoved.Count, ThresholdAmountWhenChangesAreNotifiedAsReset);
             if (useResetInsteadOfIndividualChanges)
             {
                 NotifyObserversAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.Reset());
@@ -655,7 +655,7 @@ namespace JB.Collections.Reactive
                 else
                 {
                     // otherwise check whether the amount of notifications would be greater than the individual messages threshold
-                    if(IsItemsChangedAmountGreaterThanResetThreshold(observableDictionaryChanges.Count, ThresholdAmountWhenItemChangesAreNotifiedAsReset))
+                    if (IsItemsChangedAmountGreaterThanResetThreshold(observableDictionaryChanges.Count, ThresholdAmountWhenChangesAreNotifiedAsReset))
                     {
                         NotifyObserversAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.Reset());
                     }
@@ -681,18 +681,18 @@ namespace JB.Collections.Reactive
             CheckForAndThrowIfDisposed();
 
             return from keyValuePair in this
-                    where AreTheSameValue(keyValuePair.Value, value)
-                    select keyValuePair.Key;
+                   where AreTheSameValue(keyValuePair.Value, value)
+                   select keyValuePair.Key;
         }
 
         /// <summary>
-        /// Adds up <see cref="OnValuePropertyChanged"/> as event handler for <paramref name="value"/>'s <see cref="INotifyPropertyChanged.PropertyChanged"/> event.
+        /// Adds <see cref="OnValuePropertyChanged"/> as event handler for <paramref name="value"/>'s <see cref="INotifyPropertyChanged.PropertyChanged"/> event.
         /// </summary>
         /// <param name="value">The value.</param>
         private void AddValueToPropertyChangedHandling(TValue value)
         {
             CheckForAndThrowIfDisposed();
-            
+
             var valueAsINotifyPropertyChanged = (value as INotifyPropertyChanged);
 
             if (valueAsINotifyPropertyChanged != null)
@@ -708,7 +708,7 @@ namespace JB.Collections.Reactive
         private void RemoveValueFromPropertyChangedHandling(TValue value)
         {
             CheckForAndThrowIfDisposed();
-            
+
             var valueAsINotifyPropertyChanged = (value as INotifyPropertyChanged);
 
             if (valueAsINotifyPropertyChanged != null)
@@ -729,10 +729,10 @@ namespace JB.Collections.Reactive
             CheckForAndThrowIfDisposed();
 
             // go ahead and check whether a Reset or item add, -change, -move or -remove shall be signaled
-            // .. based on the ThresholdAmountWhenItemChangesAreNotifiedAsReset value
+            // .. based on the ThresholdAmountWhenChangesAreNotifiedAsReset value
             var actualObservableDictionaryChange =
                 (observableDictionaryChange.ChangeType == ObservableDictionaryChangeType.Reset
-                 || IsItemsChangedAmountGreaterThanResetThreshold(1, ThresholdAmountWhenItemChangesAreNotifiedAsReset))
+                 || IsItemsChangedAmountGreaterThanResetThreshold(1, ThresholdAmountWhenChangesAreNotifiedAsReset))
                     ? ObservableDictionaryChange<TKey, TValue>.Reset()
                     : observableDictionaryChange;
 
@@ -824,7 +824,7 @@ namespace JB.Collections.Reactive
                         throw;
                 }
             }
-            
+
             foreach (var observableCollectionChange in observableCollectionChanges)
             {
                 try
@@ -879,7 +879,7 @@ namespace JB.Collections.Reactive
             UnhandledObserverExceptionsObserver = _unhandledObserverExceptionsSubject.NotifyOn(Scheduler);
             DictionaryChangesObserver = _dictionaryChangesSubject.NotifyOn(Scheduler);
             CountChangesObserver = _countChangesSubject.NotifyOn(Scheduler);
-            
+
             //// 'Count' and 'Item[]' PropertyChanged events are used by WPF typically via / for ObservableCollections, see
             //// http://referencesource.microsoft.com/#System/compmod/system/collections/objectmodel/observablecollection.cs,421
             _countChangesCountPropertyChangedForwarder = CountChanges
@@ -918,8 +918,6 @@ namespace JB.Collections.Reactive
 
                     Interlocked.Exchange(ref _isDisposed, value ? 1 : 0);
                 }
-
-                RaisePropertyChanged();
             }
         }
 
@@ -935,7 +933,6 @@ namespace JB.Collections.Reactive
             protected set
             {
                 Interlocked.Exchange(ref _isDisposing, value ? 1 : 0);
-                RaisePropertyChanged();
             }
         }
 
@@ -1160,6 +1157,7 @@ namespace JB.Collections.Reactive
                 CheckForAndThrowIfDisposed();
 
                 return DictionaryChanges
+                    .TakeWhile(_ => !IsDisposing && !IsDisposed)
                     .Where(change => change.ChangeType == ObservableDictionaryChangeType.Reset)
                     .SkipContinuouslyWhile(_ => !IsTrackingResets)
                     .Select(_ => Unit.Default);
@@ -1210,7 +1208,7 @@ namespace JB.Collections.Reactive
 
         #endregion
 
-        #region Implementation of INotifyObservableCountChanged
+        #region Implementation of INotifyObservableCountChanges
 
         private readonly object _isTrackingCountChangesLocker = new object();
         private long _isTrackingCountChanges = 0;
@@ -1354,13 +1352,12 @@ namespace JB.Collections.Reactive
         private volatile int _thresholdAmountWhenItemChangesAreNotifiedAsReset;
 
         /// <summary>
-        /// Gets the minimum amount of items that have been changed to be notified / considered a
-        /// <see cref="ObservableCollectionChangeType.Reset" /> rather than individual <see cref="ObservableCollectionChangeType" /> notifications.
+        /// Gets or sets the threshold of the minimum amount of changes to switch individual notifications to a reset one.
         /// </summary>
         /// <value>
-        /// The minimum items changed to be considered reset.
+        /// The minimum items changed to be considered as a reset.
         /// </value>
-        public int ThresholdAmountWhenItemChangesAreNotifiedAsReset
+        public int ThresholdAmountWhenChangesAreNotifiedAsReset
         {
             get
             {
@@ -1386,7 +1383,7 @@ namespace JB.Collections.Reactive
 
         #endregion
 
-        #region Implementation of INotifyObservableDictionaryChanged<TKey,TValue>
+        #region Implementation of INotifyObservableDictionaryChanges<TKey,TValue>
 
         /// <summary>
         /// Gets the dictionary changes as an observable stream.
@@ -1417,6 +1414,7 @@ namespace JB.Collections.Reactive
         /// <summary>
         /// Occurs when the corresponding <see cref="IObservableCollection{T}" /> changed.
         /// </summary>
+        [Obsolete("This shall be removed pre 1.0")]
         public event EventHandler<ObservableDictionaryChangedEventArgs<TKey, TValue>> DictionaryChanged
         {
             add
@@ -1444,7 +1442,7 @@ namespace JB.Collections.Reactive
 
             if (IsDisposed || IsDisposing)
                 return;
-            
+
             // only raise event if it's currently allowed
             if (!IsTrackingChanges
                 || (observableDictionaryChangedEventArgs.ChangeType == ObservableDictionaryChangeType.ItemChanged && !IsTrackingItemChanges)
@@ -1526,7 +1524,7 @@ namespace JB.Collections.Reactive
         #endregion
 
         #region Implementation of ICollection
-        
+
         /// <summary>
         /// Copies the elements of the <see cref="T:System.Collections.ICollection"/> to an <see cref="T:System.Array"/>, starting at a particular <see cref="T:System.Array"/> index.
         /// </summary>
@@ -1535,7 +1533,7 @@ namespace JB.Collections.Reactive
         {
             CheckForAndThrowIfDisposed();
 
-            ((ICollection) InnerDictionary).CopyTo(array, index);
+            ((ICollection)InnerDictionary).CopyTo(array, index);
         }
 
         /// <summary>
@@ -1550,7 +1548,7 @@ namespace JB.Collections.Reactive
             {
                 CheckForAndThrowIfDisposed();
 
-                return ((ICollection) InnerDictionary).SyncRoot;
+                return ((ICollection)InnerDictionary).SyncRoot;
             }
         }
 
@@ -1566,7 +1564,23 @@ namespace JB.Collections.Reactive
             {
                 CheckForAndThrowIfDisposed();
 
-                return ((ICollection) InnerDictionary).IsSynchronized;
+                return ((ICollection)InnerDictionary).IsSynchronized;
+            }
+        }
+
+        /// <summary>
+        /// Gets the number of elements in the collection.
+        /// </summary>
+        /// <returns>
+        /// The number of elements in the collection. 
+        /// </returns>
+        int ICollection.Count
+        {
+            get
+            {
+                CheckForAndThrowIfDisposed();
+
+                return Count;
             }
         }
 
@@ -1619,173 +1633,6 @@ namespace JB.Collections.Reactive
                 CheckForAndThrowIfDisposed();
 
                 return InnerDictionary.Count;
-            }
-        }
-
-        #endregion
-
-        #region Implementation of IDictionary
-
-        /// <summary>
-        /// Determines whether the <see cref="T:System.Collections.IDictionary"/> object contains an element with the specified key.
-        /// </summary>
-        /// <returns>
-        /// true if the <see cref="T:System.Collections.IDictionary"/> contains an element with the key; otherwise, false.
-        /// </returns>
-        /// <param name="key">The key to locate in the <see cref="T:System.Collections.IDictionary"/> object.</param><exception cref="T:System.ArgumentNullException"><paramref name="key"/> is null. </exception>
-        bool IDictionary.Contains(object key)
-        {
-            if (key == null) throw new ArgumentNullException(nameof(key));
-
-            CheckForAndThrowIfDisposed();
-
-            return ((IDictionary) InnerDictionary).Contains(key);
-        }
-
-        /// <summary>
-        /// Adds an element with the provided key and value to the <see cref="T:System.Collections.IDictionary"/> object.
-        /// </summary>
-        /// <param name="key">The <see cref="T:System.Object"/> to use as the key of the element to add. </param><param name="value">The <see cref="T:System.Object"/> to use as the value of the element to add. </param><exception cref="T:System.ArgumentNullException"><paramref name="key"/> is null. </exception><exception cref="T:System.ArgumentException">An element with the same key already exists in the <see cref="T:System.Collections.IDictionary"/> object. </exception><exception cref="T:System.NotSupportedException">The <see cref="T:System.Collections.IDictionary"/> is read-only.-or- The <see cref="T:System.Collections.IDictionary"/> has a fixed size. </exception>
-        void IDictionary.Add(object key, object value)
-        {
-            if (key == null) throw new ArgumentNullException(nameof(key));
-
-            CheckForAndThrowIfDisposed();
-
-            if (!(key is TKey))
-                throw new ArgumentOutOfRangeException(nameof(key), $"Must be an instance of {typeof(TKey).Name}");
-
-            Add((TKey)key, (TValue)value);
-        }
-
-        /// <summary>
-        /// Gets a value indicating whether the <see cref="T:System.Collections.IDictionary"/> object has a fixed size.
-        /// </summary>
-        /// <returns>
-        /// true if the <see cref="T:System.Collections.IDictionary"/> object has a fixed size; otherwise, false.
-        /// </returns>
-        bool IDictionary.IsFixedSize
-        {
-            get
-            {
-                CheckForAndThrowIfDisposed();
-
-                return ((IDictionary) InnerDictionary).IsFixedSize;
-            }
-        }
-
-        /// <summary>
-        /// Gets a value indicating whether the <see cref="T:System.Collections.IDictionary"/> object is read-only.
-        /// </summary>
-        /// 
-        /// <returns>
-        /// true if the <see cref="T:System.Collections.IDictionary"/> object is read-only; otherwise, false.
-        /// </returns>
-        bool IDictionary.IsReadOnly
-        {
-            get
-            {
-                CheckForAndThrowIfDisposed();
-
-                return ((IDictionary)InnerDictionary).IsReadOnly;
-            }
-        }
-
-        /// <summary>
-        /// Gets an <see cref="T:System.Collections.ICollection"/> object containing the values in the <see cref="T:System.Collections.IDictionary"/> object.
-        /// </summary>
-        /// <returns>
-        /// An <see cref="T:System.Collections.ICollection"/> object containing the values in the <see cref="T:System.Collections.IDictionary"/> object.
-        /// </returns>
-        ICollection IDictionary.Values
-        {
-            get
-            {
-                CheckForAndThrowIfDisposed();
-                
-                return ((IDictionary)InnerDictionary).Values;
-            }
-        }
-
-
-        /// <summary>
-        /// Gets an <see cref="T:System.Collections.ICollection"/> object containing the keys of the <see cref="T:System.Collections.IDictionary"/> object.
-        /// </summary>
-        /// <returns>
-        /// An <see cref="T:System.Collections.ICollection"/> object containing the keys of the <see cref="T:System.Collections.IDictionary"/> object.
-        /// </returns>
-        ICollection IDictionary.Keys
-        {
-            get
-            {
-                CheckForAndThrowIfDisposed();
-
-                return ((IDictionary)InnerDictionary).Keys;
-            }
-        }
-
-        /// <summary>
-        /// Returns an <see cref="T:System.Collections.IDictionaryEnumerator"/> object for the <see cref="T:System.Collections.IDictionary"/> object.
-        /// </summary>
-        /// <returns>
-        /// An <see cref="T:System.Collections.IDictionaryEnumerator"/> object for the <see cref="T:System.Collections.IDictionary"/> object.
-        /// </returns>
-        IDictionaryEnumerator IDictionary.GetEnumerator()
-        {
-            CheckForAndThrowIfDisposed();
-
-            return ((IDictionary)InnerDictionary).GetEnumerator();
-        }
-
-        /// <summary>
-        /// Removes the element with the specified key from the <see cref="T:System.Collections.IDictionary"/> object.
-        /// </summary>
-        /// <param name="key">The key of the element to remove. </param><exception cref="T:System.ArgumentNullException"><paramref name="key"/> is null. </exception><exception cref="T:System.NotSupportedException">The <see cref="T:System.Collections.IDictionary"/> object is read-only.-or- The <see cref="T:System.Collections.IDictionary"/> has a fixed size. </exception>
-        void IDictionary.Remove(object key)
-        {
-            if (key == null) throw new ArgumentNullException(nameof(key));
-
-            CheckForAndThrowIfDisposed();
-
-            if (!(key is TKey))
-                return;
-
-            Remove((TKey)key);
-        }
-
-        /// <summary>
-        /// Gets or sets the element with the specified key.
-        /// </summary>
-        /// <returns>
-        /// The element with the specified key, or null if the key does not exist.
-        /// </returns>
-        /// <param name="key">The key of the element to get or set. </param><exception cref="T:System.ArgumentNullException"><paramref name="key"/> is null. </exception><exception cref="T:System.NotSupportedException">The property is set and the <see cref="T:System.Collections.IDictionary"/> object is read-only.-or- The property is set, <paramref name="key"/> does not exist in the collection, and the <see cref="T:System.Collections.IDictionary"/> has a fixed size. </exception>
-        object IDictionary.this[object key]
-        {
-            get
-            {
-                if (key == null) throw new ArgumentNullException(nameof(key));
-
-                CheckForAndThrowIfDisposed();
-
-                if ((key is TKey))
-                    return this[(TKey) key];
-
-                return null;
-            }
-            set
-            {
-                if (key == null) throw new ArgumentNullException(nameof(key));
-
-                CheckForAndThrowIfDisposed();
-
-                if (!(key is TKey))
-                    throw new ArgumentOutOfRangeException(nameof(key), $"Must be an instance of {typeof(TKey).Name}");
-
-                if (!(value is TValue))
-                    throw new ArgumentOutOfRangeException(nameof(value), $"Must be an instance of {typeof(TValue).Name}");
-
-                this[(TKey)key] = (TValue)value;
             }
         }
 
@@ -1937,12 +1784,23 @@ namespace JB.Collections.Reactive
         {
             CheckForAndThrowIfDisposed();
 
-            var hadItemsBeforeClearing = InnerDictionary.Count > 0;
+            var hasHadItemsBeforeClearing = InnerDictionary.Count > 0;
+            var valuesBeforeClearing = InnerDictionary.Values;
 
             InnerDictionary.Clear();
 
-            if(hadItemsBeforeClearing)
+            if (valuesBeforeClearing.Count > 0)
+            {
+                foreach (var value in valuesBeforeClearing)
+                {
+                    RemoveValueFromPropertyChangedHandling(value);
+                }
+            }
+
+            if (hasHadItemsBeforeClearing)
+            {
                 NotifyObserversAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.Reset());
+            }
         }
 
         /// <summary>
@@ -1985,7 +1843,7 @@ namespace JB.Collections.Reactive
                 AddOrUpdate(key, value);
             }
         }
-        
+
         /// <summary>
         /// Gets an enumerable collection that contains the keys in the read-only dictionary. 
         /// </summary>
@@ -2001,7 +1859,7 @@ namespace JB.Collections.Reactive
                 return InnerDictionary.Keys;
             }
         }
-        
+
         /// <summary>
         /// Gets an enumerable collection that contains the values in the read-only dictionary.
         /// </summary>
@@ -2018,9 +1876,26 @@ namespace JB.Collections.Reactive
             }
         }
 
-#endregion
+        /// <summary>
+        /// Gets the number of elements in the collection.
+        /// </summary>
+        /// 
+        /// <returns>
+        /// The number of elements in the collection.
+        /// </returns>
+        int IReadOnlyCollection<KeyValuePair<TKey, TValue>>.Count
+        {
+            get
+            {
+                CheckForAndThrowIfDisposed();
 
-#region Implementation of INotifyObservableDictionaryItemChanged<out TKey,out TValue>
+                return Count;
+            }
+        }
+
+        #endregion
+
+        #region Implementation of INotifyObservableDictionaryItemChanges<out TKey,out TValue>
 
         /// <summary>
         /// Gets the observable streams of item changes, however these will only have their
@@ -2037,16 +1912,14 @@ namespace JB.Collections.Reactive
 
                 return DictionaryChanges
                     .TakeWhile(_ => !IsDisposing && !IsDisposed)
-                    .SkipContinuouslyWhile(change => !IsTrackingChanges)
-                    .Where(change =>
-                        change.ChangeType == ObservableDictionaryChangeType.ItemChanged
-                        || change.ChangeType == ObservableDictionaryChangeType.ItemReplaced);
+                    .Where(change => change.ChangeType == ObservableDictionaryChangeType.ItemChanged || change.ChangeType == ObservableDictionaryChangeType.ItemReplaced)
+                    .SkipContinuouslyWhile(change => !IsTrackingItemChanges);
             }
         }
 
         #endregion
 
-        #region Implementation of INotifyObservableCollectionItemChanged<out KeyValuePair<TKey,TValue>>
+        #region Implementation of INotifyObservableCollectionItemChanges<out KeyValuePair<TKey,TValue>>
 
         /// <summary>
         /// Gets the observable streams of collection item changes.
@@ -2054,7 +1927,7 @@ namespace JB.Collections.Reactive
         /// <value>
         /// The item changes.
         /// </value>
-        IObservable<IObservableCollectionChange<KeyValuePair<TKey, TValue>>> INotifyObservableCollectionItemChanged<KeyValuePair<TKey, TValue>>.CollectionItemChanges
+        IObservable<IObservableCollectionChange<KeyValuePair<TKey, TValue>>> INotifyObservableCollectionItemChanges<KeyValuePair<TKey, TValue>>.CollectionItemChanges
         {
             get
             {
@@ -2071,7 +1944,7 @@ namespace JB.Collections.Reactive
 
         #endregion
 
-        #region Implementation of INotifyObservableCollectionChanged<KeyValuePair<TKey,TValue>>
+        #region Implementation of INotifyObservableCollectionChanges<KeyValuePair<TKey,TValue>>
 
         /// <summary>
         /// Gets the collection changes as an observable stream.
@@ -2079,7 +1952,7 @@ namespace JB.Collections.Reactive
         /// <value>
         /// The collection changes.
         /// </value>
-        IObservable<IObservableCollectionChange<KeyValuePair<TKey, TValue>>> INotifyObservableCollectionChanged<KeyValuePair<TKey, TValue>>.CollectionChanges
+        IObservable<IObservableCollectionChange<KeyValuePair<TKey, TValue>>> INotifyObservableCollectionChanges<KeyValuePair<TKey, TValue>>.CollectionChanges
         {
             get
             {
@@ -2096,14 +1969,15 @@ namespace JB.Collections.Reactive
         }
 
         /// <summary>
-        ///     The actual <see cref="INotifyObservableCollectionChanged{T}.CollectionChanged" /> event.
+        ///     The actual <see cref="INotifyObservableCollectionChanges{T}.CollectionChanged" /> event.
         /// </summary>
         private EventHandler<ObservableCollectionChangedEventArgs<KeyValuePair<TKey, TValue>>> _observableCollectionChanged;
 
         /// <summary>
         ///     Occurs when the corresponding <see cref="IObservableCollection{T}" /> changed.
         /// </summary>
-        event EventHandler<ObservableCollectionChangedEventArgs<KeyValuePair<TKey, TValue>>> INotifyObservableCollectionChanged<KeyValuePair<TKey,TValue>>.CollectionChanged
+        [Obsolete("This will/shall be removed again, soon")]
+        event EventHandler<ObservableCollectionChangedEventArgs<KeyValuePair<TKey, TValue>>> INotifyObservableCollectionChanges<KeyValuePair<TKey, TValue>>.CollectionChanged
         {
             add
             {
@@ -2148,9 +2022,9 @@ namespace JB.Collections.Reactive
             }
         }
 
-#endregion
+        #endregion
 
-#region Implementation of IObservableReadOnlyDictionary<TKey,TValue>
+        #region Implementation of IObservableReadOnlyDictionary<TKey,TValue>
 
         /// <summary>
         /// Gets a value indicating whether this instance is empty.
@@ -2189,6 +2063,22 @@ namespace JB.Collections.Reactive
         }
 
         /// <summary>
+        /// Gets the number of elements in the collection.
+        /// </summary>
+        /// <returns>
+        /// The number of elements in the collection. 
+        /// </returns>
+        int ICollection<KeyValuePair<TKey, TValue>>.Count
+        {
+            get
+            {
+                CheckForAndThrowIfDisposed();
+
+                return Count;
+            }
+        }
+
+        /// <summary>
         /// Adds an item to the <see cref="T:System.Collections.Generic.ICollection`1"/>.
         /// </summary>
         /// <param name="item">The object to add to the <see cref="T:System.Collections.Generic.ICollection`1"/>.</param><exception cref="T:System.NotSupportedException">The <see cref="T:System.Collections.Generic.ICollection`1"/> is read-only.</exception>
@@ -2210,7 +2100,11 @@ namespace JB.Collections.Reactive
         {
             CheckForAndThrowIfDisposed();
 
-            return ((ICollection<KeyValuePair<TKey, TValue>>) InnerDictionary).Contains(item);
+            TValue value;
+            if (!this.TryGetValue(item.Key, out value))
+                return false;
+
+            return ValueComparer.Equals(value, item.Value);
         }
 
         /// <summary>
@@ -2246,9 +2140,9 @@ namespace JB.Collections.Reactive
             return wasRemoved;
         }
 
-#endregion
+        #endregion
 
-#region Implementation of IBulkModifiableDictionary<TKey,TValue>
+        #region Implementation of IBulkModifiableDictionary<TKey,TValue>
 
         /// <summary>
         /// Adds a range of items.

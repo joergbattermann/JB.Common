@@ -1,17 +1,17 @@
 using System.Collections;
 using System.Collections.Generic;
+using JB.Reactive;
 
 namespace JB.Collections.Reactive
 {
     public interface IObservableReadOnlyDictionary<TKey, TValue> :
         IObservableReadOnlyCollection<KeyValuePair<TKey, TValue>>,
-        INotifyObservableDictionaryChanged<TKey, TValue>,
-        INotifyObservableDictionaryItemChanged<TKey, TValue>,
+        INotifyObservableDictionaryChanges<TKey, TValue>,
+        INotifyObservableDictionaryItemChanges<TKey, TValue>,
         INotifyObservableResets,
         INotifyUnhandledObserverExceptions,
         IReadOnlyDictionary<TKey, TValue>,
-        IEnumerable,
-        ICollection
+        IEnumerable
     {
         /// <summary>
         /// Gets a value indicating whether this instance is empty.

@@ -7,6 +7,7 @@
 // -----------------------------------------------------------------------
 
 using System;
+using System.ComponentModel;
 
 namespace JB.Reactive.Cache
 {
@@ -21,13 +22,22 @@ namespace JB.Reactive.Cache
         ObservableCacheChangeType ChangeType { get; }
 
         /// <summary>
-        ///     Gets the expiration <see cref="DateTime" /> in UTC format.
+        ///     Gets the expiration <see cref="DateTime" />.
         ///     This may be in the past if the <see cref="Key" /> has already expired.
         /// </summary>
         /// <value>
-        ///     The expiration UTC.
+        ///     The expiration <see cref="DateTime"/>.
         /// </value>
-        DateTime ExpirationUtc { get; }
+        DateTime? ExpiresAt { get; }
+
+        /// <summary>
+        /// Gets the type of the expiration associated with the <see cref="Key" />
+        /// in the <see cref="IObservableCache{TKey,TValue}"/>.
+        /// </summary>
+        /// <value>
+        /// The type of the expiration.
+        /// </value>
+        ObservableCacheExpirationType? ExpirationType { get; }
 
         /// <summary>
         ///     Gets the key for the affected item.
@@ -52,5 +62,15 @@ namespace JB.Reactive.Cache
         ///     The value.
         /// </value>
         TValue Value { get; }
+
+        /// <summary>
+        /// If <see cref="IObservableCacheChange{TKey,TValue}.ChangeType"/> is a <see cref="ObservableCacheChangeType.ItemChanged"/> one and <typeparamref name="TValue"/>
+        /// implements <see cref="INotifyPropertyChanged"/> and the underlying item change originated from a <see cref="INotifyPropertyChanged.PropertyChanged"/>
+        /// event, this will be the forwarded <see cref="PropertyChangedEventArgs.PropertyName"/> value.
+        /// </summary>
+        /// <value>
+        /// The changed property name for <see cref="IObservableCacheChange{TKey,TValue}.Value"/>, if applicable.
+        /// </value>
+        string ChangedPropertyName { get; }
     }
 }

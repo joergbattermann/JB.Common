@@ -61,7 +61,7 @@ namespace JB.Collections.Reactive.Tests
             using (var observableCollection = new ObservableCollection<int>(initialList))
             {
                 // when
-                observableCollection.ThresholdAmountWhenItemChangesAreNotifiedAsReset = int.MaxValue;
+                observableCollection.ThresholdAmountWhenChangesAreNotifiedAsReset = int.MaxValue;
                 observableCollection.CountChanges.Subscribe(i =>
                 {
                     observableReportedCount = i;
@@ -102,7 +102,7 @@ namespace JB.Collections.Reactive.Tests
             using (var observableList = new ObservableCollection<int>(initialList))
             {
                 // when
-                observableList.ThresholdAmountWhenItemChangesAreNotifiedAsReset = int.MaxValue;
+                observableList.ThresholdAmountWhenChangesAreNotifiedAsReset = int.MaxValue;
                 observableList.CountChanges.Subscribe(i =>
                 {
                     observableReportedCount = i;
