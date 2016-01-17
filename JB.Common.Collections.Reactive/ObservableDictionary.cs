@@ -2100,7 +2100,11 @@ namespace JB.Collections.Reactive
         {
             CheckForAndThrowIfDisposed();
 
-            return ((ICollection<KeyValuePair<TKey, TValue>>)InnerDictionary).Contains(item);
+            TValue value;
+            if (!this.TryGetValue(item.Key, out value))
+                return false;
+
+            return ValueComparer.Equals(value, item.Value);
         }
 
         /// <summary>

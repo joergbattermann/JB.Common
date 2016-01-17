@@ -61,6 +61,7 @@
     </Compile>
     <Compile Include="ExtensionMethods\ObservableDictionaryChangeExtensions.cs" />
     <Compile Include="INotifyObservableCacheItemChanges.cs" />
+    <Compile Include="INotifyObservableCacheItemExpirations.cs" />
     <Compile Include="ObservableCacheExpirationType.cs" />
     <Compile Include="ExtensionMethods\ObservableCacheExtensions.cs" />
     <Compile Include="INotifyObservableCacheChanges.cs" />

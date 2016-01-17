@@ -17,6 +17,7 @@ namespace JB.Reactive.Cache
     public interface IObservableCache<TKey, TValue> :
         INotifyObservableCacheChanges<TKey, TValue>,
         INotifyObservableCacheItemChanges<TKey, TValue>,
+        INotifyObservableCacheItemExpirations<TKey, TValue>,
         INotifyObservableResets,
         INotifyUnhandledObserverExceptions
     {
@@ -95,7 +96,7 @@ namespace JB.Reactive.Cache
         /// <returns>
         /// An observable stream that returns the <see cref="DateTime"/> (UTC) the <paramref name="key"/> expires.
         /// </returns>
-        IObservable<DateTime> ExpiresWhen(TKey key);
+        IObservable<DateTime> ExpiresAt(TKey key);
 
         /// <summary>
         /// Determines the <see cref="TimeSpan"/> in which the <paramref name="key"/> expires.

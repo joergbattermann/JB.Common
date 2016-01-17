@@ -20,6 +20,7 @@ namespace JB.Reactive.Cache
         private DateTime _expiryDateTime;
 
         private long _hasExpired = 0;
+        private long _hasExpiryBeenUpdated = 0;
         private readonly object _expiryModificationLocker = new object();
 
         /// <summary>
@@ -37,6 +38,26 @@ namespace JB.Reactive.Cache
                     throw new InvalidOperationException($"Once {nameof(HasExpired)} has been set, it cannot be reset back to false.");
                 
                 Interlocked.Exchange(ref _hasExpired, value ? 1 : 0);
+                RaisePropertyChanged();
+            }
+        }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether this instance has expiry been updated at least once..
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if this instance has expiry been updated; otherwise, <c>false</c>.
+        /// </value>
+        public virtual bool HasExpiryBeenUpdated
+        {
+            get { return Interlocked.Read(ref _hasExpiryBeenUpdated) == 1; }
+            protected set
+            {
+                if (value == false && HasExpiryBeenUpdated)
+                    throw new InvalidOperationException($"Once {nameof(HasExpiryBeenUpdated)} has been set, it cannot be reset back to false.");
+
+                Interlocked.Exchange(ref _hasExpiryBeenUpdated, value ? 1 : 0);
+                RaisePropertyChanged();
             }
         }
 
@@ -265,6 +286,15 @@ namespace JB.Reactive.Cache
         }
 
         /// <summary>
+        /// Gets or sets the original expiry - this is either the one specified on creation of this instance or,
+        /// if updated, the one specified for the latest update.
+        /// </summary>
+        /// <value>
+        /// The original expiry.
+        /// </value>
+        public TimeSpan OriginalExpiry { get; protected set; }
+
+        /// <summary>
         /// Gets the expiry <see cref="DateTime"/>.
         /// </summary>
         /// <value>
@@ -315,6 +345,8 @@ namespace JB.Reactive.Cache
             AddValueToPropertyChangedHandling(Value);
 
             ExpirationType = expirationType;
+            OriginalExpiry = expiry;
+
             SetupAndStartExpirationTimer(CalculateExpiryDateTime(expiry));
         }
 
@@ -333,7 +365,7 @@ namespace JB.Reactive.Cache
         /// Calculates the <see cref="DateTime"/> this instance will expire in or already has expired.
         /// </summary>
         /// <returns>The <see cref="TimeSpan"/> this instance has or will expire in.</returns>
-        public virtual DateTime ExpiresWhen()
+        public virtual DateTime ExpiresAt()
         {
             CheckForAndThrowIfDisposed();
 
@@ -403,8 +435,9 @@ namespace JB.Reactive.Cache
             if (HasExpired)
                 throw new InvalidOperationException("This instance has already expired.");
 
-
             UpdateAndRestartExpirationTimer(CalculateExpiryDateTime(expiry));
+            HasExpiryBeenUpdated = true;
+            OriginalExpiry = expiry;
         }
 
         /// <summary>
