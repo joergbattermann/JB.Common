@@ -145,7 +145,7 @@ namespace JB.Reactive.Cache.Tests
                 await cache.Add(1, "One", TimeSpan.Zero, ObservableCacheExpirationType.Remove);
 
                 // when
-                await Task.Delay(TimeSpan.FromMilliseconds(100));
+                await Task.Delay(TimeSpan.FromMilliseconds(500));
 
                 // then
                 cache.Count.Should().Be(0);
@@ -162,7 +162,7 @@ namespace JB.Reactive.Cache.Tests
                 await cache.Add(1, "One", TimeSpan.Zero, ObservableCacheExpirationType.Update);
 
                 // when
-                await Task.Delay(TimeSpan.FromMilliseconds(100));
+                await Task.Delay(TimeSpan.FromMilliseconds(500));
                 var updatedValue = await cache.Get(1);
 
                 // then
@@ -176,13 +176,13 @@ namespace JB.Reactive.Cache.Tests
         {
             // given
             Func<int, string> singleKeyUpdater = (i) => i.ToString();
-            using (var cache = new ObservableInMemoryCache<int, string>(singleKeyUpdater: singleKeyUpdater, expiredElementsBufferInMilliseconds: 0))
+            using (var cache = new ObservableInMemoryCache<int, string>(singleKeyUpdater: singleKeyUpdater, expiredElementsBufferInMilliseconds: 10))
             {
                 await cache.Add(1, "One", TimeSpan.Zero, ObservableCacheExpirationType.Update);
-                await cache.Add(2, "Two", TimeSpan.FromMilliseconds(10), ObservableCacheExpirationType.Update);
+                await cache.Add(2, "Two", TimeSpan.Zero, ObservableCacheExpirationType.Update);
 
                 // when
-                await Task.Delay(TimeSpan.FromMilliseconds(100));
+                await Task.Delay(TimeSpan.FromMilliseconds(200));
                 var updatedValueOne = await cache.Get(1);
                 var updatedValueTwo = await cache.Get(2);
 
@@ -203,7 +203,7 @@ namespace JB.Reactive.Cache.Tests
                 await cache.Add(1, "One", TimeSpan.Zero, ObservableCacheExpirationType.Update);
 
                 // when
-                await Task.Delay(TimeSpan.FromMilliseconds(100));
+                await Task.Delay(TimeSpan.FromMilliseconds(500));
                 var updatedValue = await cache.Get(1);
 
                 // then
@@ -217,13 +217,13 @@ namespace JB.Reactive.Cache.Tests
         {
             // given
             Func<IEnumerable<int>, IEnumerable<KeyValuePair<int, string>>> multipleKeysUpdater = (ints) => { return ints.ToDictionary(i => i, i => i.ToString()); };
-            using (var cache = new ObservableInMemoryCache<int, string>(multipleKeysUpdater: multipleKeysUpdater, expiredElementsBufferInMilliseconds: 0))
+            using (var cache = new ObservableInMemoryCache<int, string>(multipleKeysUpdater: multipleKeysUpdater, expiredElementsBufferInMilliseconds: 10))
             {
                 await cache.Add(1, "One", TimeSpan.Zero, ObservableCacheExpirationType.Update);
-                await cache.Add(2, "Two", TimeSpan.FromMilliseconds(10), ObservableCacheExpirationType.Update);
+                await cache.Add(2, "Two", TimeSpan.Zero, ObservableCacheExpirationType.Update);
 
                 // when
-                await Task.Delay(TimeSpan.FromMilliseconds(100));
+                await Task.Delay(TimeSpan.FromMilliseconds(200));
                 var updatedValueOne = await cache.Get(1);
                 var updatedValueTwo = await cache.Get(2);
 
@@ -244,7 +244,7 @@ namespace JB.Reactive.Cache.Tests
                 await cache.Add(2, "Two", TimeSpan.FromDays(10), ObservableCacheExpirationType.Remove);
 
                 // when
-                await Task.Delay(TimeSpan.FromMilliseconds(100));
+                await Task.Delay(TimeSpan.FromMilliseconds(200));
 
                 // then
                 cache.Count.Should().Be(1);
@@ -261,7 +261,7 @@ namespace JB.Reactive.Cache.Tests
                 await cache.Add(2, "Two", TimeSpan.FromMilliseconds(2), ObservableCacheExpirationType.Remove);
 
                 // when
-                await Task.Delay(TimeSpan.FromMilliseconds(100));
+                await Task.Delay(TimeSpan.FromMilliseconds(200));
 
                 // then
                 cache.Count.Should().Be(0);
