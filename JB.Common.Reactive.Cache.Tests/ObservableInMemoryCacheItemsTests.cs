@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using FluentAssertions;
 using System.Reactive.Linq;
@@ -129,6 +130,138 @@ namespace JB.Reactive.Cache.Tests
 
                 // when
                 await cache.Clear();
+
+                // then
+                cache.Count.Should().Be(0);
+            }
+        }
+
+        [Fact]
+        public async Task ShouldExpireAndRemoveSingleElementForRemovalExpiryType()
+        {
+            // given
+            using (var cache = new ObservableInMemoryCache<int, string>(expiredElementsBufferInMilliseconds:0))
+            {
+                await cache.Add(1, "One", TimeSpan.Zero, ObservableCacheExpirationType.Remove);
+
+                // when
+                await Task.Delay(TimeSpan.FromMilliseconds(100));
+
+                // then
+                cache.Count.Should().Be(0);
+            }
+        }
+
+        [Fact]
+        public async Task ShouldExpireAndUpdateSingleElementWithSingleKeyUpdaterFuncForUpdateExpiryType()
+        {
+            // given
+            Func<int, string> singleKeyUpdater = (i) => i.ToString();
+            using (var cache = new ObservableInMemoryCache<int, string>(singleKeyUpdater: singleKeyUpdater, expiredElementsBufferInMilliseconds: 0))
+            {
+                await cache.Add(1, "One", TimeSpan.Zero, ObservableCacheExpirationType.Update);
+
+                // when
+                await Task.Delay(TimeSpan.FromMilliseconds(100));
+                var updatedValue = await cache.Get(1);
+
+                // then
+                cache.Count.Should().Be(1);
+                updatedValue.Should().Be("1");
+            }
+        }
+
+        [Fact]
+        public async Task ShouldExpireAndUpdateMultipleElementsWithSingleKeyUpdaterFuncForUpdateExpiryType()
+        {
+            // given
+            Func<int, string> singleKeyUpdater = (i) => i.ToString();
+            using (var cache = new ObservableInMemoryCache<int, string>(singleKeyUpdater: singleKeyUpdater, expiredElementsBufferInMilliseconds: 0))
+            {
+                await cache.Add(1, "One", TimeSpan.Zero, ObservableCacheExpirationType.Update);
+                await cache.Add(2, "Two", TimeSpan.FromMilliseconds(10), ObservableCacheExpirationType.Update);
+
+                // when
+                await Task.Delay(TimeSpan.FromMilliseconds(100));
+                var updatedValueOne = await cache.Get(1);
+                var updatedValueTwo = await cache.Get(2);
+
+                // then
+                cache.Count.Should().Be(2);
+                updatedValueOne.Should().Be("1");
+                updatedValueTwo.Should().Be("2");
+            }
+        }
+
+        [Fact]
+        public async Task ShouldExpireAndUpdateSingleElementWithMultipleKeyUpdaterFuncForUpdateExpiryType()
+        {
+            // given
+            Func<IEnumerable<int>, IEnumerable<KeyValuePair<int, string>>> multipleKeysUpdater = (ints) => { return ints.ToDictionary(i => i, i => i.ToString()); };
+            using (var cache = new ObservableInMemoryCache<int, string>(multipleKeysUpdater: multipleKeysUpdater, expiredElementsBufferInMilliseconds: 0))
+            {
+                await cache.Add(1, "One", TimeSpan.Zero, ObservableCacheExpirationType.Update);
+
+                // when
+                await Task.Delay(TimeSpan.FromMilliseconds(100));
+                var updatedValue = await cache.Get(1);
+
+                // then
+                cache.Count.Should().Be(1);
+                updatedValue.Should().Be("1");
+            }
+        }
+
+        [Fact]
+        public async Task ShouldExpireAndUpdateMultipleElementsWithMultipleKeyUpdaterFuncForUpdateExpiryType()
+        {
+            // given
+            Func<IEnumerable<int>, IEnumerable<KeyValuePair<int, string>>> multipleKeysUpdater = (ints) => { return ints.ToDictionary(i => i, i => i.ToString()); };
+            using (var cache = new ObservableInMemoryCache<int, string>(multipleKeysUpdater: multipleKeysUpdater, expiredElementsBufferInMilliseconds: 0))
+            {
+                await cache.Add(1, "One", TimeSpan.Zero, ObservableCacheExpirationType.Update);
+                await cache.Add(2, "Two", TimeSpan.FromMilliseconds(10), ObservableCacheExpirationType.Update);
+
+                // when
+                await Task.Delay(TimeSpan.FromMilliseconds(100));
+                var updatedValueOne = await cache.Get(1);
+                var updatedValueTwo = await cache.Get(2);
+
+                // then
+                cache.Count.Should().Be(2);
+                updatedValueOne.Should().Be("1");
+                updatedValueTwo.Should().Be("2");
+            }
+        }
+
+        [Fact]
+        public async Task ShouldNotExpireElementWithCorrespondingExpiryTime()
+        {
+            // given
+            using (var cache = new ObservableInMemoryCache<int, string>(expiredElementsBufferInMilliseconds: 0))
+            {
+                await cache.Add(1, "One", TimeSpan.Zero, ObservableCacheExpirationType.Remove);
+                await cache.Add(2, "Two", TimeSpan.FromDays(10), ObservableCacheExpirationType.Remove);
+
+                // when
+                await Task.Delay(TimeSpan.FromMilliseconds(100));
+
+                // then
+                cache.Count.Should().Be(1);
+            }
+        }
+
+        [Fact]
+        public async Task ShouldExpireAndRemoveMultipleElementsWithDifferentExpiryTimesForRemovalExpiryType()
+        {
+            // given
+            using (var cache = new ObservableInMemoryCache<int, string>(expiredElementsBufferInMilliseconds: 0))
+            {
+                await cache.Add(1, "One", TimeSpan.Zero, ObservableCacheExpirationType.Remove);
+                await cache.Add(2, "Two", TimeSpan.FromMilliseconds(2), ObservableCacheExpirationType.Remove);
+
+                // when
+                await Task.Delay(TimeSpan.FromMilliseconds(100));
 
                 // then
                 cache.Count.Should().Be(0);

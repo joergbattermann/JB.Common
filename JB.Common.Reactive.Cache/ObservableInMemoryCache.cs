@@ -288,10 +288,18 @@ namespace JB.Reactive.Cache
                         }
 
                         cancellationToken.ThrowIfCancellationRequested();
-                        if (elementsForExpirationType.Count == 1 && SingleKeyUpdater != null)
+                        var elementsStillInCache = elementsForExpirationType
+                            .Where(keyValuePair => ((ICollection<KeyValuePair<TKey, ObservableCachedElement<TKey, TValue>>>)InnerDictionary).Contains(keyValuePair))
+                            .Select(keyValuePair => keyValuePair.Value)
+                            .ToList();
+
+                        if (elementsStillInCache.Count == 0)
+                                break;
+
+                        if (elementsStillInCache.Count == 1 && SingleKeyUpdater != null)
                         {
-                            var element = elementsForExpirationType.FirstOrDefault().Value;
-                            if (!InnerDictionary.ContainsKey(element.Key))
+                            var element = elementsStillInCache.FirstOrDefault();
+                            if (element == null || !InnerDictionary.ContainsKey(element.Key))
                                 break;
 
                             UpdateValueForCachedElementAndRemoveOldOneFromEventHandling(
@@ -300,16 +308,13 @@ namespace JB.Reactive.Cache
                         }
                         else
                         {
-                            var elementsStillInCache = elementsForExpirationType
-                                .Where(keyValuePair => ((ICollection<KeyValuePair<TKey, ObservableCachedElement<TKey, TValue>>>) InnerDictionary).Contains(keyValuePair))
-                                .Select(keyValuePair => keyValuePair.Value)
-                                .ToList();
-
-                                cancellationToken.ThrowIfCancellationRequested();
-
+                            cancellationToken.ThrowIfCancellationRequested();
+                                
                             if (MultipleKeysUpdater != null)
                             {
-                                throw new NotImplementedException("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Must be implemented !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+                                UpdateValuesForCachedElementsAndRemoveOldOnesFromEventHandling(
+                                    elementsStillInCache,
+                                    RetrieveUpdatedValuesForMultipleElements(elementsStillInCache, MultipleKeysUpdater));
                             }
                             else
                             {
@@ -331,8 +336,110 @@ namespace JB.Reactive.Cache
             }
         }
 
+        private void UpdateValuesForCachedElementsAndRemoveOldOnesFromEventHandling(
+            IList<ObservableCachedElement<TKey, TValue>> originalElements,
+            IList<ObservableCachedElement<TKey, TValue>> updatedElements)
+        {
+            if (originalElements == null) throw new ArgumentNullException(nameof(originalElements));
+            if (updatedElements == null) throw new ArgumentNullException(nameof(updatedElements));
+            
+
+            var updatedObservableCachedElements = updatedElements
+                .ToDictionary(kvp => kvp.Key, kvp => kvp, KeyComparer);
+
+            foreach (var originalElement in originalElements)
+            {
+                try
+                {
+                    if (!InnerDictionary.ContainsKey(originalElement.Key))
+                        continue;
+
+                    ObservableCachedElement<TKey, TValue> updatedElement;
+                    if (updatedObservableCachedElements.TryGetValue(originalElement.Key, out updatedElement))
+                    {
+                        InnerDictionary.TryUpdate(originalElement.Key, updatedElement);
+                    }
+                    else
+                    {
+                        InnerDictionary.TryRemove(originalElement.Key);
+                    }
+                }
+                catch (Exception exception)
+                {
+                    var observerException = new ObserverException($"An error occured trying to handle {nameof(ObservableCacheExpirationType.Update)} expiration for {originalElement.Key?.ToString() ?? "n.a."}.", exception);
+
+                    UnhandledObserverExceptionsObserver.OnNext(observerException);
+
+                    if (observerException.Handled == false)
+                        throw;
+                }
+                finally
+                {
+                    // make sure element is removed from cached event handling
+                    RemoveFromObservableCachedElementEventHandling(originalElement);
+                }
+            }
+        }
+
         /// <summary>
-        /// Retrieves the updated value for a single element and updates the inner dictionary with it.
+        /// Retrieves the updated value for multiple elements and updates the inner dictionary with it.
+        /// </summary>
+        /// <param name="existingObservableCachedElement">The existing observable cached element.</param>
+        /// <param name="multipleKeysUpdater">The single key updater.</param>
+        /// <returns></returns>
+        protected virtual IList<ObservableCachedElement<TKey, TValue>> RetrieveUpdatedValuesForMultipleElements(
+            IList<ObservableCachedElement<TKey, TValue>> existingObservableCachedElement,
+            Func<IEnumerable<TKey>, IEnumerable<KeyValuePair<TKey, TValue>>> multipleKeysUpdater)
+        {
+            if (multipleKeysUpdater == null) throw new ArgumentNullException(nameof(multipleKeysUpdater));
+            if (existingObservableCachedElement == null) throw new ArgumentNullException(nameof(existingObservableCachedElement));
+
+            var newObservableCachedElements = new List<ObservableCachedElement<TKey, TValue>>();
+
+            if (existingObservableCachedElement.Count == 0)
+                return newObservableCachedElements;
+
+            // else
+            var keysForElementsToUpdate = existingObservableCachedElement.Select(element => element.Key).ToList();
+            try
+            {
+                var originalValues = existingObservableCachedElement
+                    .ToDictionary(kvp => kvp.Key, kvp => kvp, KeyComparer);
+
+                var updatedValues = multipleKeysUpdater
+                    .Invoke(keysForElementsToUpdate)
+                    .ToDictionary(kvp => kvp.Key, kvp => kvp.Value, KeyComparer);
+
+                foreach (var keyToUpdate in keysForElementsToUpdate)
+                {
+                    var originalElementForKeyToUpdate = originalValues[keyToUpdate];
+
+                    TValue updatedValueForKeyToUpdate;
+                    if (updatedValues.TryGetValue(keyToUpdate, out updatedValueForKeyToUpdate))
+                    {
+                        newObservableCachedElements.Add(new ObservableCachedElement<TKey, TValue>(
+                            keyToUpdate,
+                            updatedValueForKeyToUpdate,
+                            originalElementForKeyToUpdate.OriginalExpiry,
+                            originalElementForKeyToUpdate.ExpirationType));
+                    }
+                }
+            }
+            catch (Exception exception)
+            {
+                var observerException = new ObserverException($"An error occured trying to retrieve updated value(s) for {keysForElementsToUpdate.Count} keys.", exception);
+
+                UnhandledObserverExceptionsObserver.OnNext(observerException);
+
+                if (observerException.Handled == false)
+                    throw;
+            }
+
+            return newObservableCachedElements;
+        }
+
+        /// <summary>
+        /// Retrieves the updated value for a single element.
         /// </summary>
         /// <param name="existingObservableCachedElement">The existing observable cached element.</param>
         /// <param name="singleKeyUpdater">The single key updater.</param>
@@ -372,12 +479,13 @@ namespace JB.Reactive.Cache
             {
                 if (!ValueComparer.Equals(newValue, default(TValue)) || ValueComparer.Equals(newValue, existingObservableCachedElement.Value))
                 {
-                    InnerDictionary[existingObservableCachedElement.Key] =
+                    InnerDictionary.TryUpdate(
+                        existingObservableCachedElement.Key,
                         new ObservableCachedElement<TKey, TValue>(
                             existingObservableCachedElement.Key,
                             newValue,
                             existingObservableCachedElement.OriginalExpiry,
-                            existingObservableCachedElement.ExpirationType);
+                            existingObservableCachedElement.ExpirationType));
                 }
                 else
                 {
@@ -395,6 +503,7 @@ namespace JB.Reactive.Cache
             }
             finally
             {
+                // make sure element is removed from cached event handling
                 RemoveFromObservableCachedElementEventHandling(existingObservableCachedElement);
             }
         }

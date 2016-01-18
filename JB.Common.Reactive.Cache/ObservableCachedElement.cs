@@ -141,24 +141,28 @@ namespace JB.Reactive.Cache
         /// <summary>
         /// Prepares and starts the expiration <see cref="Timer" />.
         /// </summary>
-        /// <param name="expirationDateTime">The expiration date time.</param>
-        protected void SetupAndStartExpirationTimer(DateTime expirationDateTime)
+        /// <param name="expiry">The expiry.</param>
+        protected void SetupAndStartExpirationTimer(TimeSpan expiry)
         {
-            if(expirationDateTime < DateTime.Now)
-                throw new ArgumentOutOfRangeException(nameof(expirationDateTime), "Must be now or in the future");
+            if (expiry < TimeSpan.Zero)
+                throw new ArgumentOutOfRangeException(nameof(expiry), $"{nameof(expiry)} cannot be negative");
+            if (expiry > TimeSpan.FromMilliseconds(Int32.MaxValue))
+                throw new ArgumentOutOfRangeException(nameof(expiry), $"{nameof(expiry)} cannot be greater than {typeof(Int32).Name}.{nameof(Int32.MaxValue)}");
 
             CheckForAndThrowIfDisposed();
             
             lock (_expiryModificationLocker)
             {
-                ExpiryDateTime = expirationDateTime;
+                var timerIntervalMilliseconds = GetTimerIntervalMillisecondsForExpiry(expiry);
                 Timer = new System.Timers.Timer
                 {
                     AutoReset = false,
-                    Interval = GetTimerIntervalMillisecondsForExpiry(CalculateExpirationTimespan(expirationDateTime))
+                    Interval = timerIntervalMilliseconds
                 };
 
                 Timer.Elapsed += OnExpirationTimerElapsed;
+                
+                ExpiryDateTime = CalculateExpiryDateTime(TimeSpan.FromMilliseconds(timerIntervalMilliseconds));
                 Timer.Start();
             }
         }
@@ -170,9 +174,14 @@ namespace JB.Reactive.Cache
         /// <returns></returns>
         private double GetTimerIntervalMillisecondsForExpiry(TimeSpan expiry)
         {
+            if (expiry < TimeSpan.Zero)
+                throw new ArgumentOutOfRangeException(nameof(expiry), $"{nameof(expiry)} cannot be negative");
+            if (expiry > TimeSpan.FromMilliseconds(Int32.MaxValue))
+                throw new ArgumentOutOfRangeException(nameof(expiry), $"{nameof(expiry)} cannot be greater than {typeof(Int32).Name}.{nameof(Int32.MaxValue)}");
+
             var interval = expiry > TimeSpan.Zero
                 ? (expiry.TotalMilliseconds > Int32.MaxValue ? Int32.MaxValue : expiry.TotalMilliseconds) // Int32.MaxValue is the max value System.Timers.Timer supports..
-                : TimeSpan.FromTicks(0).TotalMilliseconds;
+                : TimeSpan.FromTicks(1).TotalMilliseconds;
 
             return interval;
         }
@@ -213,32 +222,7 @@ namespace JB.Reactive.Cache
 
             RaiseExpired();
         }
-
-        /// <summary>
-        /// Updates and then restarts the expiration <see cref="Timer" />.
-        /// </summary>
-        /// <param name="expirationDateTime">The expiration date time.</param>
-        protected void UpdateAndRestartExpirationTimer(DateTime expirationDateTime)
-        {
-            CheckForAndThrowIfDisposed();
-
-            if(HasExpired)
-                throw new InvalidOperationException("This instance has already expired.");
-
-            lock (_expiryModificationLocker)
-            {
-                if (Timer.Enabled)
-                {
-                    Timer.Stop();
-                }
-
-                ExpiryDateTime = expirationDateTime;
-                
-                Timer.Interval = GetTimerIntervalMillisecondsForExpiry(CalculateExpirationTimespan(expirationDateTime));
-                Timer.Start();
-            }
-        }
-
+        
         /// <summary>
         /// Gets the key.
         /// </summary>
@@ -347,7 +331,7 @@ namespace JB.Reactive.Cache
             ExpirationType = expirationType;
             OriginalExpiry = expiry;
 
-            SetupAndStartExpirationTimer(CalculateExpiryDateTime(expiry));
+            SetupAndStartExpirationTimer(expiry);
         }
 
         /// <summary>
@@ -434,10 +418,23 @@ namespace JB.Reactive.Cache
 
             if (HasExpired)
                 throw new InvalidOperationException("This instance has already expired.");
+            
+            lock (_expiryModificationLocker)
+            {
+                if (Timer.Enabled)
+                {
+                    Timer.Stop();
+                }
 
-            UpdateAndRestartExpirationTimer(CalculateExpiryDateTime(expiry));
-            HasExpiryBeenUpdated = true;
-            OriginalExpiry = expiry;
+                var timerIntervalMilliseconds = GetTimerIntervalMillisecondsForExpiry(expiry);
+
+                Timer.Interval = timerIntervalMilliseconds;
+                ExpiryDateTime = CalculateExpiryDateTime(TimeSpan.FromMilliseconds(timerIntervalMilliseconds));
+                Timer.Start();
+
+                HasExpiryBeenUpdated = true;
+                OriginalExpiry = expiry;
+            }
         }
 
         /// <summary>
