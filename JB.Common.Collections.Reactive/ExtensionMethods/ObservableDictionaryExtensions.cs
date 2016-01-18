@@ -83,9 +83,9 @@ namespace JB.Collections.Reactive.ExtensionMethods
                     case ObservableDictionaryChangeType.ItemRemoved:
                         {
                             // check whether target list contains the removed item, and delete if so
-                            if (target.Contains(dictionaryChange.OldValue))
+                            if (target.Contains(dictionaryChange.Value))
                             {
-                                target.Remove(dictionaryChange.OldValue);
+                                target.Remove(dictionaryChange.Value);
                             }
                             break;
                         }
