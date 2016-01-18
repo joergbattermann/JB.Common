@@ -16,7 +16,7 @@ namespace JB.Collections
 		/// <param name="item">The removed item.</param>
 		/// <param name="index">The index of the removed item prior to removal.</param>
 		public ItemDeletedListChangedEventArgs(T item, int index)
-			: base(ListChangedType.ItemDeleted, -1, index)
+			: base(ListChangedType.ItemDeleted, index)
 		{
 			Item = item;
 		}
