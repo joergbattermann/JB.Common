@@ -9,7 +9,7 @@ namespace JB.Collections.Reactive
         INotifyObservableDictionaryChanges<TKey, TValue>,
         INotifyObservableDictionaryItemChanges<TKey, TValue>,
         INotifyObservableResets,
-        INotifyUnhandledObserverExceptions,
+        INotifyObserverExceptions,
         IReadOnlyDictionary<TKey, TValue>,
         IEnumerable
     {

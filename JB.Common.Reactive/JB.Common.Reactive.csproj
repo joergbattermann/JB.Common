@@ -62,7 +62,7 @@
     <Compile Include="..\CommonAssemblyInfo.cs">
       <Link>Properties\CommonAssemblyInfo.cs</Link>
     </Compile>
-    <Compile Include="INotifyUnhandledObserverExceptions.cs" />
+    <Compile Include="INotifyObserverExceptions.cs" />
     <Compile Include="Linq\ObservableExtensions.cs" />
     <Compile Include="ObserverException.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

@@ -43,12 +43,12 @@ namespace JB.Reactive.Cache
         protected IObserver<IObservableCacheChange<TKey, TValue>> CacheChangesObserver { get; private set; }
 
         /// <summary>
-        /// Gets the thrown exceptions observer.
+        /// Gets the observer thrown exceptions observer.
         /// </summary>
         /// <value>
-        /// The thrown exceptions observer.
+        /// The observer thrown exceptions observer.
         /// </value>
-        protected IObserver<ObserverException> UnhandledObserverExceptionsObserver { get; private set; }
+        protected IObserver<ObserverException> ObserverExceptionsObserver { get; private set; }
 
         /// <summary>
         /// Gets the expired elements observer.
@@ -84,12 +84,20 @@ namespace JB.Reactive.Cache
         protected TimeSpan ExpiredElementsBufferWindowTimeSpan { get; }
 
         /// <summary>
-        /// Gets the scheduler.
+        /// Gets the scheduler for observer / event notifications.
         /// </summary>
         /// <value>
-        /// The scheduler.
+        /// The scheduler for observer / event notifications.
         /// </value>
-        protected IScheduler Scheduler { get; }
+        protected IScheduler NotificationScheduler { get; }
+
+        /// <summary>
+        /// Gets the expiration scheduler to schedule and handle expirations on.
+        /// </summary>
+        /// <value>
+        /// The expiration scheduler.
+        /// </value>
+        protected IScheduler ExpirationScheduler { get; }
 
         /// <summary>
         /// Gets the <see cref="IEqualityComparer{T}" /> implementation to use when comparing keys.
@@ -134,20 +142,29 @@ namespace JB.Reactive.Cache
         ///     This is internally preferred over <paramref name="singleKeyUpdater"/> if more than one element has expired within a given <paramref name="expiredElementsBufferInMilliseconds"/>.
         /// </param>
         /// <param name="expiredElementsBufferInMilliseconds">Expired elements are internally handled every <paramref name="expiredElementsBufferInMilliseconds"/>
-        /// in bulk rather than the very moment they expire and this value allows to specify the time window inbetween each expiration handling activities.</param>
-        /// <param name="scheduler">The scheduler to to send out observer messages & raise events on. If none is provided <see cref="System.Reactive.Concurrency.Scheduler.CurrentThread"/> will be used.</param>
+        ///     in bulk rather than the very moment they expire and this value allows to specify the time window inbetween each expiration handling activities.</param>
+        /// <param name="expirationScheduler">
+        ///     The <see cref="IScheduler"/> to to schedule and run elements' expiration handling on.
+        ///     If none is provided <see cref="System.Reactive.Concurrency.Scheduler.Default"/> will be used.
+        /// </param>
+        /// <param name="notificationScheduler">
+        ///     The <see cref="IScheduler"/> to to send out observer messages and raise events on.
+        ///     If none is provided <see cref="System.Reactive.Concurrency.Scheduler.CurrentThread"/> will be used.
+        /// </param>
         public ObservableInMemoryCache(
             IEqualityComparer<TKey> keyComparer = null,
             IEqualityComparer<TValue> valueComparer = null,
             Func<TKey, TValue> singleKeyUpdater = null,
             Func<IEnumerable<TKey>, IEnumerable<KeyValuePair<TKey, TValue>>> multipleKeysUpdater = null,
             int expiredElementsBufferInMilliseconds = 5000,
-            IScheduler scheduler = null)
+            IScheduler expirationScheduler = null,
+            IScheduler notificationScheduler = null)
         {
             if(expiredElementsBufferInMilliseconds < 0)
                 throw new ArgumentOutOfRangeException(nameof(expiredElementsBufferInMilliseconds), "Must be 0 or higher");
 
-            Scheduler = scheduler ?? System.Reactive.Concurrency.Scheduler.CurrentThread;
+            NotificationScheduler = notificationScheduler ?? Scheduler.CurrentThread;
+            ExpirationScheduler = expirationScheduler ?? Scheduler.Default;
 
             KeyComparer = keyComparer ?? EqualityComparer<TKey>.Default;
             ValueComparer = valueComparer ?? EqualityComparer<TValue>.Default;
@@ -158,7 +175,7 @@ namespace JB.Reactive.Cache
             InnerDictionary = new ObservableDictionary<TKey, ObservableCachedElement<TKey, TValue>>(
                 keyComparer: KeyComparer,
                 valueComparer: new ObservableCachedElementValueEqualityComparer<TKey, TValue>(ValueComparer),
-                scheduler: scheduler);
+                scheduler: notificationScheduler);
 
             ThresholdAmountWhenChangesAreNotifiedAsReset = Int32.MaxValue;
             ExpiredElementsBufferWindowTimeSpan = TimeSpan.FromMilliseconds(expiredElementsBufferInMilliseconds);
@@ -175,8 +192,8 @@ namespace JB.Reactive.Cache
         private void SetupObservablesAndObserversAndSubjects()
         {
             // prepare subjects for RX
-            UnhandledObserverExceptionsObserver = _unhandledObserverExceptionsSubject.NotifyOn(Scheduler);
-            CacheChangesObserver = _cacheChangesSubject.NotifyOn(Scheduler);
+            ObserverExceptionsObserver = _unhandledObserverExceptionsSubject.NotifyOn(NotificationScheduler);
+            CacheChangesObserver = _cacheChangesSubject.NotifyOn(NotificationScheduler);
 
             _expiredElementsSubscription = ExpiredElements
                 .ObserveOn(System.Reactive.Concurrency.Scheduler.Default)
@@ -190,7 +207,7 @@ namespace JB.Reactive.Cache
                         var observerException = new ObserverException(
                             $"An error occured notifying observers of this {this.GetType().Name} - consistency and future notifications are no longer guaranteed.",
                             exception);
-                        UnhandledObserverExceptionsObserver.OnNext(observerException);
+                        ObserverExceptionsObserver.OnNext(observerException);
                     });
         }
 
@@ -246,7 +263,7 @@ namespace JB.Reactive.Cache
                         $"An error occured notifying {nameof(ItemExpirations)} Observers of this {this.GetType().Name} about an item's expiration.",
                         exception);
 
-                    UnhandledObserverExceptionsObserver.OnNext(observerException);
+                    ObserverExceptionsObserver.OnNext(observerException);
 
                     if (observerException.Handled == false)
                         throw;
@@ -275,7 +292,7 @@ namespace JB.Reactive.Cache
                         InnerDictionary.TryRemoveRange(elementsForExpirationType, out actuallyRemovedKeys);
                         foreach (var removedElement in actuallyRemovedKeys)
                         {
-                            RemoveFromObservableCachedElementEventHandling(removedElement.Value);
+                            RemoveFromEventAndNotificationsHandling(removedElement.Value);
                         }
 
                         break;
@@ -368,7 +385,7 @@ namespace JB.Reactive.Cache
                 {
                     var observerException = new ObserverException($"An error occured trying to handle {nameof(ObservableCacheExpirationType.Update)} expiration for {originalElement.Key?.ToString() ?? "n.a."}.", exception);
 
-                    UnhandledObserverExceptionsObserver.OnNext(observerException);
+                    ObserverExceptionsObserver.OnNext(observerException);
 
                     if (observerException.Handled == false)
                         throw;
@@ -376,7 +393,7 @@ namespace JB.Reactive.Cache
                 finally
                 {
                     // make sure element is removed from cached event handling
-                    RemoveFromObservableCachedElementEventHandling(originalElement);
+                    RemoveFromEventAndNotificationsHandling(originalElement);
                 }
             }
         }
@@ -417,11 +434,15 @@ namespace JB.Reactive.Cache
                     TValue updatedValueForKeyToUpdate;
                     if (updatedValues.TryGetValue(keyToUpdate, out updatedValueForKeyToUpdate))
                     {
-                        newObservableCachedElements.Add(new ObservableCachedElement<TKey, TValue>(
-                            keyToUpdate,
-                            updatedValueForKeyToUpdate,
-                            originalElementForKeyToUpdate.OriginalExpiry,
-                            originalElementForKeyToUpdate.ExpirationType));
+                        newObservableCachedElements.Add(
+                            new ObservableCachedElement<TKey, TValue>(
+                                keyToUpdate,
+                                updatedValueForKeyToUpdate,
+                                originalElementForKeyToUpdate.OriginalExpiry,
+                                originalElementForKeyToUpdate.ExpirationType,
+                                ExpiredElementsObserver,
+                                ObserverExceptionsObserver,
+                                ExpirationScheduler));
                     }
                 }
             }
@@ -429,7 +450,7 @@ namespace JB.Reactive.Cache
             {
                 var observerException = new ObserverException($"An error occured trying to retrieve updated value(s) for {keysForElementsToUpdate.Count} keys.", exception);
 
-                UnhandledObserverExceptionsObserver.OnNext(observerException);
+                ObserverExceptionsObserver.OnNext(observerException);
 
                 if (observerException.Handled == false)
                     throw;
@@ -457,7 +478,7 @@ namespace JB.Reactive.Cache
             {
                 var observerException = new ObserverException($"An error occured trying to retrieve an updated value for {existingObservableCachedElement.Key?.ToString() ?? "n.a."}.", exception);
 
-                UnhandledObserverExceptionsObserver.OnNext(observerException);
+                ObserverExceptionsObserver.OnNext(observerException);
 
                 if (observerException.Handled == false)
                     throw;
@@ -485,7 +506,10 @@ namespace JB.Reactive.Cache
                             existingObservableCachedElement.Key,
                             newValue,
                             existingObservableCachedElement.OriginalExpiry,
-                            existingObservableCachedElement.ExpirationType));
+                            existingObservableCachedElement.ExpirationType,
+                            ExpiredElementsObserver,
+                            ObserverExceptionsObserver,
+                            ExpirationScheduler));
                 }
                 else
                 {
@@ -496,7 +520,7 @@ namespace JB.Reactive.Cache
             {
                 var observerException = new ObserverException($"An error occured trying to handle {nameof(ObservableCacheExpirationType.Update)} expiration for {existingObservableCachedElement.Key?.ToString() ?? "n.a."}.", exception);
 
-                UnhandledObserverExceptionsObserver.OnNext(observerException);
+                ObserverExceptionsObserver.OnNext(observerException);
 
                 if (observerException.Handled == false)
                     throw;
@@ -504,56 +528,25 @@ namespace JB.Reactive.Cache
             finally
             {
                 // make sure element is removed from cached event handling
-                RemoveFromObservableCachedElementEventHandling(existingObservableCachedElement);
+                RemoveFromEventAndNotificationsHandling(existingObservableCachedElement);
             }
         }
 
         /// <summary>
         /// Adds <see cref="OnCachedElementValuePropertyChanged"/> as event handlers for <paramref name="cachedElement"/>'s
-        /// <see cref="ObservableCachedElement{TKey,TValue}.ValuePropertyChanged"/> as well as
-        /// <see cref="ObservableCachedElement{TKey,TValue}.Expired"/> event.
+        /// <see cref="ObservableCachedElement{TKey,TValue}.ValuePropertyChanged"/>.
         /// </summary>
         /// <param name="cachedElement">The value.</param>
-        protected virtual void AddToObservableCachedElementEventHandling(ObservableCachedElement<TKey, TValue> cachedElement)
+        protected virtual void AddToEventAndNotificationsHandling(ObservableCachedElement<TKey, TValue> cachedElement)
         {
             CheckForAndThrowIfDisposed();
 
             if (cachedElement != null)
             {
                 cachedElement.ValuePropertyChanged += OnCachedElementValuePropertyChanged;
-                cachedElement.Expired += OnCachedElementExpired;
             }
         }
-
-        /// <summary>
-        /// Called when a cached element has expired.
-        /// </summary>
-        /// <param name="sender">The sender.</param>
-        /// <param name="eventArgs">The <see cref="EventArgs"/> instance containing the event data.</param>
-        protected virtual void OnCachedElementExpired(object sender, EventArgs eventArgs)
-        {
-            CheckForAndThrowIfDisposed(false);
-
-            try
-            {
-                var senderAsObservableCachedElement = sender as ObservableCachedElement<TKey, TValue>;
-                if (senderAsObservableCachedElement == null)
-                    throw new ArgumentOutOfRangeException(nameof(sender), $"{nameof(sender)} must be a {typeof (ObservableCachedElement<TKey, TValue>).Name} instance");
-
-                // Forwarding to internal subject only and not directly sending to CacheChangesObserver as expirations are buffered for bulk-processing
-                _expiredElementsSubject.OnNext(senderAsObservableCachedElement);
-            }
-            catch (Exception exception)
-            {
-                var observerException = new ObserverException($"An error occured handling an element's expiration of this {this.GetType().Name}.", exception);
-
-                UnhandledObserverExceptionsObserver.OnNext(observerException);
-
-                if (observerException.Handled == false)
-                    throw;
-            }
-        }
-
+        
         /// <summary>
         /// Called when a cached element's value property changed.
         /// </summary>
@@ -578,7 +571,7 @@ namespace JB.Reactive.Cache
             {
                 var observerException = new ObserverException($"An error occured notifying {nameof(Changes)} Observers of this {this.GetType().Name} about an element's Value Property Change.", exception);
 
-                UnhandledObserverExceptionsObserver.OnNext(observerException);
+                ObserverExceptionsObserver.OnNext(observerException);
 
                 if (observerException.Handled == false)
                     throw;
@@ -587,17 +580,17 @@ namespace JB.Reactive.Cache
 
         /// <summary>
         /// Removes <see cref="OnCachedElementValuePropertyChanged"/> as event handlers for <paramref name="cachedElement"/>'s
-        /// <see cref="ObservableCachedElement{TKey,TValue}.ValuePropertyChanged"/> and <see cref="ObservableCachedElement{TKey,TValue}.Expired"/> event.
+        /// <see cref="ObservableCachedElement{TKey,TValue}.ValuePropertyChanged"/>.
         /// </summary>
         /// <param name="cachedElement">The value.</param>
-        protected virtual void RemoveFromObservableCachedElementEventHandling(ObservableCachedElement<TKey, TValue> cachedElement)
+        protected virtual void RemoveFromEventAndNotificationsHandling(ObservableCachedElement<TKey, TValue> cachedElement)
         {
             CheckForAndThrowIfDisposed(false);
 
             if (cachedElement != null)
             {
                 cachedElement.ValuePropertyChanged -= OnCachedElementValuePropertyChanged;
-                cachedElement.Expired -= OnCachedElementExpired;
+                cachedElement.StopExpirationNotification();
             }
         }
 
@@ -691,9 +684,9 @@ namespace JB.Reactive.Cache
                     _expiredElementsSubject?.Dispose();
                     _expiredElementsSubject = null;
 
-                    var thrownExceptionsObserverAsDisposable = UnhandledObserverExceptionsObserver as IDisposable;
+                    var thrownExceptionsObserverAsDisposable = ObserverExceptionsObserver as IDisposable;
                     thrownExceptionsObserverAsDisposable?.Dispose();
-                    UnhandledObserverExceptionsObserver = null;
+                    ObserverExceptionsObserver = null;
 
                     _unhandledObserverExceptionsSubject?.Dispose();
                     _unhandledObserverExceptionsSubject = null;
@@ -702,7 +695,7 @@ namespace JB.Reactive.Cache
                     var currentValues = InnerDictionary?.Values ?? new List<ObservableCachedElement<TKey, TValue>>();
                     foreach (var value in currentValues)
                     {
-                        RemoveFromObservableCachedElementEventHandling(value);
+                        RemoveFromEventAndNotificationsHandling(value);
                     }
 
                     var innerDictionaryAsDisposable = InnerDictionary as IDisposable;
@@ -772,31 +765,31 @@ namespace JB.Reactive.Cache
             var eventHandler = _propertyChanged;
             if (eventHandler != null)
             {
-                Scheduler.Schedule(() => eventHandler.Invoke(this, new PropertyChangedEventArgs(propertyName)));
+                NotificationScheduler.Schedule(() => eventHandler.Invoke(this, new PropertyChangedEventArgs(propertyName)));
             }
         }
 
         #endregion
 
-        #region Implementation of INotifyUnhandledObserverExceptions
+        #region Implementation of INotifyObserverExceptions
 
         /// <summary>
-        /// Provides an observable sequence of unhandled <see cref="ObserverException">exceptions</see> thrown by observers.
+        /// Provides an observable sequence of <see cref="ObserverException">exceptions</see> thrown by observers.
         /// An <see cref="ObserverException" /> provides a <see cref="ObserverException.Handled" /> property, if set to [true] by
-        /// any of the observers of <see cref="UnhandledObserverExceptions" /> observable, it is assumed to be safe to continue
+        /// any of the observers of <see cref="ObserverExceptions" /> observable, it is assumed to be safe to continue
         /// without re-throwing the exception.
         /// </summary>
         /// <value>
         /// An observable stream of unhandled exceptions.
         /// </value>
-        public virtual IObservable<ObserverException> UnhandledObserverExceptions
+        public virtual IObservable<ObserverException> ObserverExceptions
         {
             get
             {
                 CheckForAndThrowIfDisposed();
 
                 // not caring about IsDisposing / IsDisposed on purpose once subscribed, so corresponding Exceptions are forwarded 'til the "end" to already existing subscribers
-                return _unhandledObserverExceptionsSubject.Merge(InnerDictionary.UnhandledObserverExceptions);
+                return _unhandledObserverExceptionsSubject.Merge(InnerDictionary.ObserverExceptions);
             }
         }
 
@@ -920,11 +913,19 @@ namespace JB.Reactive.Cache
             {
                 try
                 {
-                    var observableCachedElement = new ObservableCachedElement<TKey, TValue>(key, value, expiry ?? DefaultExpiry, expirationType);
+                    var observableCachedElement =
+                        new ObservableCachedElement<TKey, TValue>(
+                            key,
+                            value,
+                            expiry ?? DefaultExpiry,
+                            expirationType,
+                            ExpiredElementsObserver,
+                            ObserverExceptionsObserver,
+                            ExpirationScheduler);
 
                     InnerDictionary.Add(key, observableCachedElement);
 
-                    AddToObservableCachedElementEventHandling(observableCachedElement);
+                    AddToEventAndNotificationsHandling(observableCachedElement);
 
                     observer.OnNext(Unit.Default);
                     observer.OnCompleted();
@@ -979,7 +980,7 @@ namespace JB.Reactive.Cache
                     {
                         foreach (var value in valuesBeforeClearing)
                         {
-                            RemoveFromObservableCachedElementEventHandling(value);
+                            RemoveFromEventAndNotificationsHandling(value);
                         }
                     }
                     observer.OnNext(Unit.Default);
@@ -1217,7 +1218,7 @@ namespace JB.Reactive.Cache
                     if (InnerDictionary.TryRemove(key, out observableCachedElement) == false)
                         throw new KeyNotFoundException();
 
-                    RemoveFromObservableCachedElementEventHandling(observableCachedElement);
+                    RemoveFromEventAndNotificationsHandling(observableCachedElement);
 
                     observer.OnNext(Unit.Default);
                     observer.OnCompleted();

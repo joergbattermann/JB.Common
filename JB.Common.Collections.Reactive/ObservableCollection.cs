@@ -269,15 +269,15 @@ namespace JB.Collections.Reactive
         }
 
         /// <summary>
-        /// Provides an observable sequence of unhandled <see cref="ObserverException">exceptions</see> thrown by observers.
+        /// Provides an observable sequence of <see cref="ObserverException">exceptions</see> thrown by observers.
         /// An <see cref="ObserverException" /> provides a <see cref="ObserverException.Handled" /> property, if set to [true] by
-        /// any of the observers of <see cref="UnhandledObserverExceptions" /> observable, it is assumed to be safe to continue
+        /// any of the observers of <see cref="ObserverExceptions" /> observable, it is assumed to be safe to continue
         /// without re-throwing the exception.
         /// </summary>
         /// <value>
         /// An observable stream of unhandled exceptions.
         /// </value>
-        public virtual IObservable<ObserverException> UnhandledObserverExceptions
+        public virtual IObservable<ObserverException> ObserverExceptions
         {
             get
             {

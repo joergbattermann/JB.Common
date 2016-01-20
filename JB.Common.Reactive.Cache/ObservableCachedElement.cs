@@ -8,9 +8,9 @@
 
 using System;
 using System.ComponentModel;
+using System.Reactive.Concurrency;
 using System.Runtime.CompilerServices;
 using System.Threading;
-using System.Timers;
 
 namespace JB.Reactive.Cache
 {
@@ -18,6 +18,9 @@ namespace JB.Reactive.Cache
     {
         private ObservableCacheExpirationType _expirationType;
         private DateTime _expiryDateTime;
+        private TimeSpan _originalExpiry;
+
+        private IDisposable _expirySchedulerCancellationDisposable;
 
         private long _hasExpired = 0;
         private long _hasExpiryBeenUpdated = 0;
@@ -60,7 +63,7 @@ namespace JB.Reactive.Cache
                 RaisePropertyChanged();
             }
         }
-
+        
         /// <summary>
         ///     The actual <see cref="ValuePropertyChanged" /> event.
         /// </summary>
@@ -98,94 +101,67 @@ namespace JB.Reactive.Cache
         }
 
         /// <summary>
-        ///     The actual <see cref="Expired" /> event.
-        /// </summary>
-        private EventHandler _expired;
-
-        /// <summary>
-        /// Occurs when this instance has expired.
-        /// </summary>
-
-        public virtual event EventHandler Expired
-        {
-            add
-            {
-                CheckForAndThrowIfDisposed();
-                _expired += value;
-            }
-            remove
-            {
-                _expired -= value;
-            }
-        }
-
-        /// <summary>
-        ///     Raises the <see cref="Expired"/> event.
-        /// </summary>
-        protected virtual void RaiseExpired()
-        {
-            if (IsDisposed || IsDisposing)
-                return;
-
-            _expired?.Invoke(this, EventArgs.Empty);
-        }
-
-        /// <summary>
-        /// Gets the timer used internally for expiration handling.
-        /// </summary>
-        /// <value>
-        /// The timer.
-        /// </value>
-        protected System.Timers.Timer Timer { get; private set; }
-
-        /// <summary>
-        /// Prepares and starts the expiration <see cref="Timer" />.
+        /// Stops an ongoing expiration timer (if any) and uses the <paramref name="expirationScheduler" /> to schedule a new expiration
+        /// notification on the given <paramref name="expirationObserver" /> after the given <paramref name="expiry" />.
         /// </summary>
         /// <param name="expiry">The expiry.</param>
-        protected void SetupAndStartExpirationTimer(TimeSpan expiry)
+        /// <param name="expirationObserver">The expiration observer to notify upon this instance's expiration.</param>
+        /// <param name="observerExceptionsObserver">The <see cref="ObserverException"/> observer to notify, well.. observer exceptions on.</param>
+        /// <param name="expirationScheduler">The expiration scheduler to schedule the expiration notification on.</param>
+        /// <param name="isUpdate">if set to <c>true</c> indicats that this is an update, rather than an initial call (via .ctor).</param>
+        private void CreateOrUpdateExpiration(
+            TimeSpan expiry,
+            IObserver<ObservableCachedElement<TKey, TValue>> expirationObserver,
+            IObserver<ObserverException> observerExceptionsObserver,
+            IScheduler expirationScheduler,
+            bool isUpdate)
         {
+            if (expirationObserver == null) throw new ArgumentNullException(nameof(expirationObserver));
+            if (expirationScheduler == null) throw new ArgumentNullException(nameof(expirationScheduler));
+
             if (expiry < TimeSpan.Zero)
                 throw new ArgumentOutOfRangeException(nameof(expiry), $"{nameof(expiry)} cannot be negative");
-            if (expiry > TimeSpan.FromMilliseconds(Int32.MaxValue))
-                throw new ArgumentOutOfRangeException(nameof(expiry), $"{nameof(expiry)} cannot be greater than {typeof(Int32).Name}.{nameof(Int32.MaxValue)}");
 
             CheckForAndThrowIfDisposed();
-            
+
+            if (HasExpired)
+                throw new KeyHasExpiredException<TKey>(Key, ExpiryDateTime);
+
             lock (_expiryModificationLocker)
             {
-                var timerIntervalMilliseconds = GetTimerIntervalMillisecondsForExpiry(expiry);
-                Timer = new System.Timers.Timer
-                {
-                    AutoReset = false,
-                    Interval = timerIntervalMilliseconds
-                };
-
-                Timer.Elapsed += OnExpirationTimerElapsed;
+                // cancel an existing, scheduled expiration
+                _expirySchedulerCancellationDisposable?.Dispose();
                 
-                ExpiryDateTime = CalculateExpiryDateTime(TimeSpan.FromMilliseconds(timerIntervalMilliseconds));
-                Timer.Start();
+                // set 'new' expiry datetime
+                ExpiryDateTime = CalculateExpiryDateTime(expiry);
+                OriginalExpiry = expiry;
+
+                _expirySchedulerCancellationDisposable = expirationScheduler.Schedule(expiry,
+                    () =>
+                    {
+                        HasExpired = true;
+                        RemoveValueFromPropertyChangedHandling(Value);
+
+                        try
+                        {
+                            expirationObserver.OnNext(this);
+                        }
+                        catch (Exception exception)
+                        {
+                            var observerException = new ObserverException($"An error occured notifying about the expiration of a {this.GetType().Name} instance.", exception);
+
+                            observerExceptionsObserver.OnNext(observerException);
+
+                            if (observerException.Handled == false)
+                                throw;
+                        }
+                    });
+
+                if(isUpdate)
+                    HasExpiryBeenUpdated = true;
             }
         }
-
-        /// <summary>
-        /// Gets the timer interval in milliseconds for the provided <paramref name="expiry"/> <see cref="TimeSpan"/>.
-        /// </summary>
-        /// <param name="expiry">The expiry.</param>
-        /// <returns></returns>
-        private double GetTimerIntervalMillisecondsForExpiry(TimeSpan expiry)
-        {
-            if (expiry < TimeSpan.Zero)
-                throw new ArgumentOutOfRangeException(nameof(expiry), $"{nameof(expiry)} cannot be negative");
-            if (expiry > TimeSpan.FromMilliseconds(Int32.MaxValue))
-                throw new ArgumentOutOfRangeException(nameof(expiry), $"{nameof(expiry)} cannot be greater than {typeof(Int32).Name}.{nameof(Int32.MaxValue)}");
-
-            var interval = expiry > TimeSpan.Zero
-                ? (expiry.TotalMilliseconds > Int32.MaxValue ? Int32.MaxValue : expiry.TotalMilliseconds) // Int32.MaxValue is the max value System.Timers.Timer supports..
-                : TimeSpan.FromTicks(1).TotalMilliseconds;
-
-            return interval;
-        }
-
+        
         /// <summary>
         /// Calculates the expiration timespan based on the <paramref name="expirationDateTime"/>.
         /// </summary>
@@ -204,23 +180,6 @@ namespace JB.Reactive.Cache
 
             // else
             return now - expirationDateTime;
-        }
-
-        /// <summary>
-        /// Called when the <see cref="System.Timers.Timer.Elapsed"/> event has occured.
-        /// </summary>
-        /// <param name="sender">The sender.</param>
-        /// <param name="elapsedEventArgs">The <see cref="System.Timers.ElapsedEventArgs" /> instance containing the event data.</param>
-        private void OnExpirationTimerElapsed(object sender, ElapsedEventArgs elapsedEventArgs)
-        {
-            if (IsDisposing || IsDisposed)
-                return;
-
-            HasExpired = true;
-
-            RemoveValueFromPropertyChangedHandling(Value);
-
-            RaiseExpired();
         }
         
         /// <summary>
@@ -276,7 +235,26 @@ namespace JB.Reactive.Cache
         /// <value>
         /// The original expiry.
         /// </value>
-        public TimeSpan OriginalExpiry { get; protected set; }
+        public TimeSpan OriginalExpiry
+        {
+            get
+            {
+                CheckForAndThrowIfDisposed();
+
+                return _originalExpiry;
+            }
+            protected set
+            {
+                CheckForAndThrowIfDisposed();
+
+                if (Equals(_originalExpiry, value))
+                    return;
+
+                _originalExpiry = value;
+
+                RaisePropertyChanged();
+            }
+        }
 
         /// <summary>
         /// Gets the expiry <see cref="DateTime"/>.
@@ -312,16 +290,26 @@ namespace JB.Reactive.Cache
         /// Initializes a new instance of the <see cref="ObservableCachedElement{TKey, TValue}" /> class.
         /// </summary>
         /// <param name="key">The key.</param>
-        /// <param name="value">The value.</param>
-        /// <param name="expiry">The expiry.</param>
+        /// <param name="value">The cached value.</param>
+        /// <param name="expiry">The expiry <see cref="TimeSpan" />.</param>
         /// <param name="expirationType">Type of the expiration.</param>
-        public ObservableCachedElement(TKey key, TValue value, TimeSpan expiry, ObservableCacheExpirationType expirationType)
+        /// <param name="expirationObserver">The expiration observer to notify upon this instance's expiration.</param>
+        /// <param name="observerExceptionsObserver">The <see cref="ObserverException"/> observer to notify, well.. observer exceptions on.</param>
+        /// <param name="expirationScheduler">The expiration scheduler to schedule the expiration notification on.</param>
+        public ObservableCachedElement(TKey key, TValue value,
+            TimeSpan expiry,
+            ObservableCacheExpirationType expirationType,
+            IObserver<ObservableCachedElement<TKey, TValue>> expirationObserver,
+            IObserver<ObserverException> observerExceptionsObserver,
+            IScheduler expirationScheduler)
         {
             if (key == null) throw new ArgumentNullException(nameof(key));
+            if (expirationObserver == null) throw new ArgumentNullException(nameof(expirationObserver));
+            if (observerExceptionsObserver == null) throw new ArgumentNullException(nameof(observerExceptionsObserver));
+            if (expirationScheduler == null) throw new ArgumentNullException(nameof(expirationScheduler));
+
             if (expiry < TimeSpan.Zero)
                 throw new ArgumentOutOfRangeException(nameof(expiry), $"{nameof(expiry)} cannot be negative");
-            if (expiry > TimeSpan.FromMilliseconds(Int32.MaxValue))
-                throw new ArgumentOutOfRangeException(nameof(expiry), $"{nameof(expiry)} cannot be greater than {typeof(Int32).Name}.{nameof(Int32.MaxValue)}");
 
             Key = key;
             Value = value;
@@ -329,9 +317,7 @@ namespace JB.Reactive.Cache
             AddValueToPropertyChangedHandling(Value);
 
             ExpirationType = expirationType;
-            OriginalExpiry = expiry;
-
-            SetupAndStartExpirationTimer(expiry);
+            CreateOrUpdateExpiration(expiry, expirationObserver, observerExceptionsObserver, expirationScheduler, false);
         }
 
         /// <summary>
@@ -342,7 +328,7 @@ namespace JB.Reactive.Cache
         {
             CheckForAndThrowIfDisposed();
 
-            return CalculateExpirationTimespan(DateTime.Now);
+            return CalculateExpirationTimespan(ExpiryDateTime);
         }
 
         /// <summary>
@@ -403,38 +389,33 @@ namespace JB.Reactive.Cache
         }
 
         /// <summary>
-        /// Updates the expiration <see cref="TimeSpan"/> and <see cref="ObservableCacheExpirationType"/> of this instance.
+        /// Stops an ongoing expiration timer and uses the <paramref name="expirationScheduler" /> to schedule a new expiration
+        /// notification on the given <paramref name="expirationObserver" /> after the given <paramref name="expiry" />.
         /// </summary>
         /// <param name="expiry">The expiry.</param>
-        /// <param name="expirationType">Type of the expiration.</param>
-        public virtual void UpdateExpiration(TimeSpan expiry, ObservableCacheExpirationType expirationType)
+        /// <param name="expirationObserver">The expiration observer to notify upon this instance's expiration.</param>
+        /// <param name="observerExceptionsObserver">The <see cref="ObserverException"/> observer to notify, well.. observer exceptions on.</param>
+        /// <param name="expirationScheduler">The expiration scheduler to schedule the expiration notification on.</param>
+        public virtual void UpdateExpiration(
+            TimeSpan expiry,
+            IObserver<ObservableCachedElement<TKey, TValue>> expirationObserver,
+            IObserver<ObserverException> observerExceptionsObserver,
+            IScheduler expirationScheduler)
         {
-            if (expiry < TimeSpan.Zero)
-                throw new ArgumentOutOfRangeException(nameof(expiry), $"{nameof(expiry)} cannot be negative");
-            if (expiry > TimeSpan.FromMilliseconds(Int32.MaxValue))
-                throw new ArgumentOutOfRangeException(nameof(expiry), $"{nameof(expiry)} cannot be greater than {typeof(Int32).Name}.{nameof(Int32.MaxValue)}");
+            CreateOrUpdateExpiration(expiry, expirationObserver, observerExceptionsObserver, expirationScheduler, true);
+        }
 
+        /// <summary>
+        /// Stops the expiration notification.
+        /// </summary>
+        public virtual void StopExpirationNotification()
+        {
             CheckForAndThrowIfDisposed();
 
             if (HasExpired)
-                throw new InvalidOperationException("This instance has already expired.");
-            
-            lock (_expiryModificationLocker)
-            {
-                if (Timer.Enabled)
-                {
-                    Timer.Stop();
-                }
+                return;
 
-                var timerIntervalMilliseconds = GetTimerIntervalMillisecondsForExpiry(expiry);
-
-                Timer.Interval = timerIntervalMilliseconds;
-                ExpiryDateTime = CalculateExpiryDateTime(TimeSpan.FromMilliseconds(timerIntervalMilliseconds));
-                Timer.Start();
-
-                HasExpiryBeenUpdated = true;
-                OriginalExpiry = expiry;
-            }
+            _expirySchedulerCancellationDisposable.Dispose();
         }
 
         /// <summary>
@@ -446,8 +427,6 @@ namespace JB.Reactive.Cache
         {
             if (expiry < TimeSpan.Zero)
                 throw new ArgumentOutOfRangeException(nameof(expiry), $"{nameof(expiry)} cannot be negative");
-            if (expiry > TimeSpan.FromMilliseconds(Int32.MaxValue))
-                throw new ArgumentOutOfRangeException(nameof(expiry), $"{nameof(expiry)} cannot be greater than {typeof(Int32).Name}.{nameof(Int32.MaxValue)}");
 
             var now = DateTime.Now;
             var maxExpiry = DateTime.MaxValue - now;
@@ -564,14 +543,8 @@ namespace JB.Reactive.Cache
 
                 if (disposeManagedResources)
                 {
-                    if (Timer != null)
-                    {
-                        if(Timer.Enabled)
-                            Timer.Stop();
-
-                        Timer.Dispose();
-                        Timer = null;
-                    }
+                    _expirySchedulerCancellationDisposable?.Dispose();
+                    _expirySchedulerCancellationDisposable = null;
 
                     if (HasExpired == false)
                     {

@@ -26,7 +26,7 @@ namespace JB.Collections.Reactive.Tests
             // given
             using (var observableDictionary = new ObservableDictionary<int, string>())
             {
-                observableDictionary.UnhandledObserverExceptions.Subscribe(observerException =>
+                observableDictionary.ObserverExceptions.Subscribe(observerException =>
                 {
                     observerException.Handled = true;
                 });
@@ -71,7 +71,7 @@ namespace JB.Collections.Reactive.Tests
             // given
             using (var observableDictionary = new ObservableDictionary<int, string>())
             {
-                observableDictionary.UnhandledObserverExceptions.Subscribe(observerException =>
+                observableDictionary.ObserverExceptions.Subscribe(observerException =>
                 {
                     observerException.Handled = true;
                 });
@@ -116,7 +116,7 @@ namespace JB.Collections.Reactive.Tests
             // given
             using (var observableDictionary = new ObservableDictionary<int, string>())
             {
-                observableDictionary.UnhandledObserverExceptions.Subscribe(observerException =>
+                observableDictionary.ObserverExceptions.Subscribe(observerException =>
                 {
                     observerException.Handled = true;
                 });
@@ -157,7 +157,7 @@ namespace JB.Collections.Reactive.Tests
             // given
             using (var observableDictionary = new ObservableDictionary<int, string>())
             {
-                observableDictionary.UnhandledObserverExceptions.Subscribe(observerException =>
+                observableDictionary.ObserverExceptions.Subscribe(observerException =>
                 {
                     observerException.Handled = true;
                 });

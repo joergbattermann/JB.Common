@@ -53,7 +53,7 @@ namespace JB.Collections.Reactive
 
         /// <summary>
         /// Prepares and sets up the observables and subjects used, particularly
-        /// <see cref="ListChanges"/>, <see cref="INotifyObservableCountChanges.CountChanges"/> and <see cref="INotifyUnhandledObserverExceptions.UnhandledObserverExceptions"/>.
+        /// <see cref="ListChanges"/>, <see cref="INotifyObservableCountChanges.CountChanges"/> and <see cref="INotifyObserverExceptions.ObserverExceptions"/>.
         /// </summary>
         private void SetupObservablesAndObserversAndSubjects()
         {

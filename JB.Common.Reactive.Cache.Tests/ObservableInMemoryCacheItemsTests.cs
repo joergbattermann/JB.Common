@@ -140,7 +140,7 @@ namespace JB.Reactive.Cache.Tests
         public async Task ShouldExpireAndRemoveSingleElementForRemovalExpiryType()
         {
             // given
-            using (var cache = new ObservableInMemoryCache<int, string>(expiredElementsBufferInMilliseconds:0))
+            using (var cache = new ObservableInMemoryCache<int, string>(expiredElementsBufferInMilliseconds: 0))
             {
                 await cache.Add(1, "One", TimeSpan.Zero, ObservableCacheExpirationType.Remove);
 

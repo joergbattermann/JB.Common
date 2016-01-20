@@ -19,7 +19,7 @@ namespace JB.Reactive.Cache
         INotifyObservableCacheItemChanges<TKey, TValue>,
         INotifyObservableCacheItemExpirations<TKey, TValue>,
         INotifyObservableResets,
-        INotifyUnhandledObserverExceptions
+        INotifyObserverExceptions
     {
         /// <summary>
         /// Gets the count of keys in this instance.
