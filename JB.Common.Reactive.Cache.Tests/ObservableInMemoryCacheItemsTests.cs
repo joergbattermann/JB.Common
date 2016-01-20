@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using FluentAssertions;
 using System.Reactive.Linq;
+using Microsoft.Reactive.Testing;
 using Xunit;
 
 namespace JB.Reactive.Cache.Tests
@@ -140,12 +141,14 @@ namespace JB.Reactive.Cache.Tests
         public async Task ShouldExpireAndRemoveSingleElementForRemovalExpiryType()
         {
             // given
-            using (var cache = new ObservableInMemoryCache<int, string>(expiredElementsBufferInMilliseconds: 0))
+            var scheduler = new TestScheduler();
+            var expirationTimeoutInMilliseconds = 0;
+            using (var cache = new ObservableInMemoryCache<int, string>(expiredElementsBufferInMilliseconds: expirationTimeoutInMilliseconds, expirationScheduler: scheduler))
             {
-                await cache.Add(1, "One", TimeSpan.Zero, ObservableCacheExpirationType.Remove);
+                await cache.Add(1, "One", TimeSpan.FromTicks(1), ObservableCacheExpirationType.Remove);
 
                 // when
-                await Task.Delay(TimeSpan.FromMilliseconds(500));
+                scheduler.Start();
 
                 // then
                 cache.Count.Should().Be(0);

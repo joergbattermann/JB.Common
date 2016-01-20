@@ -196,8 +196,9 @@ namespace JB.Reactive.Cache
             CacheChangesObserver = _cacheChangesSubject.NotifyOn(NotificationScheduler);
 
             _expiredElementsSubscription = ExpiredElements
-                .ObserveOn(System.Reactive.Concurrency.Scheduler.Default)
-                .Buffer(ExpiredElementsBufferWindowTimeSpan)
+                .ObserveOn(ExpirationScheduler)
+                .Buffer(ExpiredElementsBufferWindowTimeSpan, ExpirationScheduler)
+                .Where(bufferedElements => bufferedElements != null && bufferedElements.Count > 0)
                 .SelectMany(x => Observable.FromAsync(token => HandleAndNotifyObserversAboutExpiredElementsAsync(x, token))) // this is somewhat of a hack to migrate from RX over to TPL / async handling
                 .Subscribe(
                     _ => { }, // nothing to do here per element - it's all done in the .SelectMany() call
