@@ -311,6 +311,36 @@ namespace JB.Reactive.Cache.Tests
         }
 
         [Fact]
+        public void ShouldExpireElementWithCorrespondingExpiryTimeWhenDue()
+        {
+            // given
+            var testScheduler = new TestScheduler();
+            var expirationTimeoutInTicks = 10;
+
+            using (var cache = new ObservableInMemoryCache<int, string>(expiredElementsHandlingChillPeriod: TimeSpan.FromTicks(expirationTimeoutInTicks), expirationScheduler: testScheduler))
+            {
+                testScheduler.Schedule(
+                    TimeSpan.Zero,
+                    async (scheduler, token) =>
+                    {
+                        await cache.Add(1, "One", TimeSpan.FromTicks(expirationTimeoutInTicks), ObservableCacheExpirationType.Remove);
+                    });
+
+                // when
+                testScheduler.AdvanceBy(expirationTimeoutInTicks);
+
+                // then
+                cache.Count.Should().Be(1);
+
+                // but when
+                testScheduler.AdvanceBy(expirationTimeoutInTicks);
+
+                // then
+                cache.Count.Should().Be(0);
+            }
+        }
+
+        [Fact]
         public void ShouldExpireAndRemoveMultipleElementsWithDifferentExpiryTimesForRemovalExpiryType()
         {
             // given
