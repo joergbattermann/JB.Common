@@ -75,13 +75,21 @@ namespace JB.Reactive.Cache
         protected TimeSpan DefaultExpiry { get; } = TimeSpan.FromMilliseconds(Int32.MaxValue);
 
         /// <summary>
+        /// Gets the default expired elements buffer time span.
+        /// </summary>
+        /// <value>
+        /// The default expired elements buffer time span.
+        /// </value>
+        protected TimeSpan DefaultExpiredElementsHandlingChillPeriod { get; } = TimeSpan.FromSeconds(1);
+
+        /// <summary>
         /// Internally expired elements are handled in bulk rather than one by one
         /// and this time span defines how long / large these windows each are. 
         /// </summary>
         /// <value>
         /// The buffer window time span.
         /// </value>
-        protected TimeSpan ExpiredElementsBufferWindowTimeSpan { get; }
+        protected TimeSpan ExpiredElementsHandlingChillPeriod { get; }
 
         /// <summary>
         /// Gets the scheduler for observer / event notifications.
@@ -130,7 +138,7 @@ namespace JB.Reactive.Cache
         /// The multiple keys updater.
         /// </value>
         protected Func<IEnumerable<TKey>, IEnumerable<KeyValuePair<TKey, TValue>>> MultipleKeysUpdater { get; }
-
+        
         /// <summary>
         /// Initializes a new instance of the <see cref="T:ObservableInMemoryCache" />.
         /// </summary>
@@ -139,29 +147,36 @@ namespace JB.Reactive.Cache
         /// <param name="singleKeyUpdater">The action that will be invoked whenever a single key has expired and has his expiration type set to <see cref="ObservableCacheExpirationType.Update"/>.</param>
         /// <param name="multipleKeysUpdater">
         ///     The action that will be invoked whenever multiple keys have expired and had their expiration type set to <see cref="ObservableCacheExpirationType.Update"/>.
-        ///     This is internally preferred over <paramref name="singleKeyUpdater"/> if more than one element has expired within a given <paramref name="expiredElementsBufferInMilliseconds"/>.
+        ///     This is internally preferred over <paramref name="singleKeyUpdater"/> if more than one element has expired within a given <paramref name="expiredElementsHandlingChillPeriod"/>.
         /// </param>
-        /// <param name="expiredElementsBufferInMilliseconds">Expired elements are internally handled every <paramref name="expiredElementsBufferInMilliseconds"/>
-        ///     in bulk rather than the very moment they expire and this value allows to specify the time window inbetween each expiration handling activities.</param>
+        /// <param name="expiredElementsHandlingChillPeriod">Expired elements are internally handled every <paramref name="expiredElementsHandlingChillPeriod"/>
+        ///     and thereby in bulk rather than the very moment they expire.
+        ///     This value allows to specify the time window inbetween each expiration handling process.</param>
         /// <param name="expirationScheduler">
         ///     The <see cref="IScheduler"/> to to schedule and run elements' expiration handling on.
-        ///     If none is provided <see cref="System.Reactive.Concurrency.Scheduler.Default"/> will be used.
+        ///     If none is provided <see>
+        ///         <cref>System.Reactive.Concurrency.Scheduler.Default</cref>
+        ///     </see>
+        ///     will be used.
         /// </param>
         /// <param name="notificationScheduler">
         ///     The <see cref="IScheduler"/> to to send out observer messages and raise events on.
-        ///     If none is provided <see cref="System.Reactive.Concurrency.Scheduler.CurrentThread"/> will be used.
+        ///     If none is provided <see>
+        ///         <cref>System.Reactive.Concurrency.Scheduler.CurrentThread</cref>
+        ///     </see>
+        ///     will be used.
         /// </param>
         public ObservableInMemoryCache(
             IEqualityComparer<TKey> keyComparer = null,
             IEqualityComparer<TValue> valueComparer = null,
             Func<TKey, TValue> singleKeyUpdater = null,
             Func<IEnumerable<TKey>, IEnumerable<KeyValuePair<TKey, TValue>>> multipleKeysUpdater = null,
-            int expiredElementsBufferInMilliseconds = 5000,
+            TimeSpan? expiredElementsHandlingChillPeriod = null,
             IScheduler expirationScheduler = null,
             IScheduler notificationScheduler = null)
         {
-            if(expiredElementsBufferInMilliseconds < 0)
-                throw new ArgumentOutOfRangeException(nameof(expiredElementsBufferInMilliseconds), "Must be 0 or higher");
+            if(expiredElementsHandlingChillPeriod.HasValue && expiredElementsHandlingChillPeriod.Value < TimeSpan.Zero)
+                throw new ArgumentOutOfRangeException(nameof(expiredElementsHandlingChillPeriod), "Must be 0 Ticks or more");
 
             NotificationScheduler = notificationScheduler ?? Scheduler.CurrentThread;
             ExpirationScheduler = expirationScheduler ?? Scheduler.Default;
@@ -178,7 +193,7 @@ namespace JB.Reactive.Cache
                 scheduler: notificationScheduler);
 
             ThresholdAmountWhenChangesAreNotifiedAsReset = Int32.MaxValue;
-            ExpiredElementsBufferWindowTimeSpan = TimeSpan.FromMilliseconds(expiredElementsBufferInMilliseconds);
+            ExpiredElementsHandlingChillPeriod = expiredElementsHandlingChillPeriod ?? DefaultExpiredElementsHandlingChillPeriod;
 
             SetupObservablesAndObserversAndSubjects();
         }
@@ -197,9 +212,9 @@ namespace JB.Reactive.Cache
 
             _expiredElementsSubscription = ExpiredElements
                 .ObserveOn(ExpirationScheduler)
-                .Buffer(ExpiredElementsBufferWindowTimeSpan, ExpirationScheduler)
+                .Buffer(ExpiredElementsHandlingChillPeriod, ExpirationScheduler)
                 .Where(bufferedElements => bufferedElements != null && bufferedElements.Count > 0)
-                .SelectMany(x => Observable.FromAsync(token => HandleAndNotifyObserversAboutExpiredElementsAsync(x, token))) // this is somewhat of a hack to migrate from RX over to TPL / async handling
+                .SelectMany(ExpiredElementsToObservable) // this is somewhat of a hack to migrate from RX over to TPL / async handling
                 .Subscribe(
                     _ => { }, // nothing to do here per element - it's all done in the .SelectMany() call
                     exception =>
@@ -213,17 +228,41 @@ namespace JB.Reactive.Cache
         }
 
         /// <summary>
-        /// Handles and notifies observers about expired elements.
+        /// Converts the <paramref name="expiredElements"/> to an observable stream.
         /// </summary>
         /// <param name="expiredElements">The expired elements.</param>
-        /// <param name="cancellationToken">The cancellation token.</param>
         /// <returns></returns>
-        protected virtual async Task HandleAndNotifyObserversAboutExpiredElementsAsync(
-                    IList<ObservableCachedElement<TKey, TValue>> expiredElements,
-                    CancellationToken cancellationToken = default(CancellationToken))
+        protected virtual IObservable<Unit> ExpiredElementsToObservable(IList<ObservableCachedElement<TKey, TValue>> expiredElements)
         {
             // ToDo: this needs to be decomposed into smaller functional units.. quite a lot
 
+            return Observable.Create<Unit>(observer =>
+            {
+                try
+                {
+                    CheckForAndThrowIfDisposed(false);
+
+                    HandleAndNotifyObserversAboutExpiredElements(expiredElements);
+
+                    observer.OnNext(Unit.Default);
+                    observer.OnCompleted();
+                }
+                catch (Exception exception)
+                {
+                    observer.OnError(exception);
+                }
+
+                return Disposable.Empty;
+            });
+        }
+
+        /// <summary>
+        /// Handles and notifies observers about expired elements.
+        /// </summary>
+        /// <param name="expiredElements">The expired elements.</param>
+        /// <returns></returns>
+        protected virtual void HandleAndNotifyObserversAboutExpiredElements(IList<ObservableCachedElement<TKey, TValue>> expiredElements)
+        {
             CheckForAndThrowIfDisposed(false);
 
             // return early if the current batch is null/empty
@@ -235,21 +274,15 @@ namespace JB.Reactive.Cache
             if (actuallyExpiredElements.Count == 0)
                 return;
 
-            cancellationToken.ThrowIfCancellationRequested();
-
             // then check which of the ones marked as expired are actually still in the cache
-            var keysStillInCache = await ContainsWhich(actuallyExpiredElements.Select(element => element.Key)).ToList();
+            var keysStillInCache = actuallyExpiredElements.Select(element => element.Key).Where(key => InnerDictionary.ContainsKey(key)).ToList();
             var expiredElementsStillInCache = actuallyExpiredElements.Where(element => keysStillInCache.Contains(element.Key, KeyComparer)).ToList();
             if (expiredElementsStillInCache.Count == 0)
                 return;
-
-            cancellationToken.ThrowIfCancellationRequested();
-
+            
             // then go ahead and signal expiration for those filtered down elements to observers
             foreach (var expiredElement in expiredElementsStillInCache)
             {
-                cancellationToken.ThrowIfCancellationRequested();
-
                 try
                 {
                     CacheChangesObserver.OnNext(ObservableCacheChange<TKey, TValue>.ItemExpired(
@@ -270,15 +303,11 @@ namespace JB.Reactive.Cache
                         throw;
                 }
             }
-
-            cancellationToken.ThrowIfCancellationRequested();
-
+            
             // then split them up by expiry type
             var elementsGroupedByExpirationType = expiredElementsStillInCache.GroupBy(element => element.ExpirationType);
             foreach (var grouping in elementsGroupedByExpirationType)
             {
-                cancellationToken.ThrowIfCancellationRequested();
-
                 var elementsForExpirationType = grouping.ToDictionary(element => element.Key, element => element);
                 if (elementsForExpirationType.Count == 0)
                     continue;
@@ -286,74 +315,69 @@ namespace JB.Reactive.Cache
                 switch (grouping.Key)
                 {
                     case ObservableCacheExpirationType.Remove:
-                    {
-                        // Using .TryRemove on innerdictionary to remove only those with the same / original value as expired
-                        // (to prevent deletion of elements that had changed in the meantime)
-                        IList<KeyValuePair<TKey, ObservableCachedElement<TKey, TValue>>> actuallyRemovedKeys;
-                        InnerDictionary.TryRemoveRange(elementsForExpirationType, out actuallyRemovedKeys);
-                        foreach (var removedElement in actuallyRemovedKeys)
                         {
-                            RemoveFromEventAndNotificationsHandling(removedElement.Value);
-                        }
-
-                        break;
-                    }
-                    case ObservableCacheExpirationType.Update:
-                    {
-                        if (SingleKeyUpdater == null && MultipleKeysUpdater == null)
-                        {
-                            throw new InvalidOperationException($"Neither a {nameof(SingleKeyUpdater)} nor {nameof(MultipleKeysUpdater)} has been specified at construction of this instance and therefore {typeof(ObservableCacheExpirationType)} of type {grouping.Key} cannot be handled.");
-                        }
-
-                        cancellationToken.ThrowIfCancellationRequested();
-                        var elementsStillInCache = elementsForExpirationType
-                            .Where(keyValuePair => ((ICollection<KeyValuePair<TKey, ObservableCachedElement<TKey, TValue>>>)InnerDictionary).Contains(keyValuePair))
-                            .Select(keyValuePair => keyValuePair.Value)
-                            .ToList();
-
-                        if (elementsStillInCache.Count == 0)
-                                break;
-
-                        if (elementsStillInCache.Count == 1 && SingleKeyUpdater != null)
-                        {
-                            var element = elementsStillInCache.FirstOrDefault();
-                            if (element == null || !InnerDictionary.ContainsKey(element.Key))
-                                break;
-
-                            UpdateValueForCachedElementAndRemoveOldOneFromEventHandling(
-                                element,
-                                RetrieveUpdatedValueForSingleElement(element, SingleKeyUpdater));
-                        }
-                        else
-                        {
-                            cancellationToken.ThrowIfCancellationRequested();
-                                
-                            if (MultipleKeysUpdater != null)
+                            // Using .TryRemove on innerdictionary to remove only those with the same / original value as expired
+                            // (to prevent deletion of elements that had changed in the meantime)
+                            IList<KeyValuePair<TKey, ObservableCachedElement<TKey, TValue>>> actuallyRemovedKeys;
+                            InnerDictionary.TryRemoveRange(elementsForExpirationType, out actuallyRemovedKeys);
+                            foreach (var removedElement in actuallyRemovedKeys)
                             {
-                                UpdateValuesForCachedElementsAndRemoveOldOnesFromEventHandling(
-                                    elementsStillInCache,
-                                    RetrieveUpdatedValuesForMultipleElements(elementsStillInCache, MultipleKeysUpdater));
+                                RemoveFromEventAndNotificationsHandling(removedElement.Value);
+                            }
+
+                            break;
+                        }
+                    case ObservableCacheExpirationType.Update:
+                        {
+                            if (SingleKeyUpdater == null && MultipleKeysUpdater == null)
+                            {
+                                throw new InvalidOperationException($"Neither a {nameof(SingleKeyUpdater)} nor {nameof(MultipleKeysUpdater)} has been specified at construction of this instance and therefore {typeof(ObservableCacheExpirationType)} of type {grouping.Key} cannot be handled.");
+                            }
+                            
+                            var elementsStillInCache = elementsForExpirationType
+                                .Where(keyValuePair => ((ICollection<KeyValuePair<TKey, ObservableCachedElement<TKey, TValue>>>)InnerDictionary).Contains(keyValuePair))
+                                .Select(keyValuePair => keyValuePair.Value)
+                                .ToList();
+
+                            if (elementsStillInCache.Count == 0)
+                                break;
+
+                            if (elementsStillInCache.Count == 1 && SingleKeyUpdater != null)
+                            {
+                                var element = elementsStillInCache.FirstOrDefault();
+                                if (element == null || !InnerDictionary.ContainsKey(element.Key))
+                                    break;
+
+                                UpdateValueForCachedElementAndRemoveOldOneFromEventHandling(
+                                    element,
+                                    RetrieveUpdatedValueForSingleElement(element, SingleKeyUpdater));
                             }
                             else
                             {
-                                foreach (var elementStillInCache in elementsStillInCache)
+                                if (MultipleKeysUpdater != null)
                                 {
-                                    cancellationToken.ThrowIfCancellationRequested();
-
-                                    UpdateValueForCachedElementAndRemoveOldOneFromEventHandling(
-                                        elementStillInCache,
-                                        RetrieveUpdatedValueForSingleElement(elementStillInCache, SingleKeyUpdater));
+                                    UpdateValuesForCachedElementsAndRemoveOldOnesFromEventHandling(
+                                        elementsStillInCache,
+                                        RetrieveUpdatedValuesForMultipleElements(elementsStillInCache, MultipleKeysUpdater));
+                                }
+                                else
+                                {
+                                    foreach (var elementStillInCache in elementsStillInCache)
+                                    {
+                                        UpdateValueForCachedElementAndRemoveOldOneFromEventHandling(
+                                            elementStillInCache,
+                                            RetrieveUpdatedValueForSingleElement(elementStillInCache, SingleKeyUpdater));
+                                    }
                                 }
                             }
+                            break;
                         }
-                        break;
-                    }
                     default:
                         throw new InvalidOperationException($"The expired elements contain at least one unknown / unhandled {typeof(ObservableCacheExpirationType)}: '{grouping.Key}'");
                 }
             }
         }
-
+        
         private void UpdateValuesForCachedElementsAndRemoveOldOnesFromEventHandling(
             IList<ObservableCachedElement<TKey, TValue>> originalElements,
             IList<ObservableCachedElement<TKey, TValue>> updatedElements)

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reactive.Concurrency;
 using System.Threading.Tasks;
 using FluentAssertions;
 using System.Reactive.Linq;
@@ -138,17 +139,23 @@ namespace JB.Reactive.Cache.Tests
         }
 
         [Fact]
-        public async Task ShouldExpireAndRemoveSingleElementForRemovalExpiryType()
+        public void ShouldExpireAndRemoveSingleElementForRemovalExpiryType()
         {
             // given
-            var scheduler = new TestScheduler();
-            var expirationTimeoutInMilliseconds = 0;
-            using (var cache = new ObservableInMemoryCache<int, string>(expiredElementsBufferInMilliseconds: expirationTimeoutInMilliseconds, expirationScheduler: scheduler))
+            var testScheduler = new TestScheduler();
+            var expirationTimeoutInTicks = 10;
+
+            using (var cache = new ObservableInMemoryCache<int, string>(expiredElementsHandlingChillPeriod: TimeSpan.FromTicks(expirationTimeoutInTicks), expirationScheduler: testScheduler))
             {
-                await cache.Add(1, "One", TimeSpan.FromTicks(1), ObservableCacheExpirationType.Remove);
+                testScheduler.Schedule(
+                    TimeSpan.Zero,
+                    async (scheduler, token) =>
+                    {
+                        await cache.Add(1, "One", TimeSpan.FromTicks(1), ObservableCacheExpirationType.Remove);
+                    });
 
                 // when
-                scheduler.Start();
+                testScheduler.AdvanceBy(expirationTimeoutInTicks);
 
                 // then
                 cache.Count.Should().Be(0);
@@ -159,16 +166,27 @@ namespace JB.Reactive.Cache.Tests
         public async Task ShouldExpireAndUpdateSingleElementWithSingleKeyUpdaterFuncForUpdateExpiryType()
         {
             // given
+            var testScheduler = new TestScheduler();
+            var expirationTimeoutInTicks = 10;
+
             Func<int, string> singleKeyUpdater = (i) => i.ToString();
-            using (var cache = new ObservableInMemoryCache<int, string>(singleKeyUpdater: singleKeyUpdater, expiredElementsBufferInMilliseconds: 0))
+
+            using (var cache = new ObservableInMemoryCache<int, string>(singleKeyUpdater: singleKeyUpdater, expiredElementsHandlingChillPeriod: TimeSpan.FromTicks(expirationTimeoutInTicks), expirationScheduler: testScheduler))
             {
-                await cache.Add(1, "One", TimeSpan.Zero, ObservableCacheExpirationType.Update);
+                testScheduler.Schedule(
+                    TimeSpan.Zero,
+                    async (scheduler, token) =>
+                    {
+                        await cache.Add(1, "One", TimeSpan.Zero, ObservableCacheExpirationType.Update);
+                    });
+
 
                 // when
-                await Task.Delay(TimeSpan.FromMilliseconds(500));
-                var updatedValue = await cache.Get(1);
+                testScheduler.AdvanceBy(expirationTimeoutInTicks);
 
                 // then
+                var updatedValue = await cache.Get(1);
+
                 cache.Count.Should().Be(1);
                 updatedValue.Should().Be("1");
             }
@@ -178,18 +196,28 @@ namespace JB.Reactive.Cache.Tests
         public async Task ShouldExpireAndUpdateMultipleElementsWithSingleKeyUpdaterFuncForUpdateExpiryType()
         {
             // given
+            var testScheduler = new TestScheduler();
+            var expirationTimeoutInTicks = 10;
+
             Func<int, string> singleKeyUpdater = (i) => i.ToString();
-            using (var cache = new ObservableInMemoryCache<int, string>(singleKeyUpdater: singleKeyUpdater, expiredElementsBufferInMilliseconds: 10))
+
+            using (var cache = new ObservableInMemoryCache<int, string>(singleKeyUpdater: singleKeyUpdater, expiredElementsHandlingChillPeriod: TimeSpan.FromTicks(expirationTimeoutInTicks), expirationScheduler: testScheduler))
             {
-                await cache.Add(1, "One", TimeSpan.Zero, ObservableCacheExpirationType.Update);
-                await cache.Add(2, "Two", TimeSpan.Zero, ObservableCacheExpirationType.Update);
+                testScheduler.Schedule(
+                    TimeSpan.Zero,
+                    async (scheduler, token) =>
+                    {
+                        await cache.Add(1, "One", TimeSpan.Zero, ObservableCacheExpirationType.Update);
+                        await cache.Add(2, "Two", TimeSpan.Zero, ObservableCacheExpirationType.Update);
+                    });
 
                 // when
-                await Task.Delay(TimeSpan.FromMilliseconds(200));
+                testScheduler.AdvanceBy(expirationTimeoutInTicks);
+
+                // then
                 var updatedValueOne = await cache.Get(1);
                 var updatedValueTwo = await cache.Get(2);
 
-                // then
                 cache.Count.Should().Be(2);
                 updatedValueOne.Should().Be("1");
                 updatedValueTwo.Should().Be("2");
@@ -200,16 +228,26 @@ namespace JB.Reactive.Cache.Tests
         public async Task ShouldExpireAndUpdateSingleElementWithMultipleKeyUpdaterFuncForUpdateExpiryType()
         {
             // given
+            var testScheduler = new TestScheduler();
+            var expirationTimeoutInTicks = 10;
+
             Func<IEnumerable<int>, IEnumerable<KeyValuePair<int, string>>> multipleKeysUpdater = (ints) => { return ints.ToDictionary(i => i, i => i.ToString()); };
-            using (var cache = new ObservableInMemoryCache<int, string>(multipleKeysUpdater: multipleKeysUpdater, expiredElementsBufferInMilliseconds: 0))
+
+            using (var cache = new ObservableInMemoryCache<int, string>(multipleKeysUpdater: multipleKeysUpdater, expiredElementsHandlingChillPeriod: TimeSpan.FromTicks(expirationTimeoutInTicks), expirationScheduler: testScheduler))
             {
-                await cache.Add(1, "One", TimeSpan.Zero, ObservableCacheExpirationType.Update);
+                testScheduler.Schedule(
+                    TimeSpan.Zero,
+                    async (scheduler, token) =>
+                    {
+                        await cache.Add(1, "One", TimeSpan.Zero, ObservableCacheExpirationType.Update);
+                    });
 
                 // when
-                await Task.Delay(TimeSpan.FromMilliseconds(500));
-                var updatedValue = await cache.Get(1);
+                testScheduler.AdvanceBy(expirationTimeoutInTicks);
 
                 // then
+                var updatedValue = await cache.Get(1);
+
                 cache.Count.Should().Be(1);
                 updatedValue.Should().Be("1");
             }
@@ -219,18 +257,28 @@ namespace JB.Reactive.Cache.Tests
         public async Task ShouldExpireAndUpdateMultipleElementsWithMultipleKeyUpdaterFuncForUpdateExpiryType()
         {
             // given
+            var testScheduler = new TestScheduler();
+            var expirationTimeoutInTicks = 10;
+
             Func<IEnumerable<int>, IEnumerable<KeyValuePair<int, string>>> multipleKeysUpdater = (ints) => { return ints.ToDictionary(i => i, i => i.ToString()); };
-            using (var cache = new ObservableInMemoryCache<int, string>(multipleKeysUpdater: multipleKeysUpdater, expiredElementsBufferInMilliseconds: 10))
+
+            using (var cache = new ObservableInMemoryCache<int, string>(multipleKeysUpdater: multipleKeysUpdater, expiredElementsHandlingChillPeriod: TimeSpan.FromTicks(expirationTimeoutInTicks), expirationScheduler: testScheduler))
             {
-                await cache.Add(1, "One", TimeSpan.Zero, ObservableCacheExpirationType.Update);
-                await cache.Add(2, "Two", TimeSpan.Zero, ObservableCacheExpirationType.Update);
+                testScheduler.Schedule(
+                    TimeSpan.Zero,
+                    async (scheduler, token) =>
+                    {
+                        await cache.Add(1, "One", TimeSpan.Zero, ObservableCacheExpirationType.Update);
+                        await cache.Add(2, "Two", TimeSpan.Zero, ObservableCacheExpirationType.Update);
+                    });
 
                 // when
-                await Task.Delay(TimeSpan.FromMilliseconds(200));
+                testScheduler.AdvanceBy(expirationTimeoutInTicks);
+
+                // then
                 var updatedValueOne = await cache.Get(1);
                 var updatedValueTwo = await cache.Get(2);
 
-                // then
                 cache.Count.Should().Be(2);
                 updatedValueOne.Should().Be("1");
                 updatedValueTwo.Should().Be("2");
@@ -238,16 +286,24 @@ namespace JB.Reactive.Cache.Tests
         }
 
         [Fact]
-        public async Task ShouldNotExpireElementWithCorrespondingExpiryTime()
+        public void ShouldNotExpireElementWithCorrespondingExpiryTime()
         {
             // given
-            using (var cache = new ObservableInMemoryCache<int, string>(expiredElementsBufferInMilliseconds: 0))
+            var testScheduler = new TestScheduler();
+            var expirationTimeoutInTicks = 10;
+
+            using (var cache = new ObservableInMemoryCache<int, string>(expiredElementsHandlingChillPeriod: TimeSpan.FromTicks(expirationTimeoutInTicks), expirationScheduler: testScheduler))
             {
-                await cache.Add(1, "One", TimeSpan.Zero, ObservableCacheExpirationType.Remove);
-                await cache.Add(2, "Two", TimeSpan.FromDays(10), ObservableCacheExpirationType.Remove);
+                testScheduler.Schedule(
+                    TimeSpan.Zero,
+                    async (scheduler, token) =>
+                    {
+                        await cache.Add(1, "One", TimeSpan.Zero, ObservableCacheExpirationType.Remove);
+                        await cache.Add(2, "Two", TimeSpan.FromDays(10), ObservableCacheExpirationType.Remove);
+                    });
 
                 // when
-                await Task.Delay(TimeSpan.FromMilliseconds(200));
+                testScheduler.AdvanceBy(expirationTimeoutInTicks);
 
                 // then
                 cache.Count.Should().Be(1);
@@ -255,16 +311,24 @@ namespace JB.Reactive.Cache.Tests
         }
 
         [Fact]
-        public async Task ShouldExpireAndRemoveMultipleElementsWithDifferentExpiryTimesForRemovalExpiryType()
+        public void ShouldExpireAndRemoveMultipleElementsWithDifferentExpiryTimesForRemovalExpiryType()
         {
             // given
-            using (var cache = new ObservableInMemoryCache<int, string>(expiredElementsBufferInMilliseconds: 0))
+            var testScheduler = new TestScheduler();
+            var expirationTimeoutInTicks = 10;
+
+            using (var cache = new ObservableInMemoryCache<int, string>(expiredElementsHandlingChillPeriod: TimeSpan.FromTicks(expirationTimeoutInTicks), expirationScheduler: testScheduler))
             {
-                await cache.Add(1, "One", TimeSpan.Zero, ObservableCacheExpirationType.Remove);
-                await cache.Add(2, "Two", TimeSpan.FromMilliseconds(2), ObservableCacheExpirationType.Remove);
+                testScheduler.Schedule(
+                    TimeSpan.Zero,
+                    async (scheduler, token) =>
+                    {
+                        await cache.Add(1, "One", TimeSpan.FromTicks(1), ObservableCacheExpirationType.Remove);
+                        await cache.Add(2, "Two", TimeSpan.FromTicks(2), ObservableCacheExpirationType.Remove);
+                    });
 
                 // when
-                await Task.Delay(TimeSpan.FromMilliseconds(200));
+                testScheduler.AdvanceBy(expirationTimeoutInTicks);
 
                 // then
                 cache.Count.Should().Be(0);
