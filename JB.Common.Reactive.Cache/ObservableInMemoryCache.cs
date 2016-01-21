@@ -249,7 +249,17 @@ namespace JB.Reactive.Cache
                 }
                 catch (Exception exception)
                 {
-                    observer.OnError(exception);
+                    var observerException = new ObserverException(
+                        $"An error occured handling expired elements of this {this.GetType().Name}.",
+                        exception);
+
+                    ObserverExceptionsObserver.OnNext(observerException);
+
+                    if (observerException.Handled == false)
+                    {
+                        observer.OnError(exception);
+                        throw;
+                    }
                 }
 
                 return Disposable.Empty;
@@ -1403,7 +1413,10 @@ namespace JB.Reactive.Cache
         {
             get
             {
-                return _cacheChangesSubject.TakeWhile(_ => !IsDisposing && !IsDisposed).Where(change => change.ChangeType == ObservableCacheChangeType.ItemExpired).SkipContinuouslyWhile(change => !IsTrackingItemChanges);
+                return _cacheChangesSubject.
+                    TakeWhile(_ => !IsDisposing && !IsDisposed)
+                    .Where(change => change.ChangeType == ObservableCacheChangeType.ItemExpired)
+                    .SkipContinuouslyWhile(change => !IsTrackingItemChanges);
             }
         }
 
@@ -1417,7 +1430,8 @@ namespace JB.Reactive.Cache
         {
             get
             {
-                return _expiredElementsSubject.TakeWhile(_ => !IsDisposing && !IsDisposed);
+                return _expiredElementsSubject
+                    .TakeWhile(_ => !IsDisposing && !IsDisposed);
             }
         }
 

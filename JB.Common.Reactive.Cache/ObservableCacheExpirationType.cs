@@ -9,6 +9,7 @@ namespace JB.Reactive.Cache
 {
     public enum ObservableCacheExpirationType
     {
+        DoNothing,
         Remove,
         Update
     }

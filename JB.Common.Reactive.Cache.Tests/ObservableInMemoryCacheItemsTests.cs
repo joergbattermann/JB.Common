@@ -139,6 +139,30 @@ namespace JB.Reactive.Cache.Tests
         }
 
         [Fact]
+        public void ShouldExpireAndKeepSingleElementForDoNothingExpiryType()
+        {
+            // given
+            var testScheduler = new TestScheduler();
+            var expirationTimeoutInTicks = 10;
+
+            using (var cache = new ObservableInMemoryCache<int, string>(expiredElementsHandlingChillPeriod: TimeSpan.FromTicks(expirationTimeoutInTicks), expirationScheduler: testScheduler))
+            {
+                testScheduler.Schedule(
+                    TimeSpan.Zero,
+                    async (scheduler, token) =>
+                    {
+                        await cache.Add(1, "One", TimeSpan.Zero, ObservableCacheExpirationType.DoNothing);
+                    });
+
+                // when
+                testScheduler.AdvanceBy(expirationTimeoutInTicks * 10);
+
+                // then
+                cache.Count.Should().Be(1);
+            }
+        }
+
+        [Fact]
         public void ShouldExpireAndRemoveSingleElementForRemovalExpiryType()
         {
             // given
