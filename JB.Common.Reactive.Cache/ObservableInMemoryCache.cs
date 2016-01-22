@@ -324,6 +324,11 @@ namespace JB.Reactive.Cache
 
                 switch (grouping.Key)
                 {
+                    case ObservableCacheExpirationType.DoNothing:
+                    {
+                        // keep as is & do nothing in particular
+                        break;
+                    }
                     case ObservableCacheExpirationType.Remove:
                         {
                             // Using .TryRemove on innerdictionary to remove only those with the same / original value as expired
@@ -1198,7 +1203,13 @@ namespace JB.Reactive.Cache
             {
                 try
                 {
-                    observer.OnNext(InnerDictionary[key].Value);
+                    var cachedElement = InnerDictionary[key];
+
+                    if (cachedElement.HasExpired)
+                        throw new KeyHasExpiredException<TKey>(key, cachedElement.ExpiresAt());
+
+                    // else
+                    observer.OnNext(cachedElement.Value);
                     observer.OnCompleted();
                 }
                 catch (Exception exception)
@@ -1228,7 +1239,9 @@ namespace JB.Reactive.Cache
 
             CheckForAndThrowIfDisposed();
 
-            return scheduler != null ? keys.Select(Get).Merge(maxConcurrent, scheduler) : keys.Select(Get).Merge(maxConcurrent);
+            return scheduler != null
+                ? keys.Select(Get).Merge(maxConcurrent, scheduler)
+                : keys.Select(Get).Merge(maxConcurrent);
         }
 
         /// <summary>

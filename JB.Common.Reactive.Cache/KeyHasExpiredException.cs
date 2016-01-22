@@ -29,7 +29,7 @@ namespace JB.Reactive.Cache
         /// <param name="innerException">The exception that is the cause of the current exception, or a null reference if no inner exception is specified. </param>
         /// <exception cref="System.ArgumentNullException"></exception>
         public KeyHasExpiredException(string message, Exception innerException)
-            : base(message ?? string.Empty, innerException)
+            : base(message ?? "The key has expired.", innerException)
         {
             if (innerException == null)
                 throw new ArgumentNullException(nameof(innerException));
@@ -41,8 +41,8 @@ namespace JB.Reactive.Cache
         /// <param name="key">The expired key.</param>
         /// <param name="expiredAt">The <see cref="DateTime"/> the <see cref="Key"/> has expired.</param>
         /// <param name="message">The message that describes the error. </param>
-        public KeyHasExpiredException(TKey key, DateTime expiredAt, string message = "The key has already expired.")
-            : base(message ?? string.Empty)
+        public KeyHasExpiredException(TKey key, DateTime expiredAt, string message = null)
+            : base(message ?? $"The {nameof(key)} has expired on {expiredAt}.")
         {
             Key = key;
             ExpiredAt = expiredAt;

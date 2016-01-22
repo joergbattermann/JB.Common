@@ -16,6 +16,7 @@ namespace JB.Reactive.Cache
 {
     public class ObservableCachedElement<TKey, TValue> : INotifyPropertyChanged, IDisposable
     {
+        private IScheduler _expirationScheduler;
         private ObservableCacheExpirationType _expirationType;
         private DateTime _expiryDateTime;
         private TimeSpan _originalExpiry;
@@ -34,12 +35,19 @@ namespace JB.Reactive.Cache
         /// </value>
         public virtual bool HasExpired
         {
-            get { return Interlocked.Read(ref _hasExpired) == 1; }
+            get
+            {
+                CheckForAndThrowIfDisposed(false);
+
+                return Interlocked.Read(ref _hasExpired) == 1;
+            }
             protected set
             {
-                if (value == false && HasExpired)
-                    throw new InvalidOperationException($"Once {nameof(HasExpired)} has been set, it cannot be reset back to false.");
-                
+                CheckForAndThrowIfDisposed();
+
+                if (Equals(value, HasExpired))
+                    return;
+               
                 Interlocked.Exchange(ref _hasExpired, value ? 1 : 0);
                 RaisePropertyChanged();
             }
@@ -124,26 +132,78 @@ namespace JB.Reactive.Cache
 
             CheckForAndThrowIfDisposed();
 
-            if (HasExpired)
-                throw new KeyHasExpiredException<TKey>(Key, ExpiryDateTime);
-
             lock (_expiryModificationLocker)
             {
                 // cancel an existing, scheduled expiration
-                _expirySchedulerCancellationDisposable?.Dispose();
-                
-                // set 'new' expiry datetime
-                ExpiryDateTime = CalculateExpiryDateTime(expiry);
-                OriginalExpiry = expiry;
+                try
+                {
+                    _expirySchedulerCancellationDisposable?.Dispose();
+                    _expirySchedulerCancellationDisposable = null;
+                }
+                catch (Exception exception)
+                {
+                    var observerException = new ObserverException($"An error occured cancelling a scheduled expiration of a {this.GetType().Name} instance.", exception);
 
-                _expirySchedulerCancellationDisposable = expirationScheduler.Schedule(expiry,
+                    observerExceptionsObserver.OnNext(observerException);
+
+                    if (observerException.Handled == false)
+                        throw;
+                }
+
+                try
+                {
+                    ExpirationScheduler = expirationScheduler;
+
+                    // set 'new' expiry datetime
+                    ExpiryDateTime = CalculateExpiryDateTime(expiry);
+                    OriginalExpiry = expiry;
+                }
+                catch (Exception exception)
+                {
+                    var observerException = new ObserverException($"An error occured updating expiration data of a {this.GetType().Name} instance.", exception);
+
+                    observerExceptionsObserver.OnNext(observerException);
+
+                    if (observerException.Handled == false)
+                        throw;
+                }
+                
+                if (isUpdate)
+                {
+                    try
+                    {
+                        if (HasExpired)
+                        {
+                            HasExpired = false;
+                            AddValueToPropertyChangedHandling(Value);
+                        }
+                    }
+                    catch (Exception exception)
+                    {
+                        var observerException = new ObserverException($"An error occured updating the expiration of a {this.GetType().Name} instance.", exception);
+
+                        observerExceptionsObserver.OnNext(observerException);
+
+                        if (observerException.Handled == false)
+                            throw;
+                    }
+                    finally
+                    {
+                        HasExpiryBeenUpdated = true;
+                    }
+                }
+
+                _expirySchedulerCancellationDisposable = ExpirationScheduler.Schedule(expiry,
                     () =>
                     {
-                        HasExpired = true;
-                        RemoveValueFromPropertyChangedHandling(Value);
-
                         try
                         {
+                            lock (_expiryModificationLocker)
+                            {
+                                RemoveValueFromPropertyChangedHandling(Value);
+                                HasExpired = true;
+                            }
+
                             expirationObserver.OnNext(this);
                         }
                         catch (Exception exception)
@@ -156,9 +216,6 @@ namespace JB.Reactive.Cache
                                 throw;
                         }
                     });
-
-                if(isUpdate)
-                    HasExpiryBeenUpdated = true;
             }
         }
         
@@ -169,17 +226,7 @@ namespace JB.Reactive.Cache
         /// <returns></returns>
         private TimeSpan CalculateExpirationTimespan(DateTime expirationDateTime)
         {
-            var now = DateTime.UtcNow;
-            var normalizedExpirationDateTime = expirationDateTime.ToUniversalTime();
-
-            if (now == normalizedExpirationDateTime)
-                return TimeSpan.Zero;
-
-            if (now < normalizedExpirationDateTime)
-                return expirationDateTime - now;
-
-            // else
-            return now - expirationDateTime;
+            return expirationDateTime.ToUniversalTime() - ExpirationScheduler.Now.UtcDateTime;
         }
         
         /// <summary>
@@ -273,14 +320,38 @@ namespace JB.Reactive.Cache
             private set
             {
                 CheckForAndThrowIfDisposed();
-
-                if (HasExpired)
-                    throw new InvalidOperationException($"Once {nameof(HasExpired)} has been set, expiration behavior cannot be changed anymore.");
-
+                
                 if (Equals(_expiryDateTime, value))
                     return;
 
                 _expiryDateTime = value;
+
+                RaisePropertyChanged();
+            }
+        }
+
+        /// <summary>
+        /// Gets the expiration <see cref="IScheduler"/> to schedule the expiration notification on.
+        /// </summary>
+        /// <value>
+        /// The expiration <see cref="IScheduler"/>.
+        /// </value>
+        protected IScheduler ExpirationScheduler
+        {
+            get
+            {
+                CheckForAndThrowIfDisposed();
+
+                return _expirationScheduler;
+            }
+            private set
+            {
+                CheckForAndThrowIfDisposed(false);
+
+                if (_expirationScheduler == value)
+                    return;
+
+                _expirationScheduler = value;
 
                 RaisePropertyChanged();
             }
@@ -339,7 +410,7 @@ namespace JB.Reactive.Cache
         {
             CheckForAndThrowIfDisposed();
 
-            return DateTime.Now.Add(ExpiresIn());
+            return ExpirationScheduler.Now.UtcDateTime.Add(ExpiresIn());
         }
 
         /// <summary>
@@ -415,7 +486,8 @@ namespace JB.Reactive.Cache
             if (HasExpired)
                 return;
 
-            _expirySchedulerCancellationDisposable.Dispose();
+            _expirySchedulerCancellationDisposable?.Dispose();
+            _expirySchedulerCancellationDisposable = null;
         }
 
         /// <summary>
@@ -428,7 +500,7 @@ namespace JB.Reactive.Cache
             if (expiry < TimeSpan.Zero)
                 throw new ArgumentOutOfRangeException(nameof(expiry), $"{nameof(expiry)} cannot be negative");
 
-            var now = DateTime.Now;
+            var now = ExpirationScheduler.Now.UtcDateTime;
             var maxExpiry = DateTime.MaxValue - now;
 
             if (expiry >= maxExpiry)
@@ -546,10 +618,12 @@ namespace JB.Reactive.Cache
                     _expirySchedulerCancellationDisposable?.Dispose();
                     _expirySchedulerCancellationDisposable = null;
 
-                    if (HasExpired == false)
+                    if (!HasExpired)
                     {
                         RemoveValueFromPropertyChangedHandling(Value);
                     }
+
+                    _expirationScheduler = null;
                 }
             }
             finally

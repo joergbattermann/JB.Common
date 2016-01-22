@@ -139,6 +139,27 @@ namespace JB.Reactive.Cache.Tests
         }
 
         [Fact]
+        public async Task ShouldExpireInReturnsAccurateExpiration()
+        {
+            // given
+            var testScheduler = new TestScheduler();
+            var expiresAtTicks = 10;
+
+            using (var cache = new ObservableInMemoryCache<int, string>(expirationScheduler: testScheduler))
+            {
+                await cache.Add(1, "One", TimeSpan.FromTicks(expiresAtTicks), ObservableCacheExpirationType.DoNothing);
+
+                // when
+                // testScheduler.AdvanceBy(expiresAtTicks);
+
+                var expiresIn = await cache.ExpiresIn(1);
+
+                // then
+                expiresIn.ShouldBeEquivalentTo(TimeSpan.FromTicks(expiresAtTicks));
+            }
+        }
+
+        [Fact]
         public void ShouldExpireAndKeepSingleElementForDoNothingExpiryType()
         {
             // given
@@ -159,6 +180,37 @@ namespace JB.Reactive.Cache.Tests
 
                 // then
                 cache.Count.Should().Be(1);
+            }
+        }
+
+        [Fact]
+        public void ShouldThrowKeyHasExpiredExceptionAfterKeyHasExpiredWithDoNothingExpiryType()
+        {
+            // given
+            var testScheduler = new TestScheduler();
+            var initialTestSchedulerDateTime = testScheduler.Now.DateTime;
+            var expirationTimeoutInTicks = 10;
+
+            using (var cache = new ObservableInMemoryCache<int, string>(expiredElementsHandlingChillPeriod: TimeSpan.FromTicks(expirationTimeoutInTicks), expirationScheduler: testScheduler))
+            {
+                testScheduler.Schedule(
+                    TimeSpan.Zero,
+                    async (scheduler, token) =>
+                    {
+                        await cache.Add(1, "One", TimeSpan.Zero, ObservableCacheExpirationType.DoNothing);
+                    });
+
+                // when
+                testScheduler.AdvanceBy(expirationTimeoutInTicks * 10);
+                Func<Task> action = async () =>
+                {
+                    await cache.Get(1);
+                };
+
+                // then
+                action
+                    .ShouldThrow<KeyHasExpiredException<int>>()
+                    .WithMessage($"The key has expired on {initialTestSchedulerDateTime}.");
             }
         }
 
