@@ -139,7 +139,7 @@ namespace JB.Reactive.Cache.Tests
         }
 
         [Fact]
-        public async Task ShouldExpireInReturnsAccurateExpiration()
+        public async Task ShouldExpireInAndAtProvideAccurateFutureNowAndPastExpirationInformation()
         {
             // given
             var testScheduler = new TestScheduler();
@@ -150,12 +150,30 @@ namespace JB.Reactive.Cache.Tests
                 await cache.Add(1, "One", TimeSpan.FromTicks(expiresAtTicks), ObservableCacheExpirationType.DoNothing);
 
                 // when
-                // testScheduler.AdvanceBy(expiresAtTicks);
-
                 var expiresIn = await cache.ExpiresIn(1);
+                var expiresAt = await cache.ExpiresAt(1);
 
                 // then
                 expiresIn.ShouldBeEquivalentTo(TimeSpan.FromTicks(expiresAtTicks));
+                expiresAt.ShouldBeEquivalentTo(testScheduler.Now.UtcDateTime.AddTicks(expiresAtTicks));
+
+                // and when
+                testScheduler.AdvanceBy(expiresAtTicks);
+                expiresIn = await cache.ExpiresIn(1);
+                expiresAt = await cache.ExpiresAt(1);
+
+                // then
+                expiresIn.ShouldBeEquivalentTo(TimeSpan.Zero);
+                expiresAt.ShouldBeEquivalentTo(testScheduler.Now.UtcDateTime);
+
+                // and finally when
+                testScheduler.AdvanceBy(expiresAtTicks);
+                expiresIn = await cache.ExpiresIn(1);
+                expiresAt = await cache.ExpiresAt(1);
+
+                // then
+                expiresIn.ShouldBeEquivalentTo(TimeSpan.FromTicks(expiresAtTicks * -1));
+                expiresAt.ShouldBeEquivalentTo(testScheduler.Now.UtcDateTime.Subtract(TimeSpan.FromTicks(expiresAtTicks)));
             }
         }
 
