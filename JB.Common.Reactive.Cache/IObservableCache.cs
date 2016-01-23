@@ -162,7 +162,7 @@ namespace JB.Reactive.Cache
         /// <returns>
         /// An observable stream that, when done, returns an <see cref="Unit" />.
         /// </returns>
-        IObservable<Unit> Update(IEnumerable<KeyValuePair<TKey, TValue>> keyValuePairs);
+        IObservable<Unit> UpdateRange(IEnumerable<KeyValuePair<TKey, TValue>> keyValuePairs);
 
         /// <summary>
         /// Updates the expiration behavior for the specified <paramref name="key"/>.

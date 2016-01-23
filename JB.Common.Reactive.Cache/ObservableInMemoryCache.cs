@@ -1493,7 +1493,7 @@ namespace JB.Reactive.Cache
         /// <returns>
         /// An observable stream that, when done, returns an <see cref="Unit" />.
         /// </returns>
-        public virtual IObservable<Unit> Update(IEnumerable<KeyValuePair<TKey, TValue>> keyValuePairs)
+        public virtual IObservable<Unit> UpdateRange(IEnumerable<KeyValuePair<TKey, TValue>> keyValuePairs)
         {
             throw new NotImplementedException();
         }
