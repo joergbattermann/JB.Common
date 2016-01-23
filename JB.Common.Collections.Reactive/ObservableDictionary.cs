@@ -286,16 +286,16 @@ namespace JB.Collections.Reactive
         /// <exception cref="T:System.ArgumentNullException">
         ///   <paramref name="items" /> is  null.</exception>
         /// <exception cref="T:System.OverflowException">The dictionary already contains the maximum number of elements (<see cref="F:System.Int32.MaxValue" />).</exception>
-        public virtual bool TryAddRange(IEnumerable<KeyValuePair<TKey, TValue>> items, out IList<KeyValuePair<TKey, TValue>> itemsThatCouldNotBeAdded)
+        public virtual bool TryAddRange(IEnumerable<KeyValuePair<TKey, TValue>> items, out IDictionary<TKey, TValue> itemsThatCouldNotBeAdded)
         {
             if (items == null) throw new ArgumentNullException(nameof(items));
 
             CheckForAndThrowIfDisposed();
 
-            itemsThatCouldNotBeAdded = new List<KeyValuePair<TKey, TValue>>();
+            itemsThatCouldNotBeAdded = new Dictionary<TKey, TValue>();
 
             var itemsAsList = items.ToList();
-            var itemsThatCouldBeAdded = new List<KeyValuePair<TKey, TValue>>();
+            IDictionary<TKey, TValue> itemsThatCouldBeAdded = new Dictionary<TKey, TValue>();
 
             if (itemsAsList.Count == 0)
                 return true;
@@ -2159,7 +2159,7 @@ namespace JB.Collections.Reactive
             if (itemsAsList.Count == 0)
                 return;
 
-            IList<KeyValuePair<TKey, TValue>> itemsThatCouldNotBeAdded;
+            IDictionary<TKey, TValue> itemsThatCouldNotBeAdded;
             if (TryAddRange(itemsAsList, out itemsThatCouldNotBeAdded) == false)
             {
                 throw new ArgumentOutOfRangeException(nameof(items),

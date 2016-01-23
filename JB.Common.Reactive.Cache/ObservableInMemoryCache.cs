@@ -1062,8 +1062,54 @@ namespace JB.Reactive.Cache
                 throw new ArgumentNullException(nameof(keyValuePairs));
             if (expirationType == ObservableCacheExpirationType.Update && (SingleKeyRetrievalAction == null && MultipleKeysRetrievalAction == null))
                 throw new ArgumentOutOfRangeException(nameof(expirationType), $"{nameof(expirationType)} cannot be set to {nameof(ObservableCacheExpirationType.Update)} if no {nameof(SingleKeyRetrievalAction)} or {nameof(MultipleKeysRetrievalAction)} had been specified at construction of this instance.");
+            
+            CheckForAndThrowIfDisposed();
 
-            throw new NotImplementedException();
+            return Observable.Create<Unit>(observer =>
+            {
+                try
+                {
+                    // first check which keys / elements ARE in the innerdictionary
+                    var cachedElementsForKeyValuePairs = keyValuePairs
+                        .ToDictionary(kvp => kvp.Key, kvp => new ObservableCachedElement<TKey, TValue>(kvp.Key, kvp.Value, expirationType));
+
+                    if (cachedElementsForKeyValuePairs.Count > 0)
+                    {
+                        IDictionary<TKey, ObservableCachedElement<TKey, TValue>> elementsThatCouldNotBeAdded;
+                        InnerDictionary.TryAddRange(cachedElementsForKeyValuePairs, out elementsThatCouldNotBeAdded);
+
+                        // and finally add to expiration / value changed notification etc
+                        var keysForNonAddedElements = elementsThatCouldNotBeAdded.Keys;
+                        foreach (var observableCachedElement in cachedElementsForKeyValuePairs.Where(element => !keysForNonAddedElements.Contains(element.Key, KeyComparer)))
+                        {
+                            AddToEventAndNotificationsHandlingAndStartExpiration(observableCachedElement.Value, expiry);
+                        }
+
+                        if (elementsThatCouldNotBeAdded.Count > 0)
+                        {
+                            var keyAlreadyExistsExceptions =
+                                elementsThatCouldNotBeAdded
+                                .Select(keyValuePair => new KeyAlreadyExistsException<TKey>(keyValuePair.Key))
+                                .ToList();
+
+                            if (keyAlreadyExistsExceptions.Count == 1)
+                                throw keyAlreadyExistsExceptions.First();
+                            if (keyAlreadyExistsExceptions.Count > 1)
+                                throw new AggregateException($"{keyAlreadyExistsExceptions.Count} elements of the provided '{nameof(keyValuePairs)}' could not be added because a corresponding key already existed in this {this.GetType().Name}", keyAlreadyExistsExceptions);
+
+                        }
+                    }
+                    
+                    observer.OnNext(Unit.Default);
+                    observer.OnCompleted();
+                }
+                catch (Exception exception)
+                {
+                    observer.OnError(exception);
+                }
+
+                return Disposable.Empty;
+            });
         }
 
         /// <summary>

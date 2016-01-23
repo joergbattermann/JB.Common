@@ -733,7 +733,7 @@ namespace JB.Collections.Reactive.Tests
             using (var observableDictionary = new ObservableDictionary<int, string>(initialKeyValuePairs))
             {
                 // when
-                IList<KeyValuePair<int, string>> itemsThatCouldNotBeAdded;
+                IDictionary<int, string> itemsThatCouldNotBeAdded;
                 var tryAddResult = observableDictionary.TryAddRange(keyValuePairsToAdd, out itemsThatCouldNotBeAdded);
 
                 // then check whether all items have been accounted for
@@ -770,7 +770,7 @@ namespace JB.Collections.Reactive.Tests
             using (var observableDictionary = new ObservableDictionary<int, string>())
             {
                 // when
-                IList<KeyValuePair<int, string>> nonAddedKeyValuePairs;
+                IDictionary<int, string> nonAddedKeyValuePairs;
                 var tryAddResult = observableDictionary.TryAddRange(keyValuePairs, out nonAddedKeyValuePairs);
 
                 // then check whether all items have been accounted for
