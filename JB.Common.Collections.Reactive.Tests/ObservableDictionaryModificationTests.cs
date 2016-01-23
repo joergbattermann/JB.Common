@@ -1209,7 +1209,7 @@ namespace JB.Collections.Reactive.Tests
             using (var observableDictionary = new ObservableDictionary<int, string>(keyValuePairs))
             {
                 // when
-                IList<KeyValuePair<int, string>> nonRemovedKeyValuePairs;
+                IDictionary<int, string> nonRemovedKeyValuePairs;
                 var tryRemoveResult = observableDictionary.TryRemoveRange(keyValuePairsToRemove, out nonRemovedKeyValuePairs);
 
                 // then check whether all items have been accounted for
@@ -1249,7 +1249,7 @@ namespace JB.Collections.Reactive.Tests
             using (var observableDictionary = new ObservableDictionary<int, string>(keyValuePairs))
             {
                 // when
-                IList<KeyValuePair<int, string>> nonRemovables;
+                IDictionary<int, string> nonRemovables;
                 var removalResult = observableDictionary.TryRemoveRange(keyValuePairs, out nonRemovables);
 
                 // then check whether all items have been accounted for
@@ -1277,7 +1277,7 @@ namespace JB.Collections.Reactive.Tests
             using (var observableDictionary = new ObservableDictionary<int, string>(keyValuePairs))
             {
                 // when
-                IList<KeyValuePair<int, string>> nonRemovedKeyValuePairs;
+                IDictionary<int, string> nonRemovedKeyValuePairs;
                 var tryRemoveResult = observableDictionary.TryRemoveRange(keyValuePairsToRemove, out nonRemovedKeyValuePairs);
 
                 // then check whether all items have been accounted for
@@ -1315,7 +1315,7 @@ namespace JB.Collections.Reactive.Tests
             using (var observableDictionary = new ObservableDictionary<int, string>())
             {
                 // when
-                IList<KeyValuePair<int, string>> nonRemovables;
+                IDictionary<int, string> nonRemovables;
                 bool removalResult = false;
                 Action action = () => observableDictionary.TryRemoveRange(null, out nonRemovables);
 

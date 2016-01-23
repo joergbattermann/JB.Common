@@ -400,16 +400,16 @@ namespace JB.Collections.Reactive
         /// </returns>
         /// <exception cref="T:System.ArgumentNullException">
         ///   <paramref name="items" /> is null.</exception>
-        public virtual bool TryRemoveRange(IEnumerable<KeyValuePair<TKey, TValue>> items, out IList<KeyValuePair<TKey, TValue>> itemsThatCouldNotBeRemoved)
+        public virtual bool TryRemoveRange(IEnumerable<KeyValuePair<TKey, TValue>> items, out IDictionary<TKey, TValue> itemsThatCouldNotBeRemoved)
         {
             if (items == null) throw new ArgumentNullException(nameof(items));
 
             CheckForAndThrowIfDisposed();
 
-            itemsThatCouldNotBeRemoved = new List<KeyValuePair<TKey, TValue>>();
+            itemsThatCouldNotBeRemoved = new Dictionary<TKey, TValue>();
 
             var keyValuePairs = items.ToList();
-            var keyValuePairsThatCouldBeRemoved = new List<KeyValuePair<TKey, TValue>>();
+            IDictionary<TKey, TValue> keyValuePairsThatCouldBeRemoved = new Dictionary<TKey, TValue>();
 
             if (keyValuePairs.Count == 0)
                 return true;
@@ -2182,7 +2182,7 @@ namespace JB.Collections.Reactive
             if (itemsAsList.Count == 0)
                 return;
 
-            IList<KeyValuePair<TKey, TValue>> itemsThatCouldNotBeRemoved;
+            IDictionary<TKey, TValue> itemsThatCouldNotBeRemoved;
             if (TryRemoveRange(itemsAsList, out itemsThatCouldNotBeRemoved) == false)
             {
                 throw new ArgumentOutOfRangeException(nameof(items),

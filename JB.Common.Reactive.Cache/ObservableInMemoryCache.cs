@@ -328,9 +328,10 @@ namespace JB.Reactive.Cache
                         {
                             // Using .TryRemove on innerdictionary to remove only those with the same / original value as expired
                             // (to prevent deletion of elements that had changed in the meantime)
-                            IList<KeyValuePair<TKey, ObservableCachedElement<TKey, TValue>>> actuallyRemovedKeys;
-                            InnerDictionary.TryRemoveRange(elementsForExpirationType, out actuallyRemovedKeys);
-                            foreach (var removedElement in actuallyRemovedKeys)
+                            IDictionary<TKey, ObservableCachedElement<TKey, TValue>> itemsThatCouldNotBeRemoved;
+                            InnerDictionary.TryRemoveRange(elementsForExpirationType, out itemsThatCouldNotBeRemoved);
+
+                            foreach (var removedElement in elementsForExpirationType.Except(itemsThatCouldNotBeRemoved))
                             {
                                 RemoveFromEventAndNotificationsHandlingAndStopExpiration(removedElement.Value);
                             }
@@ -1354,7 +1355,50 @@ namespace JB.Reactive.Cache
         /// </returns>
         public virtual IObservable<Unit> RemoveRange(IEnumerable<TKey> keys)
         {
-            throw new NotImplementedException();
+            if (keys == null)
+                throw new ArgumentNullException(nameof(keys));
+
+            CheckForAndThrowIfDisposed();
+            
+            return Observable.Create<Unit>(observer =>
+            {
+                try
+                {
+                    // first check which keys / elements ARE in the innerdictionary
+                    var cachedElementsInInnerDictionaryForKeys = new Dictionary<TKey, ObservableCachedElement<TKey, TValue>>();
+                    foreach (var key in keys)
+                    {
+                        ObservableCachedElement<TKey, TValue> observableCachedElementForCurrentKey;
+                        if (InnerDictionary.TryGetValue(key, out observableCachedElementForCurrentKey) == true)
+                        {
+                            cachedElementsInInnerDictionaryForKeys.Add(key, observableCachedElementForCurrentKey);
+                        }
+                    }
+
+                    // then go ahead and remove them
+                    if (cachedElementsInInnerDictionaryForKeys.Count > 0)
+                    {
+                        IDictionary<TKey, ObservableCachedElement<TKey, TValue>> elementsThatCouldNotBeRemoved;
+                        InnerDictionary.TryRemoveRange(cachedElementsInInnerDictionaryForKeys, out elementsThatCouldNotBeRemoved);
+
+                        // and finally remove expiration / value changed notification etc
+                        var keysForNonRemovedElements = elementsThatCouldNotBeRemoved.Keys;
+                        foreach (var observableCachedElement in cachedElementsInInnerDictionaryForKeys.Where(element => !keysForNonRemovedElements.Contains(element.Key, KeyComparer)))
+                        {
+                            RemoveFromEventAndNotificationsHandlingAndStopExpiration(observableCachedElement.Value);
+                        }
+                    }
+
+                    observer.OnNext(Unit.Default);
+                    observer.OnCompleted();
+                }
+                catch (Exception exception)
+                {
+                    observer.OnError(exception);
+                }
+
+                return Disposable.Empty;
+            });
         }
 
         /// <summary>
