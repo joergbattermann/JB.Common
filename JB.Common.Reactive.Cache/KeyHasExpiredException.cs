@@ -12,7 +12,7 @@ namespace JB.Reactive.Cache
         /// <value>
         /// The key.
         /// </value>
-        private TKey Key { get; set; }
+        public TKey Key { get; set; }
 
         /// <summary>
         /// Gets or sets the <see cref="DateTime"/> the <see cref="Key"/> has expired.
@@ -20,7 +20,7 @@ namespace JB.Reactive.Cache
         /// <value>
         /// The <see cref="DateTime"/> the <see cref="Key"/> has expired.
         /// </value>
-        private DateTime ExpiredAt { get; set; }
+        public DateTime ExpiredAt { get; set; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="KeyHasExpiredException{TKey}"/> class.
@@ -28,21 +28,20 @@ namespace JB.Reactive.Cache
         /// <param name="message">The message that describes the error.</param>
         /// <param name="innerException">The exception that is the cause of the current exception, or a null reference if no inner exception is specified. </param>
         /// <exception cref="System.ArgumentNullException"></exception>
-        public KeyHasExpiredException(string message, Exception innerException)
+        public KeyHasExpiredException(string message = null, Exception innerException = null)
             : base(message ?? "The key has expired.", innerException)
         {
-            if (innerException == null)
-                throw new ArgumentNullException(nameof(innerException));
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="KeyHasExpiredException{TKey}"/> class.
+        /// Initializes a new instance of the <see cref="KeyHasExpiredException{TKey}" /> class.
         /// </summary>
         /// <param name="key">The expired key.</param>
-        /// <param name="expiredAt">The <see cref="DateTime"/> the <see cref="Key"/> has expired.</param>
-        /// <param name="message">The message that describes the error. </param>
-        public KeyHasExpiredException(TKey key, DateTime expiredAt, string message = null)
-            : base(message ?? $"The {nameof(key)} has expired on {expiredAt}.")
+        /// <param name="expiredAt">The <see cref="DateTime" /> the <see cref="Key" /> has expired.</param>
+        /// <param name="message">The message that describes the error.</param>
+        /// <param name="innerException">The inner exception.</param>
+        public KeyHasExpiredException(TKey key, DateTime expiredAt, string message = null, Exception innerException = null)
+            : base(message ?? $"The {nameof(key)} has expired on {expiredAt}.", innerException)
         {
             Key = key;
             ExpiredAt = expiredAt;

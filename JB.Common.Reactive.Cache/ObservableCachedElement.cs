@@ -23,9 +23,18 @@ namespace JB.Reactive.Cache
 
         private IDisposable _expirySchedulerCancellationDisposable;
 
+        private long _expirationChangesCount = 0;
         private long _hasExpired = 0;
         private long _hasExpiryBeenUpdated = 0;
         private readonly object _expiryModificationLocker = new object();
+
+        /// <summary>
+        /// Gets or sets the expiration changes count.
+        /// </summary>
+        /// <value>
+        /// The expiration changes count.
+        /// </value>
+        protected long ExpirationChangesCount => Interlocked.Read(ref _expirationChangesCount);
 
         /// <summary>
         /// Gets or sets a value indicating whether this instance has expired.
@@ -59,19 +68,8 @@ namespace JB.Reactive.Cache
         /// <value>
         /// <c>true</c> if this instance has expiry been updated; otherwise, <c>false</c>.
         /// </value>
-        public virtual bool HasExpiryBeenUpdated
-        {
-            get { return Interlocked.Read(ref _hasExpiryBeenUpdated) == 1; }
-            protected set
-            {
-                if (value == false && HasExpiryBeenUpdated)
-                    throw new InvalidOperationException($"Once {nameof(HasExpiryBeenUpdated)} has been set, it cannot be reset back to false.");
+        public virtual bool HasExpiryBeenUpdated => ExpirationChangesCount > 0;
 
-                Interlocked.Exchange(ref _hasExpiryBeenUpdated, value ? 1 : 0);
-                RaisePropertyChanged();
-            }
-        }
-        
         /// <summary>
         ///     The actual <see cref="ValuePropertyChanged" /> event.
         /// </summary>
@@ -125,11 +123,12 @@ namespace JB.Reactive.Cache
             bool isUpdate)
         {
             if (expirationObserver == null) throw new ArgumentNullException(nameof(expirationObserver));
+            if (observerExceptionsObserver == null) throw new ArgumentNullException(nameof(observerExceptionsObserver));
             if (expirationScheduler == null) throw new ArgumentNullException(nameof(expirationScheduler));
 
             if (expiry < TimeSpan.Zero)
                 throw new ArgumentOutOfRangeException(nameof(expiry), $"{nameof(expiry)} cannot be negative");
-
+            
             CheckForAndThrowIfDisposed();
 
             lock (_expiryModificationLocker)
@@ -157,6 +156,54 @@ namespace JB.Reactive.Cache
                     // set 'new' expiry datetime
                     ExpiryDateTime = CalculateExpiryDateTime(expiry);
                     OriginalExpiry = expiry;
+
+                    if (isUpdate)
+                    {
+                        // and...
+                        if (HasExpired)
+                        {
+                            // reset hasexpired flag
+                            HasExpired = false;
+
+                            // and re-add to value / property changed handling and forwarding
+                            AddValueToPropertyChangedHandling(Value);
+                        }
+                    }
+                    else
+                    {
+                        // otherwise, if this is basically the first call to this method & thereby initial start
+                        // the value needs to be added to value / property changed handling and forwarding, too
+                        AddValueToPropertyChangedHandling(Value);
+                    }
+
+                    // and finally schedule expiration on scheduler for given time
+                    // IF TimeSpan.MaxValue hasn't been specified
+                    if (expiry < TimeSpan.MaxValue)
+                    {
+                        _expirySchedulerCancellationDisposable = ExpirationScheduler.Schedule(expiry,
+                            () =>
+                            {
+                                try
+                                {
+                                    lock (_expiryModificationLocker)
+                                    {
+                                        RemoveValueFromPropertyChangedHandling(Value);
+                                        HasExpired = true;
+                                    }
+
+                                    expirationObserver.OnNext(this);
+                                }
+                                catch (Exception exception)
+                                {
+                                    var observerException = new ObserverException($"An error occured notifying about the expiration of a {this.GetType().Name} instance.", exception);
+
+                                    observerExceptionsObserver.OnNext(observerException);
+
+                                    if (observerException.Handled == false)
+                                        throw;
+                                }
+                            });
+                    }
                 }
                 catch (Exception exception)
                 {
@@ -167,55 +214,10 @@ namespace JB.Reactive.Cache
                     if (observerException.Handled == false)
                         throw;
                 }
-                
-                if (isUpdate)
+                finally
                 {
-                    try
-                    {
-                        if (HasExpired)
-                        {
-                            HasExpired = false;
-                            AddValueToPropertyChangedHandling(Value);
-                        }
-                    }
-                    catch (Exception exception)
-                    {
-                        var observerException = new ObserverException($"An error occured updating the expiration of a {this.GetType().Name} instance.", exception);
-
-                        observerExceptionsObserver.OnNext(observerException);
-
-                        if (observerException.Handled == false)
-                            throw;
-                    }
-                    finally
-                    {
-                        HasExpiryBeenUpdated = true;
-                    }
+                    Interlocked.Increment(ref _expirationChangesCount);
                 }
-
-                _expirySchedulerCancellationDisposable = ExpirationScheduler.Schedule(expiry,
-                    () =>
-                    {
-                        try
-                        {
-                            lock (_expiryModificationLocker)
-                            {
-                                RemoveValueFromPropertyChangedHandling(Value);
-                                HasExpired = true;
-                            }
-
-                            expirationObserver.OnNext(this);
-                        }
-                        catch (Exception exception)
-                        {
-                            var observerException = new ObserverException($"An error occured notifying about the expiration of a {this.GetType().Name} instance.", exception);
-
-                            observerExceptionsObserver.OnNext(observerException);
-
-                            if (observerException.Handled == false)
-                                throw;
-                        }
-                    });
             }
         }
         
@@ -362,33 +364,15 @@ namespace JB.Reactive.Cache
         /// </summary>
         /// <param name="key">The key.</param>
         /// <param name="value">The cached value.</param>
-        /// <param name="expiry">The expiry <see cref="TimeSpan" />.</param>
         /// <param name="expirationType">Type of the expiration.</param>
-        /// <param name="expirationObserver">The expiration observer to notify upon this instance's expiration.</param>
-        /// <param name="observerExceptionsObserver">The <see cref="ObserverException"/> observer to notify, well.. observer exceptions on.</param>
-        /// <param name="expirationScheduler">The expiration scheduler to schedule the expiration notification on.</param>
-        public ObservableCachedElement(TKey key, TValue value,
-            TimeSpan expiry,
-            ObservableCacheExpirationType expirationType,
-            IObserver<ObservableCachedElement<TKey, TValue>> expirationObserver,
-            IObserver<ObserverException> observerExceptionsObserver,
-            IScheduler expirationScheduler)
+        public ObservableCachedElement(TKey key, TValue value, ObservableCacheExpirationType expirationType)
         {
             if (key == null) throw new ArgumentNullException(nameof(key));
-            if (expirationObserver == null) throw new ArgumentNullException(nameof(expirationObserver));
-            if (observerExceptionsObserver == null) throw new ArgumentNullException(nameof(observerExceptionsObserver));
-            if (expirationScheduler == null) throw new ArgumentNullException(nameof(expirationScheduler));
-
-            if (expiry < TimeSpan.Zero)
-                throw new ArgumentOutOfRangeException(nameof(expiry), $"{nameof(expiry)} cannot be negative");
 
             Key = key;
             Value = value;
 
-            AddValueToPropertyChangedHandling(Value);
-
             ExpirationType = expirationType;
-            CreateOrUpdateExpiration(expiry, expirationObserver, observerExceptionsObserver, expirationScheduler, false);
         }
 
         /// <summary>
@@ -467,19 +451,19 @@ namespace JB.Reactive.Cache
         /// <param name="expirationObserver">The expiration observer to notify upon this instance's expiration.</param>
         /// <param name="observerExceptionsObserver">The <see cref="ObserverException"/> observer to notify, well.. observer exceptions on.</param>
         /// <param name="expirationScheduler">The expiration scheduler to schedule the expiration notification on.</param>
-        public virtual void UpdateExpiration(
+        public virtual void StartOrUpdateExpiration(
             TimeSpan expiry,
             IObserver<ObservableCachedElement<TKey, TValue>> expirationObserver,
             IObserver<ObserverException> observerExceptionsObserver,
             IScheduler expirationScheduler)
         {
-            CreateOrUpdateExpiration(expiry, expirationObserver, observerExceptionsObserver, expirationScheduler, true);
+            CreateOrUpdateExpiration(expiry, expirationObserver, observerExceptionsObserver, expirationScheduler, ExpirationChangesCount > 0);
         }
 
         /// <summary>
         /// Stops the expiration notification.
         /// </summary>
-        public virtual void StopExpirationNotification()
+        public virtual void StopExpiration()
         {
             CheckForAndThrowIfDisposed();
 
@@ -499,6 +483,9 @@ namespace JB.Reactive.Cache
         {
             if (expiry < TimeSpan.Zero)
                 throw new ArgumentOutOfRangeException(nameof(expiry), $"{nameof(expiry)} cannot be negative");
+
+            if (expiry == TimeSpan.MaxValue)
+                return DateTime.MaxValue;
 
             var now = ExpirationScheduler.Now.UtcDateTime;
             var maxExpiry = DateTime.MaxValue - now;

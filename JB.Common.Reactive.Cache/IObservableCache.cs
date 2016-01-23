@@ -34,23 +34,23 @@ namespace JB.Reactive.Cache
         /// </summary>
         /// <param name="key">The key of the element to add.</param>
         /// <param name="value">The value of the element to add.</param>
-        /// <param name="expiry">The expiry of the <paramref name="key"/>. If none is provided the <paramref name="key"/> will virtually never expire.</param>
+        /// <param name="expiry">The expiry of the <paramref name="key"/>.</param>
         /// <param name="expirationType">Defines how the <paramref name="key" /> shall expire.</param>
         /// <returns>
         /// An observable stream that, when done, returns an <see cref="Unit" />.
         /// </returns>
-        IObservable<Unit> Add(TKey key, TValue value, TimeSpan? expiry = null, ObservableCacheExpirationType expirationType = ObservableCacheExpirationType.Remove);
+        IObservable<Unit> Add(TKey key, TValue value, TimeSpan expiry, ObservableCacheExpirationType expirationType = ObservableCacheExpirationType.Remove);
 
         /// <summary>
         /// Adds the specified <paramref name="keyValuePairs"/> to the <see cref="IObservableCache{TKey,TValue}"/>.
         /// </summary>
         /// <param name="keyValuePairs">The key/value pairs to add.</param>
-        /// <param name="expiry">The expiry of the <paramref name="keyValuePairs"/>. If none is provided the <paramref name="keyValuePairs"/> will virtually never expire.</param>
+        /// <param name="expiry">The expiry of the <paramref name="keyValuePairs"/>.</param>
         /// <param name="expirationType">Defines how the <paramref name="keyValuePairs" /> shall expire.</param>
         /// <returns>
         /// An observable stream that, when done, returns an <see cref="Unit" />.
         /// </returns>
-        IObservable<Unit> AddRange(IEnumerable<KeyValuePair<TKey, TValue>> keyValuePairs, TimeSpan? expiry = null, ObservableCacheExpirationType expirationType = ObservableCacheExpirationType.Remove);
+        IObservable<Unit> AddRange(IEnumerable<KeyValuePair<TKey, TValue>> keyValuePairs, TimeSpan expiry, ObservableCacheExpirationType expirationType = ObservableCacheExpirationType.Remove);
 
         /// <summary>
         /// Clears this instance.
@@ -169,21 +169,19 @@ namespace JB.Reactive.Cache
         /// </summary>
         /// <param name="key">The key to update.</param>
         /// <param name="expiry">The expiry of the <paramref name="key"/>.</param>
-        /// <param name="expirationType">Defines how the <paramref name="key" /> shall expire.</param>
         /// <returns>
         /// An observable stream that, when done, returns an <see cref="Unit" />.
         /// </returns>
-        IObservable<Unit> UpdateExpiration(TKey key, TimeSpan expiry, ObservableCacheExpirationType expirationType);
+        IObservable<Unit> UpdateExpiration(TKey key, TimeSpan expiry);
 
         /// <summary>
         /// Updates the expiration behavior for the specified <paramref name="keys"/>.
         /// </summary>
         /// <param name="keys">The keys to update.</param>
         /// <param name="expiry">The expiry of the <paramref name="keys"/>.</param>
-        /// <param name="expirationType">Defines how the <paramref name="keys" /> shall expire.</param>
         /// <returns>
         /// An observable stream that, when done, returns an <see cref="Unit" />.
         /// </returns>
-        IObservable<Unit> UpdateExpiration(IEnumerable<TKey> keys, TimeSpan expiry, ObservableCacheExpirationType expirationType);
+        IObservable<Unit> UpdateExpiration(IEnumerable<TKey> keys, TimeSpan expiry);
     }
 }

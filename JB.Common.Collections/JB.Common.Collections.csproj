@@ -55,6 +55,7 @@
     <Compile Include="IEnhancedBindingList.cs" />
     <Compile Include="IItemMovableList.cs" />
     <Compile Include="ItemDeletedListChangedEventArgs.cs" />
+    <Compile Include="KeyNotFoundException.cs" />
     <Compile Include="SynchronizationContextCoordinatedBindingList.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="SynchronizationContextSynchronizedBindingList.cs" />
