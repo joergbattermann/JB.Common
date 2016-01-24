@@ -12,6 +12,7 @@ using System.Linq;
 using System.Reactive;
 using System.Reactive.Concurrency;
 using System.Reactive.Linq;
+using JB.ExtensionMethods;
 
 namespace JB.Reactive.Linq
 {
@@ -20,6 +21,158 @@ namespace JB.Reactive.Linq
     /// </summary>
     public static class ObservableExtensions
     {
+        /// <summary>
+        /// Continues an observable sequence that is terminated by an exception of the specified type with a reconnection to the source, if wanted.
+        /// </summary>
+        /// <typeparam name="TSource">The type of the elements in the source sequence.</typeparam>
+        /// <param name="source">The source sequence that may produce an exception.</param>
+        /// <param name="exceptionsObserver">The exceptions observer that exceptions will be forwarded to for handling.</param>
+        /// <param name="reconnectToSource">The observable sequence to re-connect to.</param>
+        /// <param name="rethrowExceptionIfUnhandled">
+        ///     if set to <c>true</c> and the forwarded <see cref="ObserverException"/> was unhandled (by (not) setting its <see cref="ObserverException.Handled"/> flag),
+        ///     the exception will be re-thrown and therefore the sequence will exceptionally terminate and no reconnection to the <paramref name="source"/> will be made
+        ///     even if specified via <paramref name="reconnectToSource"/>.
+        /// </param>
+        /// <returns>
+        /// An observable sequence containing the <paramref name="source" /> sequence's elements which will optionally be reconnected to in case an exception occurred.
+        /// </returns>
+        /// <exception cref="System.ArgumentNullException">
+        /// </exception>
+        /// <exception cref="T:System.ArgumentNullException"><paramref name="source" /> or <paramref name="exceptionsObserver" /> is null.</exception>
+        public static IObservable<TSource> CatchAndForward<TSource>(this IObservable<TSource> source,
+            IObserver<ObserverException> exceptionsObserver,
+            bool rethrowExceptionIfUnhandled = false,
+            bool reconnectToSource = true)
+        {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            if (exceptionsObserver == null) throw new ArgumentNullException(nameof(exceptionsObserver));
+
+            return source
+                .CatchAndForward(
+                    exceptionsObserver,
+                    reconnectToSource ? source : System.Reactive.Linq.Observable.Empty<TSource>(),
+                    rethrowExceptionIfUnhandled);
+        }
+
+        /// <summary>
+        /// Continues an observable sequence that is terminated by an exception of the specified type with a reconnection to the source, if wanted.
+        /// </summary>
+        /// <typeparam name="TSource">The type of the elements in the source sequence.</typeparam>
+        /// <typeparam name="TException">The type of the exception to catch and handle. Needs to derive from <see cref="T:System.Exception" />.</typeparam>
+        /// <param name="source">The source sequence that may produce an exception.</param>
+        /// <param name="exceptionsObserver">The exceptions observer that exceptions will be forwarded to for handling.</param>
+        /// <param name="reconnectToSource">The observable sequence to re-connect to.</param>
+        /// <param name="observerExceptionMessageBuilder">The <see cref="ObserverException.Message"/> builder.</param>
+        /// <param name="rethrowExceptionIfUnhandled">
+        ///     if set to <c>true</c> and the forwarded <see cref="ObserverException"/> was unhandled (by (not) setting its <see cref="ObserverException.Handled"/> flag),
+        ///     the exception will be re-thrown and therefore the sequence will exceptionally terminate and no reconnection to the <paramref name="source"/> will be made
+        ///     even if specified via <paramref name="reconnectToSource"/>.
+        /// </param>
+        /// <returns>
+        /// An observable sequence containing the <paramref name="source" /> sequence's elements which will optionally be reconnected to in case an exception occurred.
+        /// </returns>
+        /// <exception cref="System.ArgumentNullException">
+        /// </exception>
+        /// <exception cref="T:System.ArgumentNullException"><paramref name="source" />, <paramref name="exceptionsObserver" /> or <paramref name="observerExceptionMessageBuilder" /> is null.</exception>
+        public static IObservable<TSource> CatchAndForward<TSource, TException>(this IObservable<TSource> source,
+            IObserver<ObserverException> exceptionsObserver,
+            Func<TException, string> observerExceptionMessageBuilder,
+            bool rethrowExceptionIfUnhandled = false,
+            bool reconnectToSource = true) where TException : Exception
+        {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            if (exceptionsObserver == null) throw new ArgumentNullException(nameof(exceptionsObserver));
+            if (observerExceptionMessageBuilder == null) throw new ArgumentNullException(nameof(observerExceptionMessageBuilder));
+
+            return source
+                .CatchAndForward(
+                    exceptionsObserver,
+                    reconnectToSource ? source : System.Reactive.Linq.Observable.Empty<TSource>(),
+                    observerExceptionMessageBuilder,
+                    rethrowExceptionIfUnhandled);
+        }
+
+        /// <summary>
+        /// Continues an observable sequence that is terminated by an exception of the specified type with the reconnection observable sequence provided.
+        /// </summary>
+        /// <typeparam name="TSource">The type of the elements in the source sequence.</typeparam>
+        /// <param name="source">The source sequence that may produce an exception.</param>
+        /// <param name="exceptionsObserver">The exceptions observer that exceptions will be forwarded to for handling.</param>
+        /// <param name="target">The observable sequence to re-connect to.</param>
+        /// <param name="rethrowExceptionIfUnhandled">
+        ///     if set to <c>true</c> and the forwarded <see cref="ObserverException"/> was unhandled (by (not) setting its <see cref="ObserverException.Handled"/> flag),
+        ///     the exception will be re-thrown and therefore the sequence will exceptionally terminate and no reconnection to <paramref name="target"/> will be made.
+        /// </param>
+        /// <returns>
+        /// An observable sequence containing the <paramref name="source" /> sequence's elements, followed by the elements produced by the <paramref name="target" />
+        /// observable sequence in case an exception occurred.
+        /// </returns>
+        /// <exception cref="System.ArgumentNullException">
+        /// </exception>
+        /// <exception cref="T:System.ArgumentNullException"><paramref name="source" />, <paramref name="exceptionsObserver" /> or <paramref name="target" /> is null.</exception>
+        public static IObservable<TSource> CatchAndForward<TSource>(this IObservable<TSource> source,
+            IObserver<ObserverException> exceptionsObserver,
+            IObservable<TSource> target,
+            bool rethrowExceptionIfUnhandled = false)
+        {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            if (exceptionsObserver == null) throw new ArgumentNullException(nameof(exceptionsObserver));
+            if (target == null) throw new ArgumentNullException(nameof(target));
+
+            return source
+                .CatchAndForward<TSource, Exception>(exceptionsObserver, target, exception => "One or more errors occurred.", rethrowExceptionIfUnhandled);
+        }
+
+        /// <summary>
+        /// Continues an observable sequence that is terminated by an exception of the specified type with the reconnection observable sequence provided.
+        /// </summary>
+        /// <typeparam name="TSource">The type of the elements in the source sequence.</typeparam>
+        /// <typeparam name="TException">The type of the exception to catch and handle. Needs to derive from <see cref="T:System.Exception" />.</typeparam>
+        /// <param name="source">The source sequence that may produce an exception.</param>
+        /// <param name="exceptionsObserver">The exceptions observer that exceptions will be forwarded to for handling.</param>
+        /// <param name="reconnectionObservable">The observable sequence to re-connect to.</param>
+        /// <param name="observerExceptionMessageBuilder">The <see cref="ObserverException.Message"/> builder.</param>
+        /// <param name="rethrowExceptionIfUnhandled">
+        ///     if set to <c>true</c> and the forwarded <see cref="ObserverException"/> was unhandled (by (not) setting its <see cref="ObserverException.Handled"/> flag),
+        ///     the exception will be re-thrown and therefore the sequence will exceptionally terminate and no reconnection to <paramref name="reconnectionObservable"/> will be made.
+        /// </param>
+        /// <returns>
+        /// An observable sequence containing the <paramref name="source" /> sequence's elements, followed by the elements produced by the <paramref name="reconnectionObservable" />
+        /// observable sequence in case an exception occurred.
+        /// </returns>
+        /// <exception cref="System.ArgumentNullException">
+        /// </exception>
+        /// <exception cref="T:System.ArgumentNullException"><paramref name="source" />, <paramref name="exceptionsObserver" />, <paramref name="reconnectionObservable" /> or <paramref name="observerExceptionMessageBuilder" /> is null.</exception>
+        public static IObservable<TSource> CatchAndForward<TSource, TException>(this IObservable<TSource> source,
+            IObserver<ObserverException> exceptionsObserver,
+            IObservable<TSource> reconnectionObservable,
+            Func<TException, string> observerExceptionMessageBuilder,
+            bool rethrowExceptionIfUnhandled = false) where TException : Exception
+        {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            if (exceptionsObserver == null) throw new ArgumentNullException(nameof(exceptionsObserver));
+            if (reconnectionObservable == null) throw new ArgumentNullException(nameof(reconnectionObservable));
+            if (observerExceptionMessageBuilder == null) throw new ArgumentNullException(nameof(observerExceptionMessageBuilder));
+
+            return source.Catch<TSource, TException>(exception =>
+            {
+                var observerExceptionMessage = observerExceptionMessageBuilder.Invoke(exception) ?? null;
+
+                var observerException = observerExceptionMessage != null
+                    ? new ObserverException(observerExceptionMessage, exception)
+                    : new ObserverException(exception);
+
+                exceptionsObserver.OnNext(observerException);
+
+                if (observerException.Handled == false && rethrowExceptionIfUnhandled == true)
+                {
+                    exception.ThrowIfNotNull();
+                }
+
+                return reconnectionObservable;
+            });
+        }
+
         /// <summary>
         /// Takes a source observable and splits its sequence forwarding into two target observers based on a given <paramref name="predicate"/> condition.
         /// </summary>
@@ -271,7 +424,7 @@ namespace JB.Reactive.Linq
         /// <returns>A new <see cref="IObservable{TSource}"/> providing the full <paramref name="source"/> sequence</returns>
         /// <exception cref="System.ArgumentNullException">
         /// </exception>
-        public static IObservable<TSource> ForwardTo<TSource>(this IObservable<TSource> source, params IObserver<TSource>[] targetObservers)
+        public static IObservable<TSource> Forward<TSource>(this IObservable<TSource> source, params IObserver<TSource>[] targetObservers)
         {
             if (source == null) throw new ArgumentNullException(nameof(source));
             if (targetObservers == null) throw new ArgumentNullException(nameof(targetObservers));
@@ -322,7 +475,7 @@ namespace JB.Reactive.Linq
         /// </returns>
         /// <exception cref="System.ArgumentNullException">
         /// </exception>
-        public static IObservable<TSource> ForwardTo<TSource>(this IObservable<TSource> source, IScheduler scheduler, params IObserver<TSource>[] targetObservers)
+        public static IObservable<TSource> Forward<TSource>(this IObservable<TSource> source, IScheduler scheduler, params IObserver<TSource>[] targetObservers)
         {
             if (source == null) throw new ArgumentNullException(nameof(source));
             if (scheduler == null) throw new ArgumentNullException(nameof(scheduler));
@@ -375,7 +528,7 @@ namespace JB.Reactive.Linq
         /// </returns>
         /// <exception cref="System.ArgumentNullException">
         /// </exception>
-        public static IObservable<TSource> ForwardTo<TSource>(this IObservable<TSource> source, IEnumerable<IObserver<TSource>> targetObservers, IScheduler scheduler = null)
+        public static IObservable<TSource> Forward<TSource>(this IObservable<TSource> source, IEnumerable<IObserver<TSource>> targetObservers, IScheduler scheduler = null)
         {
             if (source == null) throw new ArgumentNullException(nameof(source));
             if (targetObservers == null) throw new ArgumentNullException(nameof(targetObservers));

@@ -209,57 +209,11 @@ namespace JB.Reactive.Cache
                 .ObserveOn(ExpirationScheduler)
                 .Buffer(ExpiredElementsHandlingChillPeriod, ExpirationScheduler)
                 .Where(bufferedElements => bufferedElements != null && bufferedElements.Count > 0)
-                .SelectMany(ExpiredElementsToObservable) // this is somewhat of a hack to migrate from RX over to TPL / async handling
-                .Subscribe(
-                    _ =>
-                    {
-                        // nothing to do here per element - it's all done in the .SelectMany() call
-                    }, 
-                    exception =>
-                    {
-                        // ToDo: at this point this instance is practically doomed / no longer forwarding any events & therefore further usage of the instance itself should be prevented, or the observable stream should re-connect/signal-and-swallow exceptions. Either way.. not ideal.
-                        var observerException = new ObserverException($"An error occured handling expired elements of this {this.GetType().Name}.",exception);
-
-                        ObserverExceptionsObserver.OnNext(observerException);
-                        if (observerException.Handled == false)
-                        {
-                            exception.ThrowIfNotNull();
-                        }
-                    });
+                .Do(HandleAndNotifyObserversAboutExpiredElements)
+                .CatchAndForward(ObserverExceptionsObserver)
+                .Subscribe();
         }
-
-        /// <summary>
-        /// Converts the <paramref name="expiredElements"/> to an observable stream.
-        /// </summary>
-        /// <param name="expiredElements">The expired elements.</param>
-        /// <returns></returns>
-        protected virtual IObservable<Unit> ExpiredElementsToObservable(IList<ObservableCachedElement<TKey, TValue>> expiredElements)
-        {
-            CheckForAndThrowIfDisposed(false);
-
-            return (expiredElements ?? new List<ObservableCachedElement<TKey, TValue>>())
-                .ToObservable()
-                .ToList()
-                .Select(elements =>
-                {
-                    HandleAndNotifyObserversAboutExpiredElements(expiredElements);
-                    return Unit.Default;
-                })
-                .Catch<Unit, Exception>(exception =>
-                {
-                    var observerException = new ObserverException($"An error occured handling expired elements of this {this.GetType().Name}.",exception);
-
-                    ObserverExceptionsObserver.OnNext(observerException);
-
-                    if (observerException.Handled == false)
-                    {
-                        exception.ThrowIfNotNull();
-                    }
-
-                    return Observable.Return(Unit.Default);
-                });
-        }
-
+        
         /// <summary>
         /// Handles and notifies observers about expired elements.
         /// </summary>
@@ -1572,7 +1526,7 @@ namespace JB.Reactive.Cache
         }
 
         /// <summary>
-        /// Gets the expired elements as an observable stream.
+        /// Gets the expired elements one-by-one as an observable stream.
         /// </summary>
         /// <value>
         /// The expired elements.
@@ -1585,7 +1539,7 @@ namespace JB.Reactive.Cache
                     .TakeWhile(_ => !IsDisposing && !IsDisposed);
             }
         }
-
+        
         #endregion
 
         #region Implementation of INotifyObservableItemChanges
