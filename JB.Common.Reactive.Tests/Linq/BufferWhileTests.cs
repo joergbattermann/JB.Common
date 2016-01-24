@@ -26,7 +26,7 @@ namespace JB.Reactive.Tests.Linq
         {
             // given
             var testScheduler = new TestScheduler();
-            var observable = Observable.Range(start, count).ObserveOn(testScheduler).BufferWhile(() => true);
+            var observable = System.Reactive.Linq.Observable.Range(start, count).ObserveOn(testScheduler).BufferWhile(() => true);
             var observer = testScheduler.CreateObserver<IList<int>>();
             observable.Subscribe(observer);
 
@@ -45,7 +45,7 @@ namespace JB.Reactive.Tests.Linq
         {
             // given
             var testScheduler = new TestScheduler();
-            var observable = Observable.Range(start, count).ObserveOn(testScheduler).BufferWhile(() => true);
+            var observable = System.Reactive.Linq.Observable.Range(start, count).ObserveOn(testScheduler).BufferWhile(() => true);
             var observer = testScheduler.CreateObserver<IList<int>>();
             observable.Subscribe(observer);
 

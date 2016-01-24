@@ -60,7 +60,7 @@ namespace JB.Collections.Reactive
             ListChangesObserver = _listChangesSubject.NotifyOn(Scheduler);
 
             // then connect to InnerList's ListChanged Event
-            _innerListChangedRelevantListChangedEventsForwader = Observable.FromEventPattern<ListChangedEventHandler, ListChangedEventArgs>(
+            _innerListChangedRelevantListChangedEventsForwader = System.Reactive.Linq.Observable.FromEventPattern<ListChangedEventHandler, ListChangedEventArgs>(
                 handler => InnerList.ListChanged += handler,
                 handler => InnerList.ListChanged -= handler)
                 .TakeWhile(_ => !IsDisposing && !IsDisposed)

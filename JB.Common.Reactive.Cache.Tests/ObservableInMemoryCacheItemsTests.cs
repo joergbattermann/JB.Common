@@ -191,7 +191,7 @@ namespace JB.Reactive.Cache.Tests
                 updatedExpiration.ShouldBeEquivalentTo(TimeSpan.FromTicks((2 * expiresAtTicks) + tickAtTimeOfUpdate));
             }
         }
-
+        
         [Fact]
         public async Task ShouldExpireInAndAtProvideAccurateFutureNowAndPastExpirationInformation()
         {
@@ -625,6 +625,40 @@ namespace JB.Reactive.Cache.Tests
                 Func<Task> action = async () =>
                 {
                     await cache.Get(2);
+                };
+
+                // then
+                action.ShouldThrow<KeyNotFoundException>();
+            }
+        }
+
+        [Fact]
+        public async Task ShouldThrowOnExpiresInOfNonExistingKey()
+        {
+            // given
+            using (var cache = new ObservableInMemoryCache<int, string>())
+            {
+                // when
+                Func<Task> action = async () =>
+                {
+                    await cache.ExpiresIn(2);
+                };
+
+                // then
+                action.ShouldThrow<KeyNotFoundException>();
+            }
+        }
+
+        [Fact]
+        public async Task ShouldThrowOnExpiresAtOfNonExistingKey()
+        {
+            // given
+            using (var cache = new ObservableInMemoryCache<int, string>())
+            {
+                // when
+                Func<Task> action = async () =>
+                {
+                    await cache.ExpiresAt(2);
                 };
 
                 // then

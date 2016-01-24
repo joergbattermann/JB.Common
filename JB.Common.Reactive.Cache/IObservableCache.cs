@@ -18,6 +18,7 @@ namespace JB.Reactive.Cache
         INotifyObservableCacheChanges<TKey, TValue>,
         INotifyObservableCacheItemChanges<TKey, TValue>,
         INotifyObservableCacheItemExpirations<TKey, TValue>,
+        INotifyObservableCountChanges,
         INotifyObservableResets,
         INotifyObserverExceptions
     {

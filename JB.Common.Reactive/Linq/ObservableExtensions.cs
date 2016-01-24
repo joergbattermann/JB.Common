@@ -276,7 +276,7 @@ namespace JB.Reactive.Linq
             if (source == null) throw new ArgumentNullException(nameof(source));
             if (targetObservers == null) throw new ArgumentNullException(nameof(targetObservers));
 
-            return Observable.Create<TSource>(observer =>
+            return System.Reactive.Linq.Observable.Create<TSource>(observer =>
             {
                 var subscription = source.Subscribe(value =>
                 {
@@ -328,7 +328,7 @@ namespace JB.Reactive.Linq
             if (scheduler == null) throw new ArgumentNullException(nameof(scheduler));
             if (targetObservers == null) throw new ArgumentNullException(nameof(targetObservers));
 
-            return Observable.Create<TSource>(observer =>
+            return System.Reactive.Linq.Observable.Create<TSource>(observer =>
             {
                 var actualTargetObservers = targetObservers.Select(targetObserver => targetObserver.NotifyOn(scheduler)).ToList();
                 var subscription = source.Subscribe(value =>
@@ -380,7 +380,7 @@ namespace JB.Reactive.Linq
             if (source == null) throw new ArgumentNullException(nameof(source));
             if (targetObservers == null) throw new ArgumentNullException(nameof(targetObservers));
 
-            return Observable.Create<TSource>(observer =>
+            return System.Reactive.Linq.Observable.Create<TSource>(observer =>
             {
                 var actualTargetObservers = scheduler != null
                     ? targetObservers.Select(targetObserver => targetObserver.NotifyOn(scheduler)).ToList()
@@ -438,7 +438,7 @@ namespace JB.Reactive.Linq
             if (predicate == null) throw new ArgumentNullException(nameof(predicate));
             if (count <= 0) throw new ArgumentOutOfRangeException(nameof(count));
 
-            return Observable.Create<IList<TSource>>(observer =>
+            return System.Reactive.Linq.Observable.Create<IList<TSource>>(observer =>
             {
                 var bufferLocker = new object();
                 var currentBuffer = new List<TSource>();
@@ -524,7 +524,7 @@ namespace JB.Reactive.Linq
             if (predicate == null) throw new ArgumentNullException(nameof(predicate));
             if (count <= 0) throw new ArgumentOutOfRangeException(nameof(count));
 
-            return Observable.Create<IList<TSource>>(observer =>
+            return System.Reactive.Linq.Observable.Create<IList<TSource>>(observer =>
             {
                 var bufferLocker = new object();
                 var currentBuffer = new List<TSource>();
@@ -607,7 +607,7 @@ namespace JB.Reactive.Linq
             if (source == null) throw new ArgumentNullException(nameof(source));
             if (predicate == null) throw new ArgumentNullException(nameof(predicate));
 
-            return Observable.Create<IList<TSource>>(observer =>
+            return System.Reactive.Linq.Observable.Create<IList<TSource>>(observer =>
             {
                 var bufferLocker = new object();
                 var currentBuffer = new List<TSource>();
@@ -689,7 +689,7 @@ namespace JB.Reactive.Linq
             if (source == null) throw new ArgumentNullException(nameof(source));
             if (predicate == null) throw new ArgumentNullException(nameof(predicate));
 
-            return Observable.Create<IList<TSource>>(observer =>
+            return System.Reactive.Linq.Observable.Create<IList<TSource>>(observer =>
             {
                 var bufferLocker = new object();
                 var currentBuffer = new List<TSource>();

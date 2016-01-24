@@ -22,7 +22,9 @@ using JB.Collections;
 using JB.Collections.Reactive;
 using JB.ExtensionMethods;
 using JB.Reactive.Cache.ExtensionMethods;
+using JB.Reactive.ExtensionMethods;
 using JB.Reactive.Linq;
+using Observable = System.Reactive.Linq.Observable;
 
 namespace JB.Reactive.Cache
 {
@@ -1014,25 +1016,13 @@ namespace JB.Reactive.Cache
 
             CheckForAndThrowIfDisposed();
 
-            return Observable.Create<Unit>(observer =>
+            return Linq.Observable.Run(() =>
             {
-                try
-                {
-                    var observableCachedElement = new ObservableCachedElement<TKey, TValue>(key, value, expirationType);
+                var observableCachedElement = new ObservableCachedElement<TKey, TValue>(key, value, expirationType);
 
-                    InnerDictionary.Add(key, observableCachedElement);
+                InnerDictionary.Add(key, observableCachedElement);
 
-                    AddToEventAndNotificationsHandlingAndStartExpiration(observableCachedElement, expiry);
-
-                    observer.OnNext(Unit.Default);
-                    observer.OnCompleted();
-                }
-                catch (Exception exception)
-                {
-                    observer.OnError(exception);
-                }
-
-                return Disposable.Empty;
+                AddToEventAndNotificationsHandlingAndStartExpiration(observableCachedElement, expiry);
             });
         }
 
@@ -1063,6 +1053,8 @@ namespace JB.Reactive.Cache
         /// </returns>
         public virtual IObservable<Unit> AddRange(IEnumerable<KeyValuePair<TKey, TValue>> keyValuePairs, TimeSpan expiry, ObservableCacheExpirationType expirationType = ObservableCacheExpirationType.Remove)
         {
+            // ToDo: this needs to be decomposed into way, way smaller functional units.. quite a lot
+
             if (keyValuePairs == null)
                 throw new ArgumentNullException(nameof(keyValuePairs));
             if (expirationType == ObservableCacheExpirationType.Update && (SingleKeyRetrievalAction == null && MultipleKeysRetrievalAction == null))
@@ -1070,50 +1062,38 @@ namespace JB.Reactive.Cache
             
             CheckForAndThrowIfDisposed();
 
-            return Observable.Create<Unit>(observer =>
+            return Linq.Observable.Run(() =>
             {
-                try
-                {
-                    // first check which keys / elements ARE in the innerdictionary
-                    var cachedElementsForKeyValuePairs = keyValuePairs
-                        .ToDictionary(kvp => kvp.Key, kvp => new ObservableCachedElement<TKey, TValue>(kvp.Key, kvp.Value, expirationType));
+                // first check which keys / elements ARE in the innerdictionary
+                var cachedElementsForKeyValuePairs = keyValuePairs
+                    .ToDictionary(kvp => kvp.Key, kvp => new ObservableCachedElement<TKey, TValue>(kvp.Key, kvp.Value, expirationType));
 
-                    if (cachedElementsForKeyValuePairs.Count > 0)
+                if (cachedElementsForKeyValuePairs.Count > 0)
+                {
+                    IDictionary<TKey, ObservableCachedElement<TKey, TValue>> elementsThatCouldNotBeAdded;
+                    InnerDictionary.TryAddRange(cachedElementsForKeyValuePairs, out elementsThatCouldNotBeAdded);
+
+                    // and finally add to expiration / value changed notification etc
+                    var keysForNonAddedElements = elementsThatCouldNotBeAdded.Keys;
+                    foreach (var observableCachedElement in cachedElementsForKeyValuePairs.Where(element => !keysForNonAddedElements.Contains(element.Key, KeyComparer)))
                     {
-                        IDictionary<TKey, ObservableCachedElement<TKey, TValue>> elementsThatCouldNotBeAdded;
-                        InnerDictionary.TryAddRange(cachedElementsForKeyValuePairs, out elementsThatCouldNotBeAdded);
-
-                        // and finally add to expiration / value changed notification etc
-                        var keysForNonAddedElements = elementsThatCouldNotBeAdded.Keys;
-                        foreach (var observableCachedElement in cachedElementsForKeyValuePairs.Where(element => !keysForNonAddedElements.Contains(element.Key, KeyComparer)))
-                        {
-                            AddToEventAndNotificationsHandlingAndStartExpiration(observableCachedElement.Value, expiry);
-                        }
-
-                        if (elementsThatCouldNotBeAdded.Count > 0)
-                        {
-                            var keyAlreadyExistsExceptions =
-                                elementsThatCouldNotBeAdded
-                                .Select(keyValuePair => new KeyAlreadyExistsException<TKey>(keyValuePair.Key))
-                                .ToList();
-
-                            if (keyAlreadyExistsExceptions.Count == 1)
-                                throw keyAlreadyExistsExceptions.First();
-                            if (keyAlreadyExistsExceptions.Count > 1)
-                                throw new AggregateException($"{keyAlreadyExistsExceptions.Count} elements of the provided '{nameof(keyValuePairs)}' could not be added because a corresponding key already existed in this {this.GetType().Name}", keyAlreadyExistsExceptions);
-
-                        }
+                        AddToEventAndNotificationsHandlingAndStartExpiration(observableCachedElement.Value, expiry);
                     }
-                    
-                    observer.OnNext(Unit.Default);
-                    observer.OnCompleted();
-                }
-                catch (Exception exception)
-                {
-                    observer.OnError(exception);
-                }
 
-                return Disposable.Empty;
+                    if (elementsThatCouldNotBeAdded.Count > 0)
+                    {
+                        var keyAlreadyExistsExceptions =
+                            elementsThatCouldNotBeAdded
+                            .Select(keyValuePair => new KeyAlreadyExistsException<TKey>(keyValuePair.Key))
+                            .ToList();
+
+                        if (keyAlreadyExistsExceptions.Count == 1)
+                            throw keyAlreadyExistsExceptions.First();
+                        if (keyAlreadyExistsExceptions.Count > 1)
+                            throw new AggregateException($"{keyAlreadyExistsExceptions.Count} elements of the provided '{nameof(keyValuePairs)}' could not be added because a corresponding key already existed in this {this.GetType().Name}", keyAlreadyExistsExceptions);
+
+                    }
+                }
             });
         }
 
@@ -1127,30 +1107,16 @@ namespace JB.Reactive.Cache
         {
             CheckForAndThrowIfDisposed();
 
-            return Observable.Create<Unit>(observer =>
+            return Linq.Observable.Run(() =>
             {
-                try
+                var valuesBeforeClearing = InnerDictionary.Values;
+
+                InnerDictionary.Clear();
+
+                foreach (var value in valuesBeforeClearing)
                 {
-                    var valuesBeforeClearing = InnerDictionary.Values;
-
-                    InnerDictionary.Clear();
-
-                    if (valuesBeforeClearing.Count > 0)
-                    {
-                        foreach (var value in valuesBeforeClearing)
-                        {
-                            RemoveFromEventAndNotificationsHandlingAndStopExpiration(value);
-                        }
-                    }
-                    observer.OnNext(Unit.Default);
-                    observer.OnCompleted();
+                    RemoveFromEventAndNotificationsHandlingAndStopExpiration(value);
                 }
-                catch (Exception exception)
-                {
-                    observer.OnError(exception);
-                }
-
-                return Disposable.Empty;
             });
         }
 
@@ -1168,20 +1134,7 @@ namespace JB.Reactive.Cache
 
             CheckForAndThrowIfDisposed();
 
-            return Observable.Create<bool>(observer =>
-            {
-                try
-                {
-                    observer.OnNext(InnerDictionary.ContainsKey(key));
-                    observer.OnCompleted();
-                }
-                catch (Exception exception)
-                {
-                    observer.OnError(exception);
-                }
-
-                return Disposable.Empty;
-            });
+            return Observable.Return(InnerDictionary.ContainsKey(key));
         }
 
         /// <summary>
@@ -1221,23 +1174,9 @@ namespace JB.Reactive.Cache
 
             CheckForAndThrowIfDisposed();
 
-            return Observable.Create<TKey>(observer =>
-            {
-                try
-                {
-                    foreach (var key in keys.Where(key => InnerDictionary.ContainsKey(key)))
-                    {
-                        observer.OnNext(key);
-                    }
-                    observer.OnCompleted();
-                }
-                catch (Exception exception)
-                {
-                    observer.OnError(exception);
-                }
-
-                return Disposable.Empty;
-            });
+            return keys
+                .ToObservable()
+                .Where(key => InnerDictionary.ContainsKey(key));
         }
 
         /// <summary>
@@ -1254,21 +1193,7 @@ namespace JB.Reactive.Cache
 
             CheckForAndThrowIfDisposed();
 
-            return Observable.Create<DateTime>(observer =>
-            {
-                try
-                {
-                    observer.OnNext(InnerDictionary[key].ExpiresAt());
-
-                    observer.OnCompleted();
-                }
-                catch (Exception exception)
-                {
-                    observer.OnError(exception);
-                }
-
-                return Disposable.Empty;
-            });
+            return Observable.Return(InnerDictionary[key].ExpiresAt());
         }
 
         /// <summary>
@@ -1285,21 +1210,7 @@ namespace JB.Reactive.Cache
 
             CheckForAndThrowIfDisposed();
 
-            return Observable.Create<TimeSpan>(observer =>
-            {
-                try
-                {
-                    observer.OnNext(InnerDictionary[key].ExpiresIn());
-
-                    observer.OnCompleted();
-                }
-                catch (Exception exception)
-                {
-                    observer.OnError(exception);
-                }
-
-                return Disposable.Empty;
-            });
+            return Observable.Return(InnerDictionary[key].ExpiresIn());
         }
 
         /// <summary>
@@ -1335,25 +1246,13 @@ namespace JB.Reactive.Cache
 
             CheckForAndThrowIfDisposed();
 
-            return Observable.Create<ObservableCachedElement<TKey, TValue>>(observer =>
+            return Linq.Observable.Run(() =>
             {
-                try
-                {
-                    var cachedElement = InnerDictionary[key];
+                var cachedElement = InnerDictionary[key];
+                if (cachedElement.HasExpired)
+                    throw new KeyHasExpiredException<TKey>(key, cachedElement.ExpiresAt());
 
-                    if (cachedElement.HasExpired)
-                        throw new KeyHasExpiredException<TKey>(key, cachedElement.ExpiresAt());
-
-                    // else
-                    observer.OnNext(cachedElement);
-                    observer.OnCompleted();
-                }
-                catch (Exception exception)
-                {
-                    observer.OnError(exception);
-                }
-
-                return Disposable.Empty;
+                return cachedElement;
             });
         }
 
@@ -1416,25 +1315,13 @@ namespace JB.Reactive.Cache
 
             CheckForAndThrowIfDisposed();
 
-            return Observable.Create<Unit>(observer =>
+            return Linq.Observable.Run(() =>
             {
-                try
-                {
-                    ObservableCachedElement<TKey, TValue> observableCachedElement;
-                    if (InnerDictionary.TryRemove(key, out observableCachedElement) == false)
-                        throw new KeyNotFoundException();
+                ObservableCachedElement<TKey, TValue> observableCachedElement;
+                if (InnerDictionary.TryRemove(key, out observableCachedElement) == false)
+                    throw new KeyNotFoundException();
 
-                    RemoveFromEventAndNotificationsHandlingAndStopExpiration(observableCachedElement);
-
-                    observer.OnNext(Unit.Default);
-                    observer.OnCompleted();
-                }
-                catch (Exception exception)
-                {
-                    observer.OnError(exception);
-                }
-
-                return Disposable.Empty;
+                RemoveFromEventAndNotificationsHandlingAndStopExpiration(observableCachedElement);
             });
         }
 
@@ -1452,44 +1339,32 @@ namespace JB.Reactive.Cache
 
             CheckForAndThrowIfDisposed();
             
-            return Observable.Create<Unit>(observer =>
+            return Linq.Observable.Run(() =>
             {
-                try
+                // first check which keys / elements ARE in the innerdictionary
+                var cachedElementsInInnerDictionaryForKeys = new Dictionary<TKey, ObservableCachedElement<TKey, TValue>>();
+                foreach (var key in keys)
                 {
-                    // first check which keys / elements ARE in the innerdictionary
-                    var cachedElementsInInnerDictionaryForKeys = new Dictionary<TKey, ObservableCachedElement<TKey, TValue>>();
-                    foreach (var key in keys)
+                    ObservableCachedElement<TKey, TValue> observableCachedElementForCurrentKey;
+                    if (InnerDictionary.TryGetValue(key, out observableCachedElementForCurrentKey) == true)
                     {
-                        ObservableCachedElement<TKey, TValue> observableCachedElementForCurrentKey;
-                        if (InnerDictionary.TryGetValue(key, out observableCachedElementForCurrentKey) == true)
-                        {
-                            cachedElementsInInnerDictionaryForKeys.Add(key, observableCachedElementForCurrentKey);
-                        }
+                        cachedElementsInInnerDictionaryForKeys.Add(key, observableCachedElementForCurrentKey);
                     }
-
-                    // then go ahead and remove them
-                    if (cachedElementsInInnerDictionaryForKeys.Count > 0)
-                    {
-                        IDictionary<TKey, ObservableCachedElement<TKey, TValue>> elementsThatCouldNotBeRemoved;
-                        InnerDictionary.TryRemoveRange(cachedElementsInInnerDictionaryForKeys, out elementsThatCouldNotBeRemoved);
-
-                        // and finally remove expiration / value changed notification etc
-                        var keysForNonRemovedElements = elementsThatCouldNotBeRemoved.Keys;
-                        foreach (var observableCachedElement in cachedElementsInInnerDictionaryForKeys.Where(element => !keysForNonRemovedElements.Contains(element.Key, KeyComparer)))
-                        {
-                            RemoveFromEventAndNotificationsHandlingAndStopExpiration(observableCachedElement.Value);
-                        }
-                    }
-
-                    observer.OnNext(Unit.Default);
-                    observer.OnCompleted();
-                }
-                catch (Exception exception)
-                {
-                    observer.OnError(exception);
                 }
 
-                return Disposable.Empty;
+                // then go ahead and remove them
+                if (cachedElementsInInnerDictionaryForKeys.Count > 0)
+                {
+                    IDictionary<TKey, ObservableCachedElement<TKey, TValue>> elementsThatCouldNotBeRemoved;
+                    InnerDictionary.TryRemoveRange(cachedElementsInInnerDictionaryForKeys, out elementsThatCouldNotBeRemoved);
+
+                    // and finally remove expiration / value changed notification etc
+                    var keysForNonRemovedElements = elementsThatCouldNotBeRemoved.Keys;
+                    foreach (var observableCachedElement in cachedElementsInInnerDictionaryForKeys.Where(element => !keysForNonRemovedElements.Contains(element.Key, KeyComparer)))
+                    {
+                        RemoveFromEventAndNotificationsHandlingAndStopExpiration(observableCachedElement.Value);
+                    }
+                }
             });
         }
 
@@ -1531,6 +1406,9 @@ namespace JB.Reactive.Cache
 
             CheckForAndThrowIfDisposed();
 
+            if (keyValuePairs.Count == 0)
+                return Observable.Return(Unit.Default);
+
             return GetCachedElements(keyValuePairs.Select(kvp => kvp.Key))
                 .ToList()
                 .Take(1)
@@ -1556,33 +1434,18 @@ namespace JB.Reactive.Cache
 
             CheckForAndThrowIfDisposed();
 
-            return Observable.Create<Unit>(observer =>
-            {
-                try
+            return GetCachedElement(key)
+                .Take(1)
+                .Select(cachedElement =>
                 {
-                    ObservableCachedElement<TKey, TValue> existingCachedElement;
-                    if (InnerDictionary.TryGetValue(key, out existingCachedElement) == false)
-                    {
-                        throw new KeyNotFoundException<TKey>(key);
-                    }
-
-                    // else
-                    existingCachedElement.StartOrUpdateExpiration(
+                    cachedElement.StartOrUpdateExpiration(
                         expiry,
                         ExpiredElementsObserver,
                         ObserverExceptionsObserver,
                         ExpirationScheduler);
 
-                    observer.OnNext(Unit.Default);
-                    observer.OnCompleted();
-                }
-                catch (Exception exception)
-                {
-                    observer.OnError(exception);
-                }
-
-                return Disposable.Empty;
-            });
+                    return Unit.Default;
+                });
         }
 
         /// <summary>
@@ -1632,7 +1495,9 @@ namespace JB.Reactive.Cache
             {
                 CheckForAndThrowIfDisposed();
 
-                return InnerDictionary.Resets.TakeWhile(_ => !IsDisposing && !IsDisposed).SkipContinuouslyWhile(_ => !IsTrackingResets);
+                return InnerDictionary.Resets
+                    .TakeWhile(_ => !IsDisposing && !IsDisposed)
+                    .SkipContinuouslyWhile(_ => !IsTrackingResets);
             }
         }
 
@@ -1665,7 +1530,10 @@ namespace JB.Reactive.Cache
             {
                 CheckForAndThrowIfDisposed();
 
-                return Changes.TakeWhile(_ => !IsDisposing && !IsDisposed).Where(change => change.ChangeType == ObservableCacheChangeType.ItemChanged || change.ChangeType == ObservableCacheChangeType.ItemReplaced).SkipContinuouslyWhile(change => !IsTrackingItemChanges);
+                return Changes
+                    .TakeWhile(_ => !IsDisposing && !IsDisposed)
+                    .Where(change => change.ChangeType == ObservableCacheChangeType.ItemChanged || change.ChangeType == ObservableCacheChangeType.ItemReplaced)
+                    .SkipContinuouslyWhile(change => !IsTrackingItemChanges);
             }
         }
 
@@ -1733,6 +1601,57 @@ namespace JB.Reactive.Cache
 
                 return InnerDictionary.IsTrackingItemChanges;
             }
+        }
+
+        #endregion
+
+        #region Implementation of INotifyObservableCountChanges
+
+        /// <summary>
+        /// Gets a value indicating whether this instance signals changes to its items' count.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if this instance is tracking counts; otherwise, <c>false</c>.
+        /// </value>
+        public virtual bool IsTrackingCountChanges
+        {
+            get
+            {
+                CheckForAndThrowIfDisposed();
+
+                return InnerDictionary.IsTrackingCountChanges;
+            }
+        }
+
+        /// <summary>
+        /// Gets the count change notifications as an observable stream.
+        /// </summary>
+        /// <value>
+        /// The count changes.
+        /// </value>
+        public IObservable<int> CountChanges
+        {
+            get
+            {
+                CheckForAndThrowIfDisposed();
+
+                return InnerDictionary.CountChanges
+                    .TakeWhile(_ => !IsDisposing && !IsDisposed)
+                    .SkipContinuouslyWhile(_ => !IsTrackingCountChanges);
+            }
+        }
+
+        /// <summary>
+        /// (Temporarily) suppresses item count change notification until the returned <see cref="IDisposable" />
+        /// has been Disposed.
+        /// </summary>
+        /// <param name="signalCurrentCountWhenFinished">if set to <c>true</c> signals a the current count when disposed.</param>
+        /// <returns></returns>
+        public IDisposable SuppressCountChangedNotifications(bool signalCurrentCountWhenFinished = true)
+        {
+            CheckForAndThrowIfDisposed();
+
+            return InnerDictionary.SuppressCountChangedNotifications(signalCurrentCountWhenFinished);
         }
 
         #endregion
