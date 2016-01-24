@@ -25,7 +25,6 @@ namespace JB.Reactive.Cache
 
         private long _expirationChangesCount = 0;
         private long _hasExpired = 0;
-        private long _hasExpiryBeenUpdated = 0;
         private readonly object _expiryModificationLocker = new object();
 
         /// <summary>

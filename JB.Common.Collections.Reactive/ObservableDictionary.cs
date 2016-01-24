@@ -101,7 +101,7 @@ namespace JB.Collections.Reactive
         /// <param name="collection">The elements that are copied to this instance.</param>
         /// <param name="keyComparer">The <see cref="IEqualityComparer{T}" /> implementation to use when comparing keys.</param>
         /// <param name="valueComparer">The <see cref="IEqualityComparer{T}" /> implementation to use when comparing values.</param>
-        /// <param name="scheduler">The scheduler to to send out observer messages & raise events on. If none is provided <see cref="System.Reactive.Concurrency.Scheduler.CurrentThread"/> will be used.</param>
+        /// <param name="scheduler">The scheduler to to send out observer messages &amp; raise events on. If none is provided <see cref="System.Reactive.Concurrency.Scheduler.CurrentThread"/> will be used.</param>
         public ObservableDictionary(IEnumerable<KeyValuePair<TKey, TValue>> collection = null, IEqualityComparer<TKey> keyComparer = null, IEqualityComparer<TValue> valueComparer = null, IScheduler scheduler = null)
         {
             // ToDo: check whether scheduler shall / should be used for internall used RX notifications / Subjects etc
@@ -474,7 +474,7 @@ namespace JB.Collections.Reactive
         /// If [false] is returned, check <paramref name="keysThatCouldNotBeRemoved" /> for the corresponding ones that could not be removed.
         /// </returns>
         /// <exception cref="T:System.ArgumentNullException">
-        ///   <paramref name="items" /> is null.</exception>
+        ///   <paramref name="keys" /> is null.</exception>
         public virtual bool TryRemoveRange(IEnumerable<TKey> keys, out IList<TKey> keysThatCouldNotBeRemoved)
         {
             if (keys == null) throw new ArgumentNullException(nameof(keys));
@@ -870,7 +870,7 @@ namespace JB.Collections.Reactive
         /// <summary>
         /// Prepares and sets up the observables and subjects used, particularly
         /// <see cref="_dictionaryChangesSubject"/>, <see cref="_countChangesSubject"/> and <see cref="_unhandledObserverExceptionsSubject"/> and also notifications for
-        /// 'Count' and 'Items[]' <see cref="INotifyPropertyChanged"/> events on <see cref="CountChanges"/> and <see cref="CollectionChanges"/>
+        /// 'Count' and 'Items[]' <see cref="INotifyPropertyChanged"/> events on <see cref="CountChanges"/> and <see cref="DictionaryChanges"/>
         /// occurrences (for WPF / Binding)
         /// </summary>
         private void SetupObservablesAndObserversAndSubjects()

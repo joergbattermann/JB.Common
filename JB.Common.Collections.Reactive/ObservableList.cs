@@ -42,7 +42,7 @@ namespace JB.Collections.Reactive
         /// </summary>
         /// <param name="list">The initial list, if any.</param>
         /// <param name="syncRoot">The object used to synchronize access to the thread-safe collection.</param>
-        /// <param name="scheduler">The scheduler to to send out observer messages & raise events on. If none is provided <see cref="System.Reactive.Concurrency.Scheduler.CurrentThread"/> will be used.</param>
+        /// <param name="scheduler">The scheduler to to send out observer messages &amp; raise events on. If none is provided <see cref="System.Reactive.Concurrency.Scheduler.CurrentThread"/> will be used.</param>
         public ObservableList(IList<T> list = null, object syncRoot = null, IScheduler scheduler = null)
             : base(list, syncRoot, scheduler)
         {

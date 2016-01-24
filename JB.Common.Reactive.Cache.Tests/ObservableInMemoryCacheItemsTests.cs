@@ -494,7 +494,7 @@ namespace JB.Reactive.Cache.Tests
         }
 
         [Fact]
-        public async Task ShouldThrowAggregateExceptionWhenMultipleKeyUpdaterFuncDoesNotReturnUpdatedValuesForMultipleKeysForUpdateExpiryType()
+        public void ShouldThrowAggregateExceptionWhenMultipleKeyUpdaterFuncDoesNotReturnUpdatedValuesForMultipleKeysForUpdateExpiryType()
         {
             // given
             var testScheduler = new TestScheduler();
@@ -531,7 +531,7 @@ namespace JB.Reactive.Cache.Tests
         }
 
         [Fact]
-        public async Task ShouldThrowKeyNotFoundExceptionWhenMultipleKeyUpdaterFuncDoesNotReturnOneUpdatedValueForMultipleKeysForUpdateExpiryType()
+        public void ShouldThrowKeyNotFoundExceptionWhenMultipleKeyUpdaterFuncDoesNotReturnOneUpdatedValueForMultipleKeysForUpdateExpiryType()
         {
             // given
             var testScheduler = new TestScheduler();
@@ -701,7 +701,7 @@ namespace JB.Reactive.Cache.Tests
         }
 
         [Fact]
-        public async Task ShouldThrowOnExpiresInOfNonExistingKey()
+        public void ShouldThrowOnExpiresInOfNonExistingKey()
         {
             // given
             using (var cache = new ObservableInMemoryCache<int, string>())
@@ -718,7 +718,7 @@ namespace JB.Reactive.Cache.Tests
         }
 
         [Fact]
-        public async Task ShouldThrowOnExpiresAtOfNonExistingKey()
+        public void ShouldThrowOnExpiresAtOfNonExistingKey()
         {
             // given
             using (var cache = new ObservableInMemoryCache<int, string>())

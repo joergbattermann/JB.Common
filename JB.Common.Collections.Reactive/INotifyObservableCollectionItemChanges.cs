@@ -5,7 +5,7 @@ namespace JB.Collections.Reactive
 {
     /// <summary>
     /// Classes implementing this interface provide an <see cref="CollectionItemChanges">observable stream</see> of item changes IF
-    /// <typeparam name="TItem"/> implements the <see cref="INotifyPropertyChanged"/> interface.
+    /// <typeparamref name="TItem"/> implements the <see cref="INotifyPropertyChanged"/> interface.
     /// </summary>
     /// <typeparam name="TItem"></typeparam>
     public interface INotifyObservableCollectionItemChanges<out TItem> : INotifyObservableItemChanges

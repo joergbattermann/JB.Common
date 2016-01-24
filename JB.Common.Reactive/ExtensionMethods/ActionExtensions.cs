@@ -22,7 +22,7 @@ namespace JB.Reactive.ExtensionMethods
         /// </summary>
         /// <param name="action">Action to run on subscription.</param>
         /// <returns>
-        /// An observable sequence exposing the result value upon completion of the given <see cref="action"/>, or an exception if one occured.
+        /// An observable sequence exposing the result value upon completion of the given <paramref name="action"/>, or an exception if one occured.
         /// </returns>
         /// <exception cref="T:System.ArgumentNullException"><paramref name="action"/> is null.</exception>
         public static IObservable<Unit> ToObservable(this Action action)

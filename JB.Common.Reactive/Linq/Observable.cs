@@ -13,6 +13,9 @@ using System.Reactive.Disposables;
 
 namespace JB.Reactive.Linq
 {
+    /// <summary>
+    /// Helper methods for <see cref="IObservable{T}"/> instances
+    /// </summary>
     public static class Observable
     {
         /// <summary>
@@ -20,7 +23,7 @@ namespace JB.Reactive.Linq
         /// </summary>
         /// <param name="action">Action to run on subscription.</param>
         /// <returns>
-        /// An observable sequence exposing the result value upon completion of the given <see cref="action"/>, or an exception if one occured.
+        /// An observable sequence exposing the result value upon completion of the given <paramref name="action"/>, or an exception if one occured.
         /// </returns>
         /// <exception cref="T:System.ArgumentNullException"><paramref name="action"/> is null.</exception>
         public static IObservable<Unit> Run(Action action)
@@ -50,7 +53,7 @@ namespace JB.Reactive.Linq
         /// </summary>
         /// <param name="func">Function to run on subscription.</param>
         /// <returns>
-        /// An observable sequence exposing the result value upon completion of the given <see cref="func"/>, or an exception if one occured.
+        /// An observable sequence exposing the result value upon completion of the given <paramref name="func"/>, or an exception if one occured.
         /// </returns>
         /// <exception cref="T:System.ArgumentNullException"><paramref name="func"/> is null.</exception>
         public static IObservable<TResult> Run<TResult>(Func<TResult> func)

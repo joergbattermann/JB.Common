@@ -4,7 +4,7 @@ using System.Threading;
 namespace JB
 {
     /// <summary>
-    /// A Pooled <typeparam name="TValue">instance</typeparam> managed by a <see cref="Pool{TValue}"/>
+    /// A Pooled <typeparamref name="TValue">instance</typeparamref> managed by a <see cref="Pool{TValue}"/>
     /// </summary>
     /// <typeparam name="TValue">The type of the value.</typeparam>
     public class Pooled<TValue> : IDisposable

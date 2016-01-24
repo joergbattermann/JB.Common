@@ -5,7 +5,7 @@ namespace JB.Collections.Reactive
 {
     /// <summary>
     /// Classes implementing this interface provide an <see cref="DictionaryItemChanges">observable stream</see> of item changes IF
-    /// <typeparam name="TValue" /> implements the <see cref="INotifyPropertyChanged" /> interface.
+    /// <typeparamref name="TValue"/> implements the <see cref="INotifyPropertyChanged" /> interface.
     /// </summary>
     /// <typeparam name="TKey">The type of the key.</typeparam>
     /// <typeparam name="TValue">The type of the value.</typeparam>

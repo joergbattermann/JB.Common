@@ -62,7 +62,7 @@ namespace JB.Reactive.Linq
         /// <param name="source">The source sequence that may produce an exception.</param>
         /// <param name="exceptionsObserver">The exceptions observer that exceptions will be forwarded to for handling.</param>
         /// <param name="reconnectToSource">The observable sequence to re-connect to.</param>
-        /// <param name="observerExceptionMessageBuilder">The <see cref="ObserverException.Message"/> builder.</param>
+        /// <param name="observerExceptionMessageBuilder">The <see cref="ObserverException"/> message builder.</param>
         /// <param name="rethrowExceptionIfUnhandled">
         ///     if set to <c>true</c> and the forwarded <see cref="ObserverException"/> was unhandled (by (not) setting its <see cref="ObserverException.Handled"/> flag),
         ///     the exception will be re-thrown and therefore the sequence will exceptionally terminate and no reconnection to the <paramref name="source"/> will be made
@@ -131,7 +131,7 @@ namespace JB.Reactive.Linq
         /// <param name="source">The source sequence that may produce an exception.</param>
         /// <param name="exceptionsObserver">The exceptions observer that exceptions will be forwarded to for handling.</param>
         /// <param name="reconnectionObservable">The observable sequence to re-connect to.</param>
-        /// <param name="observerExceptionMessageBuilder">The <see cref="ObserverException.Message"/> builder.</param>
+        /// <param name="observerExceptionMessageBuilder">The <see cref="ObserverException"/> message builder.</param>
         /// <param name="rethrowExceptionIfUnhandled">
         ///     if set to <c>true</c> and the forwarded <see cref="ObserverException"/> was unhandled (by (not) setting its <see cref="ObserverException.Handled"/> flag),
         ///     the exception will be re-thrown and therefore the sequence will exceptionally terminate and no reconnection to <paramref name="reconnectionObservable"/> will be made.

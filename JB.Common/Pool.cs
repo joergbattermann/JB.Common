@@ -16,7 +16,7 @@ using System.Threading.Tasks;
 namespace JB
 {
     /// <summary>
-    /// A managed pool for shared, re-usable <typeparam name="TValue">instances</typeparam>.
+    /// A managed pool for shared, re-usable <typeparamref name="TValue">instances</typeparamref>.
     /// </summary>
     /// <typeparam name="TValue">The type of the value.</typeparam>
     public class Pool<TValue> : IDisposable

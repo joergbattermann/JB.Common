@@ -402,9 +402,7 @@ namespace JB.Collections.Reactive
         /// <summary>
         ///     Gets a value indicating whether the this instance forwards the inner Items'
         ///     <see cref="INotifyPropertyChanged.PropertyChanged" /> events as corresponding ItemChanged events.
-        ///     Obviously only works if the
-        ///     <typeparam name="T">type</typeparam>
-        ///     does implement the <see cref="INotifyPropertyChanged" /> interface.
+        ///     Obviously only works if the type does implement the <see cref="INotifyPropertyChanged" /> interface.
         /// </summary>
         /// <returns>
         ///     [true] if the items property changed events are forwarded as ItemChanged ones, [false] if not.
