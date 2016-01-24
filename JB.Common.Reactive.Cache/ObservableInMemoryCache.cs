@@ -13,7 +13,6 @@ using System.Diagnostics;
 using System.Linq;
 using System.Reactive;
 using System.Reactive.Concurrency;
-using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Runtime.CompilerServices;
@@ -22,7 +21,6 @@ using JB.Collections;
 using JB.Collections.Reactive;
 using JB.ExtensionMethods;
 using JB.Reactive.Cache.ExtensionMethods;
-using JB.Reactive.ExtensionMethods;
 using JB.Reactive.Linq;
 using Observable = System.Reactive.Linq.Observable;
 
@@ -1214,32 +1212,34 @@ namespace JB.Reactive.Cache
         }
 
         /// <summary>
-        /// Gets the <typeparamref name="TValue"/> for the specified <paramref name="key"/>.
+        /// Gets the <typeparamref name="TValue" /> for the specified <paramref name="key" />.
         /// </summary>
-        /// <param name="key">The key to retrieve the <typeparamref name="TValue"/> for.</param>
+        /// <param name="key">The key to retrieve the <typeparamref name="TValue" /> for.</param>
+        /// <param name="throwIfExpired">If set to <c>true</c>, a <see cref="KeyHasExpiredException{TKey}"/> will be thrown if it has expired before retrieval.</param>
         /// <returns>
-        /// An observable stream that returns the <see cref="TValue"/> for the provided <paramref name="key"/>.
+        /// An observable stream that returns the <see cref="TValue" /> for the provided <paramref name="key" />.
         /// </returns>
-        public virtual IObservable<TValue> Get(TKey key)
+        public virtual IObservable<TValue> Get(TKey key, bool throwIfExpired = true)
         {
             if (key == null)
                 throw new ArgumentNullException(nameof(key));
 
             CheckForAndThrowIfDisposed();
 
-            return GetCachedElement(key)
+            return GetCachedElement(key, throwIfExpired)
                 .Take(1)
                 .Select(cachedElement => cachedElement.Value);
         }
 
         /// <summary>
-        /// Gets the <see cref="ObservableCachedElement{TKey, TValue}"/> for the specified <paramref name="key"/>.
+        /// Gets the <see cref="ObservableCachedElement{TKey, TValue}" /> for the specified <paramref name="key" />.
         /// </summary>
-        /// <param name="key">The key to retrieve the <typeparamref name="TValue"/> for.</param>
+        /// <param name="key">The key to retrieve the <typeparamref name="TValue" /> for.</param>
+        /// <param name="throwIfExpired">If set to <c>true</c>, a <see cref="KeyHasExpiredException{TKey}"/> will be thrown if it has expired before retrieval.</param>
         /// <returns>
-        /// An observable stream that returns the <see cref="TValue"/> for the provided <paramref name="key"/>.
+        /// An observable stream that returns the <see cref="TValue" /> for the provided <paramref name="key" />.
         /// </returns>
-        protected virtual IObservable<ObservableCachedElement<TKey, TValue>> GetCachedElement(TKey key)
+        protected virtual IObservable<ObservableCachedElement<TKey, TValue>> GetCachedElement(TKey key, bool throwIfExpired = true)
         {
             if (key == null)
                 throw new ArgumentNullException(nameof(key));
@@ -1249,7 +1249,7 @@ namespace JB.Reactive.Cache
             return Linq.Observable.Run(() =>
             {
                 var cachedElement = InnerDictionary[key];
-                if (cachedElement.HasExpired)
+                if (cachedElement.HasExpired && throwIfExpired)
                     throw new KeyHasExpiredException<TKey>(key, cachedElement.ExpiresAt());
 
                 return cachedElement;
@@ -1260,12 +1260,13 @@ namespace JB.Reactive.Cache
         /// Gets the values for the specified <paramref name="keys"/>.
         /// </summary>
         /// <param name="keys">The keys to retrieve the values for.</param>
+        /// <param name="throwIfExpired">If set to <c>true</c>, a <see cref="KeyHasExpiredException{TKey}"/> will be thrown if one of the elements has expired before retrieval.</param>
         /// <param name="maxConcurrent">Maximum number of concurrent retrievals.</param>
         /// <param name="scheduler">Scheduler to run the concurrent retrievals on.</param>
         /// <returns>
         /// An observable stream that returns the values for the provided <paramref name="keys"/>.
         /// </returns>
-        public virtual IObservable<TValue> Get(IEnumerable<TKey> keys, int maxConcurrent = 1, IScheduler scheduler = null)
+        public virtual IObservable<TValue> Get(IEnumerable<TKey> keys, bool throwIfExpired = true, int maxConcurrent = 1, IScheduler scheduler = null)
         {
             if (keys == null)
                 throw new ArgumentNullException(nameof(keys));
@@ -1274,20 +1275,21 @@ namespace JB.Reactive.Cache
 
             CheckForAndThrowIfDisposed();
 
-            return GetCachedElements(keys, maxConcurrent, scheduler)
+            return GetCachedElements(keys, throwIfExpired, maxConcurrent, scheduler)
                 .Select(cachedElement => cachedElement.Value);
         }
 
         /// <summary>
-        /// Gets the <see cref="ObservableCachedElement{TKey,TValue}"/> for the specified <paramref name="keys"/>.
+        /// Gets the <see cref="ObservableCachedElement{TKey,TValue}" /> for the specified <paramref name="keys" />.
         /// </summary>
         /// <param name="keys">The keys to retrieve the values for.</param>
+        /// <param name="throwIfExpired">If set to <c>true</c>, a <see cref="KeyHasExpiredException{TKey}"/> will be thrown if one of the elements has expired before retrieval.</param>
         /// <param name="maxConcurrent">Maximum number of concurrent retrievals.</param>
         /// <param name="scheduler">Scheduler to run the concurrent retrievals on.</param>
         /// <returns>
-        /// An observable stream that returns <see cref="ObservableCachedElement{TKey,TValue}"/> instances for the provided <paramref name="keys"/>.
+        /// An observable stream that returns <see cref="ObservableCachedElement{TKey,TValue}" /> instances for the provided <paramref name="keys" />.
         /// </returns>
-        public virtual IObservable<ObservableCachedElement<TKey, TValue>> GetCachedElements(IEnumerable<TKey> keys, int maxConcurrent = 1, IScheduler scheduler = null)
+        public virtual IObservable<ObservableCachedElement<TKey, TValue>> GetCachedElements(IEnumerable<TKey> keys, bool throwIfExpired = true, int maxConcurrent = 1, IScheduler scheduler = null)
         {
             if (keys == null)
                 throw new ArgumentNullException(nameof(keys));
@@ -1297,8 +1299,8 @@ namespace JB.Reactive.Cache
             CheckForAndThrowIfDisposed();
 
             return scheduler != null
-                ? keys.Select(GetCachedElement).Merge(maxConcurrent, scheduler)
-                : keys.Select(GetCachedElement).Merge(maxConcurrent);
+                ? keys.Select(key => GetCachedElement(key, throwIfExpired)).Merge(maxConcurrent, scheduler)
+                : keys.Select(key => GetCachedElement(key, throwIfExpired)).Merge(maxConcurrent);
         }
 
         /// <summary>
@@ -1458,7 +1460,22 @@ namespace JB.Reactive.Cache
         /// </returns>
         public virtual IObservable<Unit> UpdateExpiration(IEnumerable<TKey> keys, TimeSpan expiry)
         {
-            throw new NotImplementedException();
+            if (keys == null)
+                throw new ArgumentNullException(nameof(keys));
+
+            CheckForAndThrowIfDisposed();
+
+            return GetCachedElements(keys)
+                .Select(cachedElement =>
+                {
+                    cachedElement.StartOrUpdateExpiration(
+                        expiry,
+                        ExpiredElementsObserver,
+                        ObserverExceptionsObserver,
+                        ExpirationScheduler);
+
+                    return Unit.Default;
+                });
         }
 
         #endregion

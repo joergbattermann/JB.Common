@@ -256,7 +256,7 @@ namespace JB.Reactive.Cache.Tests
         }
 
         [Fact]
-        public void ShouldThrowKeyHasExpiredExceptionAfterKeyHasExpiredWithDoNothingExpiryType()
+        public void ShouldThrowKeyHasExpiredExceptionOnGetAfterKeyHasExpiredWithDoNothingExpiryType()
         {
             // given
             var testScheduler = new TestScheduler();
@@ -283,6 +283,66 @@ namespace JB.Reactive.Cache.Tests
                 action
                     .ShouldThrow<KeyHasExpiredException<int>>()
                     .WithMessage($"The key has expired on {initialTestSchedulerDateTime}.");
+            }
+        }
+
+        [Fact]
+        public void ShouldThrowKeyHasExpiredExceptionOnUpdateAfterKeyHasExpiredWithDoNothingExpiryType()
+        {
+            // given
+            var testScheduler = new TestScheduler();
+            var initialTestSchedulerDateTime = testScheduler.Now.DateTime;
+            var expirationTimeoutInTicks = 10;
+
+            using (var cache = new ObservableInMemoryCache<int, string>(expiredElementsHandlingChillPeriod: TimeSpan.FromTicks(expirationTimeoutInTicks), expirationScheduler: testScheduler))
+            {
+                testScheduler.ScheduleAsync(
+                    TimeSpan.Zero,
+                    async (scheduler, token) =>
+                    {
+                        await cache.Add(1, "One", TimeSpan.Zero, ObservableCacheExpirationType.DoNothing);
+                    });
+
+                // when
+                testScheduler.AdvanceBy(expirationTimeoutInTicks * 10);
+                Func<Task> action = async () =>
+                {
+                    await cache.Update(1, "ONE");
+                };
+
+                // then
+                action
+                    .ShouldThrow<KeyHasExpiredException<int>>()
+                    .WithMessage($"The key has expired on {initialTestSchedulerDateTime}.");
+            }
+        }
+
+        [Fact]
+        public void ShouldNotThrowKeyHasExpiredExceptionOnGetIfWantedAfterKeyHasExpiredWithDoNothingExpiryType()
+        {
+            // given
+            var testScheduler = new TestScheduler();
+            var expirationTimeoutInTicks = 10;
+
+            using (var cache = new ObservableInMemoryCache<int, string>(expiredElementsHandlingChillPeriod: TimeSpan.FromTicks(expirationTimeoutInTicks), expirationScheduler: testScheduler))
+            {
+                testScheduler.ScheduleAsync(
+                    TimeSpan.Zero,
+                    async (scheduler, token) =>
+                    {
+                        await cache.Add(1, "One", TimeSpan.Zero, ObservableCacheExpirationType.DoNothing);
+                    });
+
+                // when
+                testScheduler.AdvanceBy(expirationTimeoutInTicks * 10);
+                Func<Task> action = async () =>
+                {
+                    await cache.Get(1, false);
+                };
+
+                // then
+                action
+                    .ShouldNotThrow<KeyHasExpiredException<int>>();
             }
         }
 
@@ -612,7 +672,7 @@ namespace JB.Reactive.Cache.Tests
                 action.ShouldThrow<KeyNotFoundException>();
             }
         }
-
+        
         [Fact]
         public async Task ShouldThrowOnGetOfNonExistingKey()
         {

@@ -112,21 +112,23 @@ namespace JB.Reactive.Cache
         /// Gets the <typeparamref name="TValue"/> for the specified <paramref name="key"/>.
         /// </summary>
         /// <param name="key">The key to retrieve the <typeparamref name="TValue"/> for.</param>
+        /// <param name="throwIfExpired">If set to <c>true</c>, a <see cref="KeyHasExpiredException{TKey}"/> will be thrown if the <paramref name="key"/> has expired before retrieval.</param>
         /// <returns>
         /// An observable stream that returns the <see cref="TValue"/> for the provided <paramref name="key"/>.
         /// </returns>
-        IObservable<TValue> Get(TKey key);
+        IObservable<TValue> Get(TKey key, bool throwIfExpired = true);
 
         /// <summary>
         /// Gets the values for the specified <paramref name="keys"/>.
         /// </summary>
         /// <param name="keys">The keys to retrieve the values for.</param>
+        /// <param name="throwIfExpired">If set to <c>true</c>, a <see cref="KeyHasExpiredException{TKey}"/> will be thrown if one of the elements has expired before retrieval.</param>
         /// <param name="maxConcurrent">Maximum number of concurrent retrievals.</param>
         /// <param name="scheduler">Scheduler to run the concurrent retrievals on.</param>
         /// <returns>
         /// An observable stream that returns the values for the provided <paramref name="keys"/>.
         /// </returns>
-        IObservable<TValue> Get(IEnumerable<TKey> keys, int maxConcurrent = 1, IScheduler scheduler = null);
+        IObservable<TValue> Get(IEnumerable<TKey> keys, bool throwIfExpired = true, int maxConcurrent = 1, IScheduler scheduler = null);
 
         /// <summary>
         /// Removes the specified <paramref name="key"/> from this instance.
