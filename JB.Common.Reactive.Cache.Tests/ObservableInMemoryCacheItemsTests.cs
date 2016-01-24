@@ -499,11 +499,14 @@ namespace JB.Reactive.Cache.Tests
             // given
             var testScheduler = new TestScheduler();
             var expirationTimeoutInTicks = 10;
+            var exceptionsObserver = testScheduler.CreateObserver<ObserverException>();
 
             Func<IEnumerable<int>, IEnumerable<KeyValuePair<int, string>>> multipleKeysUpdater = (ints) => { return ints.ToDictionary(i => i * 10, i => (i * 20).ToString()); };
 
             using (var cache = new ObservableInMemoryCache<int, string>(multipleKeysRetrievalAction: multipleKeysUpdater, expiredElementsHandlingChillPeriod: TimeSpan.FromTicks(expirationTimeoutInTicks), expirationScheduler: testScheduler))
             {
+                cache.ObserverExceptions.Subscribe(exceptionsObserver);
+
                 testScheduler.ScheduleAsync(
                     TimeSpan.Zero,
                     async (scheduler, token) =>
@@ -513,14 +516,17 @@ namespace JB.Reactive.Cache.Tests
                     });
 
                 // when
-                Func<Task> action = async () =>
-                {
-                    testScheduler.AdvanceBy(expirationTimeoutInTicks);
-                };
+                testScheduler.AdvanceBy(expirationTimeoutInTicks);
 
                 // then
-                action
-                    .ShouldThrow<AggregateException>();
+                exceptionsObserver.Messages.Count.Should().Be(1);
+                exceptionsObserver.Messages.Last().Should().NotBeNull();
+                exceptionsObserver.Messages.Last().Value.Value.InnerException.Should().NotBeNull().And.BeOfType<AggregateException>();
+                exceptionsObserver.Messages.Last().Value.Value.InnerException.As<AggregateException>().InnerExceptions.Count.Should().Be(2);
+                exceptionsObserver.Messages.Last().Value.Value.InnerException.As<AggregateException>().InnerExceptions.First().Should().BeOfType<KeyNotFoundException<int>>();
+                exceptionsObserver.Messages.Last().Value.Value.InnerException.As<AggregateException>().InnerExceptions.Last().Should().BeOfType<KeyNotFoundException<int>>();
+                exceptionsObserver.Messages.Last().Value.Value.InnerException.As<AggregateException>().InnerExceptions.First().As<KeyNotFoundException<int>>().Key.Should().Be(1);
+                exceptionsObserver.Messages.Last().Value.Value.InnerException.As<AggregateException>().InnerExceptions.Last().As<KeyNotFoundException<int>>().Key.Should().Be(2);
             }
         }
 
@@ -530,11 +536,14 @@ namespace JB.Reactive.Cache.Tests
             // given
             var testScheduler = new TestScheduler();
             var expirationTimeoutInTicks = 10;
+            var exceptionsObserver = testScheduler.CreateObserver<ObserverException>();
 
             Func<IEnumerable<int>, IEnumerable<KeyValuePair<int, string>>> multipleKeysUpdater = (ints) => { return ints.Skip(1).ToDictionary(i => i, i => i.ToString()); };
 
             using (var cache = new ObservableInMemoryCache<int, string>(multipleKeysRetrievalAction: multipleKeysUpdater, expiredElementsHandlingChillPeriod: TimeSpan.FromTicks(expirationTimeoutInTicks), expirationScheduler: testScheduler))
             {
+                cache.ObserverExceptions.Subscribe(exceptionsObserver);
+
                 testScheduler.ScheduleAsync(
                     TimeSpan.Zero,
                     async (scheduler, token) =>
@@ -544,14 +553,13 @@ namespace JB.Reactive.Cache.Tests
                     });
 
                 // when
-                Func<Task> action = async () =>
-                {
-                    testScheduler.AdvanceBy(expirationTimeoutInTicks);
-                };
+                testScheduler.AdvanceBy(expirationTimeoutInTicks);
 
                 // then
-                action
-                    .ShouldThrow<KeyNotFoundException<int>>();
+                exceptionsObserver.Messages.Count.Should().Be(1);
+                exceptionsObserver.Messages.Last().Should().NotBeNull();
+                exceptionsObserver.Messages.Last().Value.Value.InnerException.Should().NotBeNull().And.BeOfType<KeyNotFoundException<int>>();
+                exceptionsObserver.Messages.Last().Value.Value.InnerException.As<KeyNotFoundException<int>>().Key.Should().Be(1);
             }
         }
 
