@@ -18,9 +18,9 @@ using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Runtime.CompilerServices;
 using System.Threading;
-using System.Threading.Tasks;
 using JB.Collections;
 using JB.Collections.Reactive;
+using JB.ExtensionMethods;
 using JB.Reactive.Cache.ExtensionMethods;
 using JB.Reactive.Linq;
 
@@ -211,14 +211,20 @@ namespace JB.Reactive.Cache
                 .Where(bufferedElements => bufferedElements != null && bufferedElements.Count > 0)
                 .SelectMany(ExpiredElementsToObservable) // this is somewhat of a hack to migrate from RX over to TPL / async handling
                 .Subscribe(
-                    _ => { }, // nothing to do here per element - it's all done in the .SelectMany() call
+                    _ =>
+                    {
+                        // nothing to do here per element - it's all done in the .SelectMany() call
+                    }, 
                     exception =>
                     {
                         // ToDo: at this point this instance is practically doomed / no longer forwarding any events & therefore further usage of the instance itself should be prevented, or the observable stream should re-connect/signal-and-swallow exceptions. Either way.. not ideal.
-                        var observerException = new ObserverException(
-                            $"An error occured notifying observers of this {this.GetType().Name} - consistency and future notifications are no longer guaranteed.",
-                            exception);
+                        var observerException = new ObserverException($"An error occured handling expired elements of this {this.GetType().Name}.",exception);
+
                         ObserverExceptionsObserver.OnNext(observerException);
+                        if (observerException.Handled == false)
+                        {
+                            exception.ThrowIfNotNull();
+                        }
                     });
         }
 
@@ -229,36 +235,29 @@ namespace JB.Reactive.Cache
         /// <returns></returns>
         protected virtual IObservable<Unit> ExpiredElementsToObservable(IList<ObservableCachedElement<TKey, TValue>> expiredElements)
         {
-            // ToDo: this needs to be decomposed into smaller functional units.. quite a lot
+            CheckForAndThrowIfDisposed(false);
 
-            return Observable.Create<Unit>(observer =>
-            {
-                try
+            return (expiredElements ?? new List<ObservableCachedElement<TKey, TValue>>())
+                .ToObservable()
+                .ToList()
+                .Select(elements =>
                 {
-                    CheckForAndThrowIfDisposed(false);
-
                     HandleAndNotifyObserversAboutExpiredElements(expiredElements);
-
-                    observer.OnNext(Unit.Default);
-                    observer.OnCompleted();
-                }
-                catch (Exception exception)
+                    return Unit.Default;
+                })
+                .Catch<Unit, Exception>(exception =>
                 {
-                    var observerException = new ObserverException(
-                        $"An error occured handling expired elements of this {this.GetType().Name}.",
-                        exception);
+                    var observerException = new ObserverException($"An error occured handling expired elements of this {this.GetType().Name}.",exception);
 
                     ObserverExceptionsObserver.OnNext(observerException);
 
                     if (observerException.Handled == false)
                     {
-                        observer.OnError(exception);
-                        throw;
+                        exception.ThrowIfNotNull();
                     }
-                }
 
-                return Disposable.Empty;
-            });
+                    return Observable.Return(Unit.Default);
+                });
         }
 
         /// <summary>
@@ -268,6 +267,8 @@ namespace JB.Reactive.Cache
         /// <returns></returns>
         protected virtual void HandleAndNotifyObserversAboutExpiredElements(IList<ObservableCachedElement<TKey, TValue>> expiredElements)
         {
+            // ToDo: this needs to be decomposed into way, way smaller functional units.. quite a lot
+
             CheckForAndThrowIfDisposed(false);
 
             // return early if the current batch is null/empty
@@ -474,6 +475,8 @@ namespace JB.Reactive.Cache
         /// </param>
         private void UpdateValueForCachedElement(ObservableCachedElement<TKey, TValue> existingObservableCachedElement, TValue newValue, bool keepExistingExpiration = true)
         {
+            // ToDo: Re-write as IObservable<Unit> to enable cleaner RX/linq chaining up the call-stack
+
             if (existingObservableCachedElement == null)
                 throw new ArgumentNullException(nameof(existingObservableCachedElement));
 
@@ -561,6 +564,8 @@ namespace JB.Reactive.Cache
             IDictionary<TKey, TValue> updatedCachedElements,
             bool keepExistingExpiration = true)
         {
+            // ToDo: Re-write as IObservable<Unit> to enable cleaner RX/linq chaining up the call-stack
+
             if (existingCachedElements == null) throw new ArgumentNullException(nameof(existingCachedElements));
             if (updatedCachedElements == null) throw new ArgumentNullException(nameof(updatedCachedElements));
 
@@ -1311,7 +1316,26 @@ namespace JB.Reactive.Cache
 
             CheckForAndThrowIfDisposed();
 
-            return Observable.Create<TValue>(observer =>
+            return GetCachedElement(key)
+                .Take(1)
+                .Select(cachedElement => cachedElement.Value);
+        }
+
+        /// <summary>
+        /// Gets the <see cref="ObservableCachedElement{TKey, TValue}"/> for the specified <paramref name="key"/>.
+        /// </summary>
+        /// <param name="key">The key to retrieve the <typeparamref name="TValue"/> for.</param>
+        /// <returns>
+        /// An observable stream that returns the <see cref="TValue"/> for the provided <paramref name="key"/>.
+        /// </returns>
+        protected virtual IObservable<ObservableCachedElement<TKey, TValue>> GetCachedElement(TKey key)
+        {
+            if (key == null)
+                throw new ArgumentNullException(nameof(key));
+
+            CheckForAndThrowIfDisposed();
+
+            return Observable.Create<ObservableCachedElement<TKey, TValue>>(observer =>
             {
                 try
                 {
@@ -1321,7 +1345,7 @@ namespace JB.Reactive.Cache
                         throw new KeyHasExpiredException<TKey>(key, cachedElement.ExpiresAt());
 
                     // else
-                    observer.OnNext(cachedElement.Value);
+                    observer.OnNext(cachedElement);
                     observer.OnCompleted();
                 }
                 catch (Exception exception)
@@ -1351,9 +1375,31 @@ namespace JB.Reactive.Cache
 
             CheckForAndThrowIfDisposed();
 
+            return GetCachedElements(keys, maxConcurrent, scheduler)
+                .Select(cachedElement => cachedElement.Value);
+        }
+
+        /// <summary>
+        /// Gets the <see cref="ObservableCachedElement{TKey,TValue}"/> for the specified <paramref name="keys"/>.
+        /// </summary>
+        /// <param name="keys">The keys to retrieve the values for.</param>
+        /// <param name="maxConcurrent">Maximum number of concurrent retrievals.</param>
+        /// <param name="scheduler">Scheduler to run the concurrent retrievals on.</param>
+        /// <returns>
+        /// An observable stream that returns <see cref="ObservableCachedElement{TKey,TValue}"/> instances for the provided <paramref name="keys"/>.
+        /// </returns>
+        public virtual IObservable<ObservableCachedElement<TKey, TValue>> GetCachedElements(IEnumerable<TKey> keys, int maxConcurrent = 1, IScheduler scheduler = null)
+        {
+            if (keys == null)
+                throw new ArgumentNullException(nameof(keys));
+            if (maxConcurrent <= 0)
+                throw new ArgumentOutOfRangeException(nameof(maxConcurrent), "Must be 1 or higher");
+
+            CheckForAndThrowIfDisposed();
+
             return scheduler != null
-                ? keys.Select(Get).Merge(maxConcurrent, scheduler)
-                : keys.Select(Get).Merge(maxConcurrent);
+                ? keys.Select(GetCachedElement).Merge(maxConcurrent, scheduler)
+                : keys.Select(GetCachedElement).Merge(maxConcurrent);
         }
 
         /// <summary>
@@ -1462,28 +1508,13 @@ namespace JB.Reactive.Cache
 
             CheckForAndThrowIfDisposed();
 
-            return Observable.Create<Unit>(observer =>
-            {
-                try
+            return GetCachedElement(key)
+                .Take(1)
+                .Select(existingElement =>
                 {
-                    ObservableCachedElement<TKey, TValue> existingCachedElement;
-                    if (InnerDictionary.TryGetValue(key, out existingCachedElement) == false)
-                    {
-                        throw new KeyNotFoundException<TKey>(key);
-                    }
-
-                    // else
-                    UpdateValueForCachedElement(existingCachedElement, value, true);
-                    observer.OnNext(Unit.Default);
-                    observer.OnCompleted();
-                }
-                catch (Exception exception)
-                {
-                    observer.OnError(exception);
-                }
-
-                return Disposable.Empty;
-            });
+                    UpdateValueForCachedElement(existingElement, value, true);
+                    return Unit.Default;
+                });
         }
 
         /// <summary>
@@ -1493,9 +1524,21 @@ namespace JB.Reactive.Cache
         /// <returns>
         /// An observable stream that, when done, returns an <see cref="Unit" />.
         /// </returns>
-        public virtual IObservable<Unit> UpdateRange(IEnumerable<KeyValuePair<TKey, TValue>> keyValuePairs)
+        public virtual IObservable<Unit> UpdateRange(IDictionary<TKey, TValue> keyValuePairs)
         {
-            throw new NotImplementedException();
+            if (keyValuePairs == null)
+                throw new ArgumentNullException(nameof(keyValuePairs));
+
+            CheckForAndThrowIfDisposed();
+
+            return GetCachedElements(keyValuePairs.Select(kvp => kvp.Key))
+                .ToList()
+                .Take(1)
+                .Select(existingElements =>
+                {
+                    UpdateValuesForCachedElements(existingElements, keyValuePairs, true);
+                    return Unit.Default;
+                });
         }
 
         /// <summary>
