@@ -238,7 +238,7 @@ namespace JB.Reactive.Cache.Tests
             var testScheduler = new TestScheduler();
             var expirationTimeoutInTicks = 10;
 
-            using (var cache = new ObservableInMemoryCache<int, string>(expiredElementsHandlingChillPeriod: TimeSpan.FromTicks(expirationTimeoutInTicks), expirationScheduler: testScheduler))
+            using (var cache = new ObservableInMemoryCache<int, string>(expiredElementsHandlingChillPeriod: TimeSpan.FromTicks(expirationTimeoutInTicks)))
             {
                 testScheduler.ScheduleAsync(
                     TimeSpan.Zero,
@@ -263,7 +263,7 @@ namespace JB.Reactive.Cache.Tests
             var initialTestSchedulerDateTime = testScheduler.Now.DateTime;
             var expirationTimeoutInTicks = 10;
 
-            using (var cache = new ObservableInMemoryCache<int, string>(expiredElementsHandlingChillPeriod: TimeSpan.FromTicks(expirationTimeoutInTicks), expirationScheduler: testScheduler))
+            using (var cache = new ObservableInMemoryCache<int, string>(expirationScheduler: testScheduler, expiredElementsHandlingChillPeriod: TimeSpan.FromTicks(expirationTimeoutInTicks)))
             {
                 testScheduler.ScheduleAsync(
                     TimeSpan.Zero,
@@ -294,7 +294,7 @@ namespace JB.Reactive.Cache.Tests
             var initialTestSchedulerDateTime = testScheduler.Now.DateTime;
             var expirationTimeoutInTicks = 10;
 
-            using (var cache = new ObservableInMemoryCache<int, string>(expiredElementsHandlingChillPeriod: TimeSpan.FromTicks(expirationTimeoutInTicks), expirationScheduler: testScheduler))
+            using (var cache = new ObservableInMemoryCache<int, string>(expirationScheduler: testScheduler, expiredElementsHandlingChillPeriod: TimeSpan.FromTicks(expirationTimeoutInTicks)))
             {
                 testScheduler.ScheduleAsync(
                     TimeSpan.Zero,
@@ -324,7 +324,7 @@ namespace JB.Reactive.Cache.Tests
             var testScheduler = new TestScheduler();
             var expirationTimeoutInTicks = 10;
 
-            using (var cache = new ObservableInMemoryCache<int, string>(expiredElementsHandlingChillPeriod: TimeSpan.FromTicks(expirationTimeoutInTicks), expirationScheduler: testScheduler))
+            using (var cache = new ObservableInMemoryCache<int, string>(expiredElementsHandlingChillPeriod: TimeSpan.FromTicks(expirationTimeoutInTicks)))
             {
                 testScheduler.ScheduleAsync(
                     TimeSpan.Zero,
@@ -353,7 +353,7 @@ namespace JB.Reactive.Cache.Tests
             var testScheduler = new TestScheduler();
             var expirationTimeoutInTicks = 10;
 
-            using (var cache = new ObservableInMemoryCache<int, string>(expiredElementsHandlingChillPeriod: TimeSpan.FromTicks(expirationTimeoutInTicks), expirationScheduler: testScheduler))
+            using (var cache = new ObservableInMemoryCache<int, string>(expirationScheduler: testScheduler, expiredElementsHandlingChillPeriod: TimeSpan.FromTicks(expirationTimeoutInTicks)))
             {
                 testScheduler.ScheduleAsync(
                     TimeSpan.Zero,
@@ -379,7 +379,7 @@ namespace JB.Reactive.Cache.Tests
 
             Func<int, string> singleKeyUpdater = (i) => i.ToString();
 
-            using (var cache = new ObservableInMemoryCache<int, string>(singleKeyRetrievalAction: singleKeyUpdater, expiredElementsHandlingChillPeriod: TimeSpan.FromTicks(expirationTimeoutInTicks), expirationScheduler: testScheduler))
+            using (var cache = new ObservableInMemoryCache<int, string>(singleKeyRetrievalFunction: singleKeyUpdater, expiredElementsHandlingChillPeriod: TimeSpan.FromTicks(expirationTimeoutInTicks), expirationScheduler: testScheduler))
             {
                 testScheduler.ScheduleAsync(
                     TimeSpan.Zero,
@@ -409,7 +409,7 @@ namespace JB.Reactive.Cache.Tests
 
             Func<int, string> singleKeyUpdater = (i) => i.ToString();
 
-            using (var cache = new ObservableInMemoryCache<int, string>(singleKeyRetrievalAction: singleKeyUpdater, expiredElementsHandlingChillPeriod: TimeSpan.FromTicks(expirationTimeoutInTicks), expirationScheduler: testScheduler))
+            using (var cache = new ObservableInMemoryCache<int, string>(singleKeyRetrievalFunction: singleKeyUpdater, expiredElementsHandlingChillPeriod: TimeSpan.FromTicks(expirationTimeoutInTicks), expirationScheduler: testScheduler))
             {
                 testScheduler.ScheduleAsync(
                     TimeSpan.Zero,
@@ -441,7 +441,7 @@ namespace JB.Reactive.Cache.Tests
 
             Func<IEnumerable<int>, IEnumerable<KeyValuePair<int, string>>> multipleKeysUpdater = (ints) => { return ints.ToDictionary(i => i, i => i.ToString()); };
 
-            using (var cache = new ObservableInMemoryCache<int, string>(multipleKeysRetrievalAction: multipleKeysUpdater, expiredElementsHandlingChillPeriod: TimeSpan.FromTicks(expirationTimeoutInTicks), expirationScheduler: testScheduler))
+            using (var cache = new ObservableInMemoryCache<int, string>(multipleKeysRetrievalFunction: multipleKeysUpdater, expiredElementsHandlingChillPeriod: TimeSpan.FromTicks(expirationTimeoutInTicks), expirationScheduler: testScheduler))
             {
                 testScheduler.ScheduleAsync(
                     TimeSpan.Zero,
@@ -470,7 +470,7 @@ namespace JB.Reactive.Cache.Tests
 
             Func<IEnumerable<int>, IEnumerable<KeyValuePair<int, string>>> multipleKeysUpdater = (ints) => { return ints.ToDictionary(i => i, i => i.ToString()); };
 
-            using (var cache = new ObservableInMemoryCache<int, string>(multipleKeysRetrievalAction: multipleKeysUpdater, expiredElementsHandlingChillPeriod: TimeSpan.FromTicks(expirationTimeoutInTicks), expirationScheduler: testScheduler))
+            using (var cache = new ObservableInMemoryCache<int, string>(multipleKeysRetrievalFunction: multipleKeysUpdater, expiredElementsHandlingChillPeriod: TimeSpan.FromTicks(expirationTimeoutInTicks), expirationScheduler: testScheduler))
             {
                 testScheduler.ScheduleAsync(
                     TimeSpan.Zero,
@@ -503,7 +503,7 @@ namespace JB.Reactive.Cache.Tests
 
             Func<IEnumerable<int>, IEnumerable<KeyValuePair<int, string>>> multipleKeysUpdater = (ints) => { return ints.ToDictionary(i => i * 10, i => (i * 20).ToString()); };
 
-            using (var cache = new ObservableInMemoryCache<int, string>(multipleKeysRetrievalAction: multipleKeysUpdater, expiredElementsHandlingChillPeriod: TimeSpan.FromTicks(expirationTimeoutInTicks), expirationScheduler: testScheduler))
+            using (var cache = new ObservableInMemoryCache<int, string>(multipleKeysRetrievalFunction: multipleKeysUpdater, expiredElementsHandlingChillPeriod: TimeSpan.FromTicks(expirationTimeoutInTicks), expirationScheduler: testScheduler, throwOnExpirationHandlingExceptions: false))
             {
                 cache.ObserverExceptions.Subscribe(exceptionsObserver);
 
@@ -540,7 +540,7 @@ namespace JB.Reactive.Cache.Tests
 
             Func<IEnumerable<int>, IEnumerable<KeyValuePair<int, string>>> multipleKeysUpdater = (ints) => { return ints.Skip(1).ToDictionary(i => i, i => i.ToString()); };
 
-            using (var cache = new ObservableInMemoryCache<int, string>(multipleKeysRetrievalAction: multipleKeysUpdater, expiredElementsHandlingChillPeriod: TimeSpan.FromTicks(expirationTimeoutInTicks), expirationScheduler: testScheduler))
+            using (var cache = new ObservableInMemoryCache<int, string>(multipleKeysRetrievalFunction: multipleKeysUpdater, expiredElementsHandlingChillPeriod: TimeSpan.FromTicks(expirationTimeoutInTicks), expirationScheduler: testScheduler, throwOnExpirationHandlingExceptions: false))
             {
                 cache.ObserverExceptions.Subscribe(exceptionsObserver);
 

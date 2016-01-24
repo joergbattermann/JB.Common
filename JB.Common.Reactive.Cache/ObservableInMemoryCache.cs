@@ -52,6 +52,14 @@ namespace JB.Reactive.Cache
         protected IObserver<ObserverException> ObserverExceptionsObserver { get; private set; }
 
         /// <summary>
+        /// Gets a value indicating whether exceptions will be (re)thrown during expiration handling.
+        /// </summary>
+        /// <value>
+        /// <c>true</c> if exceptions are (re)thrown on exception handling; otherwise, <c>false</c>.
+        /// </value>
+        protected bool ThrowOnExpirationHandlingExceptions { get; private set; }
+
+        /// <summary>
         /// Gets the expired elements observer.
         /// </summary>
         /// <value>
@@ -122,7 +130,7 @@ namespace JB.Reactive.Cache
         /// <value>
         /// The single key updater.
         /// </value>
-        protected Func<TKey, TValue> SingleKeyRetrievalAction { get; }
+        protected Func<TKey, TValue> SingleKeyRetrievalFunction { get; }
 
         /// <summary>
         /// Gets the multiple keys updater.
@@ -130,23 +138,24 @@ namespace JB.Reactive.Cache
         /// <value>
         /// The multiple keys updater.
         /// </value>
-        protected Func<IEnumerable<TKey>, IEnumerable<KeyValuePair<TKey, TValue>>> MultipleKeysRetrievalAction { get; }
-        
+        protected Func<IEnumerable<TKey>, IEnumerable<KeyValuePair<TKey, TValue>>> MultipleKeysRetrievalFunction { get; }
+
         /// <summary>
         /// Initializes a new instance of the <see cref="T:ObservableInMemoryCache" />.
         /// </summary>
         /// <param name="keyComparer">The <see cref="IEqualityComparer{T}" /> implementation to use when comparing keys.</param>
         /// <param name="valueComparer">The <see cref="IEqualityComparer{T}" /> implementation to use when comparing values.</param>
-        /// <param name="singleKeyRetrievalAction">
+        /// <param name="singleKeyRetrievalFunction">
         ///     The action that will be invoked whenever a single key has expired and has his expiration type set to <see cref="ObservableCacheExpirationType.Update"/>.
         /// </param>
-        /// <param name="multipleKeysRetrievalAction">
+        /// <param name="multipleKeysRetrievalFunction">
         ///     The action that will be invoked whenever multiple keys have expired and had their expiration type set to <see cref="ObservableCacheExpirationType.Update"/>.
-        ///     This is internally preferred over <paramref name="singleKeyRetrievalAction"/> if more than one element has expired within a given <paramref name="expiredElementsHandlingChillPeriod"/>.
+        ///     This is internally preferred over <paramref name="singleKeyRetrievalFunction"/> if more than one element has expired within a given <paramref name="expiredElementsHandlingChillPeriod"/>.
         /// </param>
         /// <param name="expiredElementsHandlingChillPeriod">Expired elements are internally handled every <paramref name="expiredElementsHandlingChillPeriod"/>
         ///     and thereby in bulk rather than the very moment they expire.
         ///     This value allows to specify the time window inbetween each expiration handling process.</param>
+        /// <param name="throwOnExpirationHandlingExceptions"></param>
         /// <param name="expirationScheduler">
         ///     The <see cref="IScheduler"/> to to schedule and run elements' expiration handling on.
         ///     If none is provided <see>
@@ -164,9 +173,10 @@ namespace JB.Reactive.Cache
         public ObservableInMemoryCache(
             IEqualityComparer<TKey> keyComparer = null,
             IEqualityComparer<TValue> valueComparer = null,
-            Func<TKey, TValue> singleKeyRetrievalAction = null,
-            Func<IEnumerable<TKey>, IEnumerable<KeyValuePair<TKey, TValue>>> multipleKeysRetrievalAction = null,
+            Func<TKey, TValue> singleKeyRetrievalFunction = null,
+            Func<IEnumerable<TKey>, IEnumerable<KeyValuePair<TKey, TValue>>> multipleKeysRetrievalFunction = null,
             TimeSpan? expiredElementsHandlingChillPeriod = null,
+            bool throwOnExpirationHandlingExceptions = true,
             IScheduler expirationScheduler = null,
             IScheduler notificationScheduler = null)
         {
@@ -179,8 +189,8 @@ namespace JB.Reactive.Cache
             KeyComparer = keyComparer ?? EqualityComparer<TKey>.Default;
             ValueComparer = valueComparer ?? EqualityComparer<TValue>.Default;
 
-            SingleKeyRetrievalAction = singleKeyRetrievalAction;
-            MultipleKeysRetrievalAction = multipleKeysRetrievalAction;
+            SingleKeyRetrievalFunction = singleKeyRetrievalFunction;
+            MultipleKeysRetrievalFunction = multipleKeysRetrievalFunction;
 
             InnerDictionary = new ObservableDictionary<TKey, ObservableCachedElement<TKey, TValue>>(
                 keyComparer: KeyComparer,
@@ -189,6 +199,7 @@ namespace JB.Reactive.Cache
 
             ThresholdAmountWhenChangesAreNotifiedAsReset = Int32.MaxValue;
             ExpiredElementsHandlingChillPeriod = expiredElementsHandlingChillPeriod ?? DefaultExpiredElementsHandlingChillPeriod;
+            ThrowOnExpirationHandlingExceptions = throwOnExpirationHandlingExceptions;
 
             SetupObservablesAndObserversAndSubjects();
         }
@@ -210,7 +221,7 @@ namespace JB.Reactive.Cache
                 .Buffer(ExpiredElementsHandlingChillPeriod, ExpirationScheduler)
                 .Where(bufferedElements => bufferedElements != null && bufferedElements.Count > 0)
                 .Do(HandleAndNotifyObserversAboutExpiredElements)
-                .CatchAndForward(ObserverExceptionsObserver)
+                .CatchAndForward(ObserverExceptionsObserver, ThrowOnExpirationHandlingExceptions)
                 .Subscribe();
         }
         
@@ -295,9 +306,9 @@ namespace JB.Reactive.Cache
                         }
                     case ObservableCacheExpirationType.Update:
                         {
-                            if (SingleKeyRetrievalAction == null && MultipleKeysRetrievalAction == null)
+                            if (SingleKeyRetrievalFunction == null && MultipleKeysRetrievalFunction == null)
                             {
-                                throw new InvalidOperationException($"Neither a {nameof(SingleKeyRetrievalAction)} nor {nameof(MultipleKeysRetrievalAction)} has been specified at construction of this instance and therefore {typeof(ObservableCacheExpirationType)} of type {grouping.Key} cannot be handled.");
+                                throw new InvalidOperationException($"Neither a {nameof(SingleKeyRetrievalFunction)} nor {nameof(MultipleKeysRetrievalFunction)} has been specified at construction of this instance and therefore {typeof(ObservableCacheExpirationType)} of type {grouping.Key} cannot be handled.");
                             }
                             
                             var elementsStillInCache = elementsForExpirationType
@@ -308,7 +319,7 @@ namespace JB.Reactive.Cache
                             if (elementsStillInCache.Count == 0)
                                 break;
 
-                            if (elementsStillInCache.Count == 1 && SingleKeyRetrievalAction != null)
+                            if (elementsStillInCache.Count == 1 && SingleKeyRetrievalFunction != null)
                             {
                                 var element = elementsStillInCache.FirstOrDefault();
                                 if (element == null || !InnerDictionary.ContainsKey(element.Key))
@@ -316,16 +327,16 @@ namespace JB.Reactive.Cache
 
                                 UpdateValueForCachedElement(
                                     element,
-                                    RetrieveUpdatedValueForSingleElement(element, SingleKeyRetrievalAction),
+                                    RetrieveUpdatedValueForSingleElement(element, SingleKeyRetrievalFunction),
                                     false);
                             }
                             else
                             {
-                                if (MultipleKeysRetrievalAction != null)
+                                if (MultipleKeysRetrievalFunction != null)
                                 {
                                     UpdateValuesForCachedElements(
                                         elementsStillInCache,
-                                        RetrieveUpdatedValuesForMultipleElements(elementsStillInCache, MultipleKeysRetrievalAction),
+                                        RetrieveUpdatedValuesForMultipleElements(elementsStillInCache, MultipleKeysRetrievalFunction),
                                         false);
                                 }
                                 else
@@ -334,7 +345,7 @@ namespace JB.Reactive.Cache
                                     {
                                         UpdateValueForCachedElement(
                                             elementStillInCache,
-                                            RetrieveUpdatedValueForSingleElement(elementStillInCache, SingleKeyRetrievalAction),
+                                            RetrieveUpdatedValueForSingleElement(elementStillInCache, SingleKeyRetrievalFunction),
                                             false);
                                     }
                                 }
@@ -963,8 +974,8 @@ namespace JB.Reactive.Cache
         {
             if (key == null)
                 throw new ArgumentNullException(nameof(key));
-            if (expirationType == ObservableCacheExpirationType.Update && (SingleKeyRetrievalAction == null && MultipleKeysRetrievalAction == null))
-                throw new ArgumentOutOfRangeException(nameof(expirationType), $"{nameof(expirationType)} cannot be set to {nameof(ObservableCacheExpirationType.Update)} if no {nameof(SingleKeyRetrievalAction)} or {nameof(MultipleKeysRetrievalAction)} had been specified at construction of this instance.");
+            if (expirationType == ObservableCacheExpirationType.Update && (SingleKeyRetrievalFunction == null && MultipleKeysRetrievalFunction == null))
+                throw new ArgumentOutOfRangeException(nameof(expirationType), $"{nameof(expirationType)} cannot be set to {nameof(ObservableCacheExpirationType.Update)} if no {nameof(SingleKeyRetrievalFunction)} or {nameof(MultipleKeysRetrievalFunction)} had been specified at construction of this instance.");
 
             CheckForAndThrowIfDisposed();
 
@@ -1009,8 +1020,8 @@ namespace JB.Reactive.Cache
 
             if (keyValuePairs == null)
                 throw new ArgumentNullException(nameof(keyValuePairs));
-            if (expirationType == ObservableCacheExpirationType.Update && (SingleKeyRetrievalAction == null && MultipleKeysRetrievalAction == null))
-                throw new ArgumentOutOfRangeException(nameof(expirationType), $"{nameof(expirationType)} cannot be set to {nameof(ObservableCacheExpirationType.Update)} if no {nameof(SingleKeyRetrievalAction)} or {nameof(MultipleKeysRetrievalAction)} had been specified at construction of this instance.");
+            if (expirationType == ObservableCacheExpirationType.Update && (SingleKeyRetrievalFunction == null && MultipleKeysRetrievalFunction == null))
+                throw new ArgumentOutOfRangeException(nameof(expirationType), $"{nameof(expirationType)} cannot be set to {nameof(ObservableCacheExpirationType.Update)} if no {nameof(SingleKeyRetrievalFunction)} or {nameof(MultipleKeysRetrievalFunction)} had been specified at construction of this instance.");
             
             CheckForAndThrowIfDisposed();
 
