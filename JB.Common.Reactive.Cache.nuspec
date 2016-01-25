@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<package xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <metadata xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+    <id>JB.Common.Reactive.Cache</id>
+    <version>$version$</version>
+    <authors>Joerg Battermann</authors>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>Provides Reactive Extensions based, observable cache functionality.</description>
+    <summary>This package contains observable cache functionality, currently an InMemory one only but sometimes down the road more elaborate ones might be added.</summary>
+    <releaseNotes>Initial release.</releaseNotes>
+    <language>en-US</language>
+    <copyright>Joerg Battermann</copyright>
+    <licenseUrl>https://github.com/jbattermann/JB.Common/blob/master/LICENSE</licenseUrl>
+    <projectUrl>https://github.com/jbattermann/JB.Common/blob/master/README.md</projectUrl>
+    <dependencies>
+      <dependency id="JB.Common" version="[$version$,]" />
+      <dependency id="JB.Common.Collections" version="[$version$,]" />
+      <dependency id="JB.Common.Reactive" version="[$version$,]" />
+      <dependency id="JB.Common.Reactive.Collections" version="[$version$,]" />
+      <dependency id="Rx-Main" version="[2.2.5,]" />
+    </dependencies>
+    <tags>Reactive Extensions RXNet Streaming Cache Caching</tags>
+  </metadata>
+  <files>
+    <file src="JB.Common.Reactive.Cache\bin\Release\JB.Common.Reactive.Cache.dll" target="lib\net45" />
+    <file src="JB.Common.Reactive.Cache\bin\Release\JB.Common.Reactive.Cache.pdb" target="lib\net45" />
+    <file src="JB.Common.Reactive.Cache\bin\Release\JB.Common.Reactive.Cache.xml" target="lib\net45" />
+  </files>
+</package>

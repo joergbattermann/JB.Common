@@ -14,7 +14,7 @@ using System.Reflection;
 // associated with an assembly.
 
 [assembly: AssemblyCompany("Joerg Battermann")]
-[assembly: AssemblyCopyright("Copyright © 2015 Joerg Battermann")]
+[assembly: AssemblyCopyright("Copyright © Joerg Battermann, 2015 - 2016")]
 [assembly: AssemblyTrademark("")]
 [assembly: AssemblyVersion("0.1.9.0")]
 [assembly: AssemblyFileVersion("0.1.9.0")]
