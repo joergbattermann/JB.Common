@@ -669,7 +669,7 @@ namespace JB.Collections.Reactive.Tests
             using (var observableDictionary = new ObservableDictionary<int, string>())
             {
                 // when
-                using (observableDictionary.SuppressCountChangedNotifications())
+                using (observableDictionary.SuppressCountChangeNotifications())
                 {
                     observableDictionary.IsTrackingCountChanges.Should().BeFalse();
                 }
@@ -685,7 +685,7 @@ namespace JB.Collections.Reactive.Tests
             using (var observableDictionary = new ObservableDictionary<int, string>())
             {
                 // when
-                using (observableDictionary.SuppressItemChangedNotifications())
+                using (observableDictionary.SuppressItemChangeNotifications())
                 {
                     observableDictionary.IsTrackingItemChanges.Should().BeFalse();
                 }
@@ -1154,7 +1154,7 @@ namespace JB.Collections.Reactive.Tests
         {
             // given
             var observableDictionary = new ObservableDictionary<int, string>();
-            var suppression = observableDictionary.SuppressCountChangedNotifications();
+            var suppression = observableDictionary.SuppressCountChangeNotifications();
             observableDictionary.Dispose();
 
             // when
@@ -1187,7 +1187,7 @@ namespace JB.Collections.Reactive.Tests
                     countChangedSubscription = observableDictionary.CountChanges.Subscribe(countChangesObserver);
                     dictionaryChangesSubscription = observableDictionary.DictionaryChanges.Subscribe(observer);
 
-                    using (observableDictionary.SuppressCountChangedNotifications(true))
+                    using (observableDictionary.SuppressCountChangeNotifications(true))
                     {
                         observableDictionary.Add(1, "One");
                         observableDictionary.Add(2, "Two");
@@ -1218,9 +1218,9 @@ namespace JB.Collections.Reactive.Tests
             using (var observableDictionary = new ObservableDictionary<int, string>())
             {
                 // when
-                using (observableDictionary.SuppressCountChangedNotifications())
+                using (observableDictionary.SuppressCountChangeNotifications())
                 {
-                    Action action = () => { var secondSuppression = observableDictionary.SuppressCountChangedNotifications(); };
+                    Action action = () => { var secondSuppression = observableDictionary.SuppressCountChangeNotifications(); };
 
                     action
                         .ShouldThrow<InvalidOperationException>()
@@ -1237,7 +1237,7 @@ namespace JB.Collections.Reactive.Tests
             observableDictionary.Dispose();
 
             // when
-            Action action = () => { var suppression = observableDictionary.SuppressCountChangedNotifications(); };
+            Action action = () => { var suppression = observableDictionary.SuppressCountChangeNotifications(); };
 
             action
                 .ShouldThrow<ObjectDisposedException>()
@@ -1262,7 +1262,7 @@ namespace JB.Collections.Reactive.Tests
                 {
                     countChangesSubscription = observableDictionary.CountChanges.Subscribe(countChangesObserver);
 
-                    using (observableDictionary.SuppressCountChangedNotifications(false))
+                    using (observableDictionary.SuppressCountChangeNotifications(false))
                     {
                         observableDictionary.Add(1, "One");
                         observableDictionary.Add(2, "Two");
@@ -1290,7 +1290,7 @@ namespace JB.Collections.Reactive.Tests
         {
             // given
             var observableDictionary = new ObservableDictionary<int, string>();
-            var suppression = observableDictionary.SuppressItemChangedNotifications();
+            var suppression = observableDictionary.SuppressItemChangeNotifications();
             observableDictionary.Dispose();
 
             // when
@@ -1330,7 +1330,7 @@ namespace JB.Collections.Reactive.Tests
                     dictionaryItemChangesSubscription = observableDictionary.DictionaryItemChanges.Subscribe(dictionaryItemChangesObserver);
                     resetsSubscription = observableDictionary.Resets.Subscribe(resetsObserver);
 
-                    using (observableDictionary.SuppressItemChangedNotifications(true))
+                    using (observableDictionary.SuppressItemChangeNotifications(true))
                     {
                         observableDictionary[1] = "Two";
 
@@ -1367,9 +1367,9 @@ namespace JB.Collections.Reactive.Tests
             using (var observableDictionary = new ObservableDictionary<int, string>())
             {
                 // when
-                using (observableDictionary.SuppressItemChangedNotifications())
+                using (observableDictionary.SuppressItemChangeNotifications())
                 {
-                    Action action = () => { var secondSuppression = observableDictionary.SuppressItemChangedNotifications(); };
+                    Action action = () => { var secondSuppression = observableDictionary.SuppressItemChangeNotifications(); };
 
                     action
                         .ShouldThrow<InvalidOperationException>()
@@ -1386,7 +1386,7 @@ namespace JB.Collections.Reactive.Tests
             observableDictionary.Dispose();
 
             // when
-            Action action = () => { var suppression = observableDictionary.SuppressItemChangedNotifications(); };
+            Action action = () => { var suppression = observableDictionary.SuppressItemChangeNotifications(); };
 
             action
                 .ShouldThrow<ObjectDisposedException>()
@@ -1419,7 +1419,7 @@ namespace JB.Collections.Reactive.Tests
                     dictionaryItemChangesSubscription = observableDictionary.DictionaryItemChanges.Subscribe(observer);
                     resetsSubscription = observableDictionary.Resets.Subscribe(resetsObserver);
 
-                    using (observableDictionary.SuppressItemChangedNotifications(false))
+                    using (observableDictionary.SuppressItemChangeNotifications(false))
                     {
                         observableDictionary[1] = "Two";
 

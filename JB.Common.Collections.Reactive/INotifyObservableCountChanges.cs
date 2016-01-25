@@ -29,6 +29,6 @@ namespace JB.Collections.Reactive
         /// </summary>
         /// <param name="signalCurrentCountWhenFinished">if set to <c>true</c> signals a the current count when disposed.</param>
         /// <returns></returns>
-        IDisposable SuppressCountChangedNotifications(bool signalCurrentCountWhenFinished = true);
+        IDisposable SuppressCountChangeNotifications(bool signalCurrentCountWhenFinished = true);
     }
 }

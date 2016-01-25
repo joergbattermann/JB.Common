@@ -605,7 +605,10 @@ namespace JB.Collections.Reactive
         /// <param name="e">The <see cref="PropertyChangedEventArgs"/> instance containing the event data.</param>
         protected virtual void OnValuePropertyChanged(object sender, PropertyChangedEventArgs e)
         {
-            CheckForAndThrowIfDisposed();
+            if (IsDisposing)
+                return;
+
+            CheckForAndThrowIfDisposed(false);
 
             if (!IsTrackingItemChanges)
                 return;
@@ -962,6 +965,13 @@ namespace JB.Collections.Reactive
 
                 if (disposeManagedResources)
                 {
+                    // clear inner dictionary early on
+                    IDisposable innerDictionaryClearingNotificationSuppression = !IsTrackingChanges
+                        ? Disposable.Empty
+                        : SuppressChangeNotifications(false);
+                    InnerDictionary.Clear();
+                    innerDictionaryClearingNotificationSuppression?.Dispose();
+                    
                     if (_dictionaryChangesItemIndexerPropertyChangedForwarder != null)
                     {
                         _dictionaryChangesItemIndexerPropertyChangedForwarder.Dispose();
@@ -1003,8 +1013,6 @@ namespace JB.Collections.Reactive
                         _unhandledObserverExceptionsSubject.Dispose();
                         _unhandledObserverExceptionsSubject = null;
                     }
-
-                    InnerDictionary.Clear();
                 }
             }
             finally
@@ -1128,7 +1136,7 @@ namespace JB.Collections.Reactive
             }
             protected set
             {
-                CheckForAndThrowIfDisposed();
+                CheckForAndThrowIfDisposed(false);
 
                 lock (_isTrackingResetsLocker)
                 {
@@ -1172,7 +1180,7 @@ namespace JB.Collections.Reactive
         /// <returns></returns>
         public virtual IDisposable SuppressResetNotifications(bool signalResetWhenFinished = true)
         {
-            CheckForAndThrowIfDisposed();
+            CheckForAndThrowIfDisposed(false);
 
             IsTrackingResets = false;
 
@@ -1229,7 +1237,7 @@ namespace JB.Collections.Reactive
             }
             protected set
             {
-                CheckForAndThrowIfDisposed();
+                CheckForAndThrowIfDisposed(false);
 
                 lock (_isTrackingCountChangesLocker)
                 {
@@ -1269,9 +1277,9 @@ namespace JB.Collections.Reactive
         /// </summary>
         /// <param name="signalCurrentCountWhenFinished">if set to <c>true</c> signals a the current count when disposed.</param>
         /// <returns></returns>
-        public virtual IDisposable SuppressCountChangedNotifications(bool signalCurrentCountWhenFinished = true)
+        public virtual IDisposable SuppressCountChangeNotifications(bool signalCurrentCountWhenFinished = true)
         {
-            CheckForAndThrowIfDisposed();
+            CheckForAndThrowIfDisposed(false);
 
             IsTrackingCountChanges = false;
 
@@ -1296,9 +1304,9 @@ namespace JB.Collections.Reactive
         /// </summary>
         /// <param name="signalResetWhenFinished">if set to <c>true</c> signals a reset when finished.</param>
         /// <returns></returns>
-        public virtual IDisposable SuppressItemChangedNotifications(bool signalResetWhenFinished = true)
+        public virtual IDisposable SuppressItemChangeNotifications(bool signalResetWhenFinished = true)
         {
-            CheckForAndThrowIfDisposed();
+            CheckForAndThrowIfDisposed(false);
 
             IsTrackingItemChanges = false;
 
@@ -1334,7 +1342,7 @@ namespace JB.Collections.Reactive
             }
             protected set
             {
-                CheckForAndThrowIfDisposed();
+                CheckForAndThrowIfDisposed(false);
 
                 lock (_isTrackingItemChangesLocker)
                 {
@@ -1471,7 +1479,7 @@ namespace JB.Collections.Reactive
         /// <returns></returns>
         public virtual IDisposable SuppressChangeNotifications(bool signalResetWhenFinished = true)
         {
-            CheckForAndThrowIfDisposed();
+            CheckForAndThrowIfDisposed(false);
 
             IsTrackingChanges = false;
 
@@ -1506,7 +1514,7 @@ namespace JB.Collections.Reactive
             }
             protected set
             {
-                CheckForAndThrowIfDisposed();
+                CheckForAndThrowIfDisposed(false);
 
                 lock (_isTrackingChangesLocker)
                 {

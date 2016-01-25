@@ -13,6 +13,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Reactive;
 using System.Reactive.Concurrency;
+using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Runtime.CompilerServices;
@@ -727,6 +728,20 @@ namespace JB.Reactive.Cache
 
                 if (disposeManagedResources)
                 {
+                    // make sure values are removed from event handlers
+                    var currentValues = InnerDictionary.Values ?? new List<ObservableCachedElement<TKey, TValue>>();
+                    foreach (var value in currentValues)
+                    {
+                        RemoveFromEventAndNotificationsHandlingAndStopExpiration(value);
+                    }
+
+                    // and clear inner dictionary early on
+                    IDisposable notificationSuppression = !InnerDictionary.IsTrackingChanges
+                        ? Disposable.Empty
+                        : InnerDictionary.SuppressChangeNotifications(false);
+                    InnerDictionary.Clear();
+                    notificationSuppression?.Dispose();
+
                     var cacheChangesObserverAsDisposable = CacheChangesObserver as IDisposable;
                     cacheChangesObserverAsDisposable?.Dispose();
                     CacheChangesObserver = null;
@@ -746,13 +761,6 @@ namespace JB.Reactive.Cache
 
                     _unhandledObserverExceptionsSubject?.Dispose();
                     _unhandledObserverExceptionsSubject = null;
-
-                    // make sure values are removed from event handlers
-                    var currentValues = InnerDictionary?.Values ?? new List<ObservableCachedElement<TKey, TValue>>();
-                    foreach (var value in currentValues)
-                    {
-                        RemoveFromEventAndNotificationsHandlingAndStopExpiration(value);
-                    }
 
                     var innerDictionaryAsDisposable = InnerDictionary as IDisposable;
                     innerDictionaryAsDisposable?.Dispose();
@@ -861,7 +869,7 @@ namespace JB.Reactive.Cache
         /// <returns></returns>
         public virtual IDisposable SuppressChangeNotifications(bool signalResetWhenFinished = true)
         {
-            CheckForAndThrowIfDisposed();
+            CheckForAndThrowIfDisposed(false);
 
             return InnerDictionary.SuppressChangeNotifications(signalResetWhenFinished);
         }
@@ -1491,7 +1499,7 @@ namespace JB.Reactive.Cache
         /// <returns></returns>
         public virtual IDisposable SuppressResetNotifications(bool signalResetWhenFinished = true)
         {
-            CheckForAndThrowIfDisposed();
+            CheckForAndThrowIfDisposed(false);
 
             return InnerDictionary.SuppressResetNotifications(signalResetWhenFinished);
         }
@@ -1561,11 +1569,11 @@ namespace JB.Reactive.Cache
         /// </summary>
         /// <param name="signalResetWhenFinished">if set to <c>true</c> signals a reset when finished.</param>
         /// <returns></returns>
-        public virtual IDisposable SuppressItemChangedNotifications(bool signalResetWhenFinished = true)
+        public virtual IDisposable SuppressItemChangeNotifications(bool signalResetWhenFinished = true)
         {
-            CheckForAndThrowIfDisposed();
+            CheckForAndThrowIfDisposed(false);
 
-            return InnerDictionary.SuppressItemChangedNotifications(signalResetWhenFinished);
+            return InnerDictionary.SuppressItemChangeNotifications(signalResetWhenFinished);
         }
 
         /// <summary>
@@ -1579,7 +1587,7 @@ namespace JB.Reactive.Cache
         {
             get
             {
-                CheckForAndThrowIfDisposed();
+                CheckForAndThrowIfDisposed(false);
 
                 return InnerDictionary.IsTrackingItemChanges;
             }
@@ -1599,7 +1607,7 @@ namespace JB.Reactive.Cache
         {
             get
             {
-                CheckForAndThrowIfDisposed();
+                CheckForAndThrowIfDisposed(false);
 
                 return InnerDictionary.IsTrackingCountChanges;
             }
@@ -1629,11 +1637,11 @@ namespace JB.Reactive.Cache
         /// </summary>
         /// <param name="signalCurrentCountWhenFinished">if set to <c>true</c> signals a the current count when disposed.</param>
         /// <returns></returns>
-        public IDisposable SuppressCountChangedNotifications(bool signalCurrentCountWhenFinished = true)
+        public IDisposable SuppressCountChangeNotifications(bool signalCurrentCountWhenFinished = true)
         {
             CheckForAndThrowIfDisposed();
 
-            return InnerDictionary.SuppressCountChangedNotifications(signalCurrentCountWhenFinished);
+            return InnerDictionary.SuppressCountChangeNotifications(signalCurrentCountWhenFinished);
         }
 
         #endregion

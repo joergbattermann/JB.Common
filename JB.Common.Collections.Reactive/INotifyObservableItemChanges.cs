@@ -11,7 +11,7 @@ namespace JB.Collections.Reactive
         /// </summary>
         /// <param name="signalResetWhenFinished">if set to <c>true</c> signals a reset when finished.</param>
         /// <returns></returns>
-        IDisposable SuppressItemChangedNotifications(bool signalResetWhenFinished = true);
+        IDisposable SuppressItemChangeNotifications(bool signalResetWhenFinished = true);
 
         /// <summary>
         /// Gets a value indicating whether this instance has per item change tracking enabled and therefore listens to
