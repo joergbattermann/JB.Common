@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
+using JB.Collections.ExtensionMethods;
 
 namespace JB.Collections.Reactive.ExtensionMethods
 {
@@ -9,18 +11,27 @@ namespace JB.Collections.Reactive.ExtensionMethods
     public static class ObservableDictionaryChangeExtensions
     {
         /// <summary>
-        /// Converts the given <paramref name="observableDictionaryChange"/> to its <see cref="IObservableCollectionChange{T}"/> counterpart.
+        /// Converts the given <paramref name="observableDictionaryChange" /> to its <see cref="IObservableCollectionChange{T}" /> counterpart.
         /// </summary>
         /// <typeparam name="TKey">The type of the key.</typeparam>
         /// <typeparam name="TValue">The type of the value.</typeparam>
         /// <param name="observableDictionaryChange">The observable dictionary change.</param>
+        /// <param name="dictionary">The sender <see cref="IObservableDictionary{TKey,TValue}" />.</param>
+        /// <param name="valueComparer">The <see cref="TValue"/> equality comparer.</param>
         /// <returns></returns>
-        /// <exception cref="System.ArgumentNullException"></exception>
-        /// <exception cref="System.ArgumentOutOfRangeException">$Only {ObservableDictionaryChangeType.ItemAdded}, {ObservableDictionaryChangeType.ItemChanged}, {ObservableDictionaryChangeType.ItemRemoved} and {ObservableDictionaryChangeType.Reset} are supported.</exception>
-        public static IList<IObservableCollectionChange<KeyValuePair<TKey, TValue>>> ToObservableCollectionChanges<TKey, TValue>(this IObservableDictionaryChange<TKey, TValue> observableDictionaryChange)
+        /// <exception cref="System.ArgumentNullException">observableDictionaryChange</exception>
+        /// <exception cref="System.ArgumentOutOfRangeException">$Only {ObservableDictionaryChangeType.ItemAdded}, {ObservableDictionaryChangeType.ValueChanged}, {ObservableDictionaryChangeType.ItemRemoved} and {ObservableDictionaryChangeType.Reset} are supported.</exception>
+        public static IList<IObservableCollectionChange<KeyValuePair<TKey, TValue>>> ToObservableCollectionChanges<TKey, TValue>(
+            this IObservableDictionaryChange<TKey, TValue> observableDictionaryChange,
+            IObservableDictionary<TKey, TValue> dictionary,
+            IEqualityComparer<TValue> valueComparer)
         {
             if (observableDictionaryChange == null)
                 throw new ArgumentNullException(nameof(observableDictionaryChange));
+            if (dictionary == null)
+                throw new ArgumentNullException(nameof(dictionary));
+            if (valueComparer == null)
+                throw new ArgumentNullException(nameof(valueComparer));
 
             var result = new List<IObservableCollectionChange<KeyValuePair<TKey, TValue>>>();
 
@@ -31,12 +42,26 @@ namespace JB.Collections.Reactive.ExtensionMethods
                         ObservableCollectionChangeType.ItemAdded,
                         new KeyValuePair<TKey, TValue>(observableDictionaryChange.Key, observableDictionaryChange.Value)));
                     break;
-                case ObservableDictionaryChangeType.ItemChanged:
-                    result.Add(new ObservableCollectionChange<KeyValuePair<TKey, TValue>>(
-                        ObservableCollectionChangeType.ItemChanged,
-                        new KeyValuePair<TKey, TValue>(observableDictionaryChange.Key, observableDictionaryChange.Value)));
+                case ObservableDictionaryChangeType.KeyChanged:
+                {
+                    TValue valueForKey;
+                    if (((IDictionary<TKey, TValue>)dictionary).TryGetValue(observableDictionaryChange.Key, out valueForKey))
+                    {
+                        result.Add(new ObservableCollectionChange<KeyValuePair<TKey, TValue>>(
+                                ObservableCollectionChangeType.ItemChanged,
+                                new KeyValuePair<TKey, TValue>(observableDictionaryChange.Key, valueForKey)));
+                    }
                     break;
-                case ObservableDictionaryChangeType.ItemReplaced:
+                }
+                case ObservableDictionaryChangeType.ValueChanged:
+                    {
+                        result.AddRange(dictionary.GetKeysForValue(observableDictionaryChange.Value, valueComparer).Select(key => 
+                            new ObservableCollectionChange<KeyValuePair<TKey, TValue>>(
+                                ObservableCollectionChangeType.ItemChanged,
+                                new KeyValuePair<TKey, TValue>(key, observableDictionaryChange.Value))));
+                    }
+                    break;
+                case ObservableDictionaryChangeType.ValueReplaced:
                     result.Add(new ObservableCollectionChange<KeyValuePair<TKey, TValue>>(
                         ObservableCollectionChangeType.ItemRemoved,
                         new KeyValuePair<TKey, TValue>(observableDictionaryChange.Key, observableDictionaryChange.OldValue)));
@@ -55,7 +80,7 @@ namespace JB.Collections.Reactive.ExtensionMethods
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(observableDictionaryChange),
-                        $"Only {ObservableDictionaryChangeType.ItemAdded}, {ObservableDictionaryChangeType.ItemChanged}, {ObservableDictionaryChangeType.ItemRemoved} and {ObservableDictionaryChangeType.Reset} are supported.");
+                        $"Only {ObservableDictionaryChangeType.ItemAdded}, {ObservableDictionaryChangeType.ValueChanged}, {ObservableDictionaryChangeType.ItemRemoved} and {ObservableDictionaryChangeType.Reset} are supported.");
             }
 
             return result;

@@ -32,15 +32,13 @@ namespace JB.Reactive.Cache.ExtensionMethods
                         observableDictionaryChange.Value.Value,
                         observableDictionaryChange.Value.ExpiresAt(),
                         observableDictionaryChange.Value.ExpirationType);
-                // item changed is not supported
-                //case ObservableDictionaryChangeType.ItemChanged:
-                //    return ObservableCacheChange<TKey, TValue>.ItemChanged(
-                //        observableDictionaryChange.Key,
-                //        observableDictionaryChange.Value.Value,
-                //        observableDictionaryChange.ChangedPropertyName,
-                //        observableDictionaryChange.Value.ExpiresAt(),
-                //        observableDictionaryChange.Value.ExpirationType);
-                case ObservableDictionaryChangeType.ItemReplaced:
+                // key changes are not supported
+                //case ObservableDictionaryChangeType.KeyChanged:
+                // break;
+                // value changes are not supported
+                //case ObservableDictionaryChangeType.ValueChanged:
+                // break;
+                case ObservableDictionaryChangeType.ValueReplaced:
                     return ObservableCacheChange<TKey, TValue>.ItemReplaced(
                         observableDictionaryChange.Key,
                         observableDictionaryChange.Value.Value,

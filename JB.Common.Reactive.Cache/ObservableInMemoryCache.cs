@@ -929,7 +929,7 @@ namespace JB.Reactive.Cache
             {
                 CheckForAndThrowIfDisposed();
 
-                return InnerDictionary.DictionaryChanges.SkipContinuouslyWhile(change => change.ChangeType != ObservableDictionaryChangeType.ItemChanged) // this must be handled here separately from the underlying dictionary
+                return InnerDictionary.DictionaryChanges.SkipContinuouslyWhile(change => change.ChangeType != ObservableDictionaryChangeType.ValueChanged) // this must be handled here separately from the underlying dictionary
                     .Select(dictionaryChange => dictionaryChange.ToObservableCacheChange()).Merge(_cacheChangesSubject).TakeWhile(_ => !IsDisposing && !IsDisposed).SkipContinuouslyWhile(change => !IsTrackingChanges).SkipContinuouslyWhile(change => change.ChangeType == ObservableCacheChangeType.ItemChanged && !IsTrackingItemChanges).SkipContinuouslyWhile(change => change.ChangeType == ObservableCacheChangeType.ItemReplaced && !IsTrackingItemChanges).SkipContinuouslyWhile(change => change.ChangeType == ObservableCacheChangeType.Reset && !IsTrackingResets);
             }
         }

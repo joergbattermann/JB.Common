@@ -1,5 +1,3 @@
-using System.ComponentModel;
-
 namespace JB.Collections.Reactive
 {
     public interface IObservableDictionaryChange<out TKey, out TValue>
@@ -21,7 +19,7 @@ namespace JB.Collections.Reactive
         TKey Key { get; }
 
         /// <summary>
-        /// Gets the value that was added or if it was a <see cref="ObservableDictionaryChangeType.ItemChanged"/>, this is the new value.
+        /// Gets the value that was added or if it was a <see cref="ObservableDictionaryChangeType.ValueChanged"/>, this is the new value.
         /// </summary>
         /// <value>
         /// The affected value.
@@ -29,7 +27,7 @@ namespace JB.Collections.Reactive
         TValue Value { get; }
 
         /// <summary>
-        /// If <see cref="ChangeType"/> is a <see cref="ObservableDictionaryChangeType.ItemReplaced"/>
+        /// If <see cref="ChangeType"/> is a <see cref="ObservableDictionaryChangeType.ValueReplaced"/>
         /// or <see cref="ObservableDictionaryChangeType.ItemRemoved"/> this will hold the old, previous value.
         /// </summary>
         /// <value>
@@ -38,7 +36,7 @@ namespace JB.Collections.Reactive
         TValue OldValue { get; }
 
         /// <summary>
-        /// If <see cref="ChangeType"/> is a <see cref="ObservableDictionaryChangeType.ItemChanged"/> one and <typeparamref name="TValue"/>
+        /// If <see cref="ChangeType"/> is a <see cref="ObservableDictionaryChangeType.ValueChanged"/> one and <typeparamref name="TValue"/>
         /// implements <see cref="INotifyPropertyChanged"/> and the underlying item change originated from a <see cref="INotifyPropertyChanged.PropertyChanged"/>
         /// event, this will be the forwarded <see cref="PropertyChangedEventArgs.PropertyName"/> value.
         /// </summary>

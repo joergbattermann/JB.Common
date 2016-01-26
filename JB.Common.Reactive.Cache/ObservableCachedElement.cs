@@ -14,7 +14,7 @@ using System.Threading;
 
 namespace JB.Reactive.Cache
 {
-    public class ObservableCachedElement<TKey, TValue> : INotifyPropertyChanged, IDisposable
+    public class ObservableCachedElement<TKey, TValue> : IDisposable
     {
         private IScheduler _expirationScheduler;
         private ObservableCacheExpirationType _expirationType;
@@ -57,7 +57,6 @@ namespace JB.Reactive.Cache
                     return;
                
                 Interlocked.Exchange(ref _hasExpired, value ? 1 : 0);
-                RaisePropertyChanged();
             }
         }
 
@@ -271,8 +270,6 @@ namespace JB.Reactive.Cache
                     return;
 
                 _expirationType = value;
-
-                RaisePropertyChanged();
             }
         }
 
@@ -299,8 +296,6 @@ namespace JB.Reactive.Cache
                     return;
 
                 _originalExpiry = value;
-
-                RaisePropertyChanged();
             }
         }
 
@@ -326,8 +321,6 @@ namespace JB.Reactive.Cache
                     return;
 
                 _expiryDateTime = value;
-
-                RaisePropertyChanged();
             }
         }
 
@@ -348,13 +341,8 @@ namespace JB.Reactive.Cache
             private set
             {
                 CheckForAndThrowIfDisposed(false);
-
-                if (_expirationScheduler == value)
-                    return;
-
+                
                 _expirationScheduler = value;
-
-                RaisePropertyChanged();
             }
         }
 
@@ -437,8 +425,7 @@ namespace JB.Reactive.Cache
         protected virtual void OnValuePropertyChanged(object sender, PropertyChangedEventArgs e)
         {
             CheckForAndThrowIfDisposed();
-
-            RaisePropertyChanged(nameof(Value));
+            
             RaiseValuePropertyChanged(e);
         }
 
@@ -494,44 +481,7 @@ namespace JB.Reactive.Cache
 
             return now.Add(expiry);
         }
-
-        #region Implementation of INotifyPropertyChanged
-
-        /// <summary>
-        ///     The actual <see cref="PropertyChanged" /> event.
-        /// </summary>
-        private PropertyChangedEventHandler _propertyChanged;
-
-        /// <summary>
-        ///     Occurs when a property changed.
-        /// </summary>
-        public event PropertyChangedEventHandler PropertyChanged
-        {
-            add
-            {
-                CheckForAndThrowIfDisposed();
-                _propertyChanged += value;
-            }
-            remove
-            {
-                _propertyChanged -= value;
-            }
-        }
-
-        /// <summary>
-        ///     Raises the <see cref="INotifyPropertyChanged.PropertyChanged"/> event.
-        /// </summary>
-        /// <param name="propertyName">Name of the property.</param>
-        protected virtual void RaisePropertyChanged([CallerMemberName] string propertyName = null)
-        {
-            if (IsDisposed || IsDisposing)
-                return;
-
-            _propertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
-
-        #endregion
-
+        
         #region Implementation of IDisposable
 
         private long _isDisposing = 0;

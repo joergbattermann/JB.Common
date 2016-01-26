@@ -11,11 +11,5 @@ namespace JB.Collections.Reactive
         /// The collection changes.
         /// </value>
         IObservable<IObservableCollectionChange<T>> CollectionChanges { get; }
-
-        /// <summary>
-        /// Occurs when the corresponding <see cref="IObservableCollection{T}"/> changed.
-        /// </summary>
-        [Obsolete("This will/shall be removed again, soon")]
-        event EventHandler<ObservableCollectionChangedEventArgs<T>> CollectionChanged;
 	}
 }

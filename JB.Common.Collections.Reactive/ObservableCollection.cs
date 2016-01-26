@@ -29,7 +29,7 @@ namespace JB.Collections.Reactive
 
         private Subject<IObservableCollectionChange<T>> _collectionChangesSubject = new Subject<IObservableCollectionChange<T>>();
         private Subject<int> _countChangesSubject = new Subject<int>();
-        private Subject<ObserverException> _unhandledObserverExceptionsSubject = new Subject<ObserverException>();
+        private Subject<ObserverException> _observerExceptionsSubject = new Subject<ObserverException>();
 
         /// <summary>
         /// Gets the count changes observer.
@@ -293,62 +293,10 @@ namespace JB.Collections.Reactive
                 CheckForAndThrowIfDisposed();
 
                 // not caring about IsDisposing / IsDisposed on purpose once subscribed, so corresponding Exceptions are forwarded 'til the "end" to already existing subscribers
-                return _unhandledObserverExceptionsSubject;
+                return _observerExceptionsSubject;
             }
         }
-
-        /// <summary>
-        ///     The actual <see cref="CollectionChanged" /> event.
-        /// </summary>
-        private EventHandler<ObservableCollectionChangedEventArgs<T>> _observableCollectionChanged;
-
-        /// <summary>
-        ///     Occurs when the corresponding <see cref="IObservableCollection{T}" /> changed.
-        /// </summary>
-        [Obsolete("This will/shall be removed again, soon")]
-        public event EventHandler<ObservableCollectionChangedEventArgs<T>> CollectionChanged
-        {
-            add
-            {
-                CheckForAndThrowIfDisposed();
-                _observableCollectionChanged += value;
-            }
-            remove
-            {
-                CheckForAndThrowIfDisposed();
-                _observableCollectionChanged -= value;
-            }
-        }
-
-
-        /// <summary>
-        ///     Raises the <see cref="E:CollectionChanged" /> event.
-        /// </summary>
-        /// <param name="observableCollectionChangedEventArgs">
-        ///     The <see cref="ObservableCollectionChangedEventArgs{T}" /> instance
-        ///     containing the event data.
-        /// </param>
-        protected virtual void RaiseObservableCollectionChanged(ObservableCollectionChangedEventArgs<T> observableCollectionChangedEventArgs)
-        {
-            if (observableCollectionChangedEventArgs == null) throw new ArgumentNullException(nameof(observableCollectionChangedEventArgs));
-
-            if (IsDisposed || IsDisposing)
-                return;
-
-            // only raise event if it's currently allowed
-            if (!IsTrackingChanges
-                || (observableCollectionChangedEventArgs.ChangeType == ObservableCollectionChangeType.ItemChanged && !IsTrackingItemChanges)
-                || (observableCollectionChangedEventArgs.ChangeType == ObservableCollectionChangeType.Reset && !IsTrackingResets))
-            {
-                return;
-            }
-
-            var eventHandler = _observableCollectionChanged;
-            if (eventHandler != null)
-            {
-                Scheduler.Schedule(() => eventHandler.Invoke(this, observableCollectionChangedEventArgs));
-            }
-        }
+        
         #endregion
         
         #region Implementation of INotifyObservableCountChanges
@@ -593,14 +541,14 @@ namespace JB.Collections.Reactive
 
         /// <summary>
         /// Prepares and sets up the observables and subjects used, particularly
-        /// <see cref="_collectionChangesSubject"/>, <see cref="_countChangesSubject"/> and <see cref="_unhandledObserverExceptionsSubject"/>
+        /// <see cref="_collectionChangesSubject"/>, <see cref="_countChangesSubject"/> and <see cref="_observerExceptionsSubject"/>
         /// but also internally used RX subscriptions for <see cref="IBindingList.ListChanged"/> and somewhat hack-ish
         /// 'Count' and 'Items[]' <see cref="INotifyPropertyChanged"/> events on <see cref="CountChanges"/> and <see cref="CollectionChanges"/>
         /// occurrences (for WPF / Binding)
         /// </summary>
         private void SetupObservablesAndObserversAndSubjects()
         {
-            UnhandledObserverExceptionsObserver = _unhandledObserverExceptionsSubject.NotifyOn(Scheduler);
+            UnhandledObserverExceptionsObserver = _observerExceptionsSubject.NotifyOn(Scheduler);
             CollectionChangesObserver = _collectionChangesSubject.NotifyOn(Scheduler);
             CountChangesObserver = _countChangesSubject.NotifyOn(Scheduler);
             
@@ -716,23 +664,7 @@ namespace JB.Collections.Reactive
                 if (observerException.Handled == false)
                     throw;
             }
-
-            try
-            {
-                RaiseObservableCollectionChanged(new ObservableCollectionChangedEventArgs<T>(actualObservableCollectionChange));
-            }
-            catch (Exception exception)
-            {
-                var observerException = new ObserverException(
-                    $"An error occured notifying {nameof(CollectionChanged)} Subscribers of this {this.GetType().Name}.",
-                    exception);
-
-                UnhandledObserverExceptionsObserver.OnNext(observerException);
-
-                if (observerException.Handled == false)
-                    throw;
-            }
-
+            
             try
             {
                 RaiseCollectionChanged(actualObservableCollectionChange.ToNotifyCollectionChangedEventArgs());
@@ -876,10 +808,10 @@ namespace JB.Collections.Reactive
                 thrownExceptionsObserverAsDisposable?.Dispose();
                 UnhandledObserverExceptionsObserver = null;
 
-                if (_unhandledObserverExceptionsSubject != null)
+                if (_observerExceptionsSubject != null)
                 {
-                    _unhandledObserverExceptionsSubject.Dispose();
-                    _unhandledObserverExceptionsSubject = null;
+                    _observerExceptionsSubject.Dispose();
+                    _observerExceptionsSubject = null;
                 }
             }
         }

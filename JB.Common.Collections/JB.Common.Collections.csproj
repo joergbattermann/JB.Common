@@ -49,6 +49,7 @@
       <Link>Properties\CommonAssemblyInfo.cs</Link>
     </Compile>
     <Compile Include="EnhancedBindingList.cs" />
+    <Compile Include="ExtensionMethods\DictionaryExtensions.cs" />
     <Compile Include="IBulkModifiableBindingList.cs" />
     <Compile Include="IBulkModifiableCollection.cs" />
     <Compile Include="IBulkModifiableDictionary.cs" />
@@ -62,9 +63,7 @@
     <Compile Include="SynchronizationContextSynchronizedBindingList.cs" />
     <Compile Include="SynchronizedBindingList.cs" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="ExtensionMethods\" />
-  </ItemGroup>
+  <ItemGroup />
   <ItemGroup>
     <ProjectReference Include="..\JB.Common\JB.Common.csproj">
       <Project>{248fadaf-12c1-41d1-8faa-8b786b4feb36}</Project>

@@ -109,48 +109,7 @@ namespace JB.Collections.Reactive.Tests
                     .WithMessage("My Marker Message");
             }
         }
-
-        [Fact]
-        public void ObservableCollectionChangedSubscriberExceptionsShouldNotBeThrownIfHandledViaUnhandledObserverExceptionsObservable()
-        {
-            // given
-            using (var observableDictionary = new ObservableDictionary<int, string>())
-            {
-                observableDictionary.ObserverExceptions.Subscribe(observerException =>
-                {
-                    observerException.Handled = true;
-                });
-
-                ((INotifyObservableCollectionChanges<KeyValuePair<int, string>>)observableDictionary).CollectionChanged
-                    += (sender, args) => { throw new InvalidOperationException("My Marker Message"); };
-
-                // when
-                Action action = () => observableDictionary.Add(1, "One");
-
-                // then
-                action.ShouldNotThrow<InvalidOperationException>();
-            }
-        }
-
-        [Fact]
-        public void ObservableCollectionChangedSubscriberExceptionsShouldBeThrownIfUnhandled()
-        {
-            // given
-            using (var observableDictionary = new ObservableDictionary<int, string>())
-            {
-                ((INotifyObservableCollectionChanges<KeyValuePair<int, string>>)observableDictionary).CollectionChanged
-                    += (sender, args) => { throw new InvalidOperationException("My Marker Message"); };
-
-                // when
-                Action action = () => observableDictionary.Add(1, "One");
-
-                // then
-                action
-                    .ShouldThrow<InvalidOperationException>()
-                    .WithMessage("My Marker Message");
-            }
-        }
-
+        
         [Fact]
         public void CollectionChangedSubscriberExceptionsShouldNotBeThrownIfHandledViaUnhandledObserverExceptionsObservable()
         {
@@ -711,7 +670,77 @@ namespace JB.Collections.Reactive.Tests
         }
 
         [Fact]
-        public void ItemChangesAfterItemsAreRemovedFromDictionaryDoNotNotifySubscribers()
+        public void ShouldNotNotifySubscribersAboutKeyChangesAfterItemsAreRemovedFromDictionary()
+        {
+            // given
+            var scheduler = new TestScheduler();
+
+            int value = 1;
+            var key = new MyNotifyPropertyChanged<int, string>(value);
+
+            var observer = scheduler.CreateObserver<IObservableDictionaryChange<MyNotifyPropertyChanged<int, string>, int>>();
+            var itemChangesObserver = scheduler.CreateObserver<IObservableDictionaryChange<MyNotifyPropertyChanged<int, string>, int>>();
+
+            using (var observableDictionary = new ObservableDictionary<MyNotifyPropertyChanged<int, string>, int>(scheduler: scheduler))
+            {
+                observableDictionary.ThresholdAmountWhenChangesAreNotifiedAsReset = int.MaxValue;
+
+                IDisposable dictionaryChangesSubscription = null;
+                IDisposable dictionaryItemChangesSubscription = null;
+
+                try
+                {
+                    dictionaryChangesSubscription = observableDictionary.DictionaryChanges.Subscribe(observer);
+                    dictionaryItemChangesSubscription = observableDictionary.DictionaryKeyChanges.Subscribe(itemChangesObserver);
+
+                    // when
+                    observableDictionary.Add(key, value); // first general message - ItemAdd
+                    scheduler.AdvanceBy(1);
+
+                    key.FirstProperty = Guid.NewGuid().ToString(); // second general / first item change message - ItemChanged
+                    scheduler.AdvanceBy(1);
+
+                    observableDictionary.Remove(key); // third general message - ItemRemoved
+                    scheduler.AdvanceBy(1);
+
+                    key.SecondProperty = Guid.NewGuid().ToString(); // should no longer be observable on/via dictionary
+                    scheduler.AdvanceBy(1);
+
+                    //scheduler.AdvanceBy(100);
+
+                    // then
+                    observer.Messages.Count.Should().Be(3);
+                    observer.Messages[0].Value.Value.ChangeType.Should().Be(ObservableDictionaryChangeType.ItemAdded);
+                    observer.Messages[0].Value.Value.Key.Should().Be(key);
+                    observer.Messages[0].Value.Value.Value.Should().Be(value);
+
+                    observer.Messages[1].Value.Value.ChangeType.Should().Be(ObservableDictionaryChangeType.KeyChanged);
+                    observer.Messages[1].Value.Value.Key.Should().Be(key);
+                    observer.Messages[1].Value.Value.Value.Should().Be(default(int));
+                    observer.Messages[1].Value.Value.OldValue.Should().Be(default(int));
+                    observer.Messages[1].Value.Value.ChangedPropertyName.Should().Be(nameof(MyNotifyPropertyChanged<int, string>.FirstProperty));
+
+                    observer.Messages[2].Value.Value.ChangeType.Should().Be(ObservableDictionaryChangeType.ItemRemoved);
+                    observer.Messages[2].Value.Value.Key.Should().Be(key);
+                    observer.Messages[2].Value.Value.Value.Should().Be(value);
+
+                    itemChangesObserver.Messages.Count.Should().Be(1);
+                    itemChangesObserver.Messages.First().Value.Value.ChangeType.Should().Be(ObservableDictionaryChangeType.KeyChanged);
+                    itemChangesObserver.Messages.First().Value.Value.Key.Should().Be(key);
+                    itemChangesObserver.Messages.First().Value.Value.Value.Should().Be(default(int));
+                    itemChangesObserver.Messages.First().Value.Value.OldValue.Should().Be(default(int));
+                    itemChangesObserver.Messages.First().Value.Value.ChangedPropertyName.Should().Be(nameof(MyNotifyPropertyChanged<int, string>.FirstProperty));
+                }
+                finally
+                {
+                    dictionaryChangesSubscription?.Dispose();
+                    dictionaryItemChangesSubscription?.Dispose();
+                }
+            }
+        }
+
+        [Fact]
+        public void ShouldNotNotifySubscribersAboutValueChangesAfterItemsAreRemovedFromDictionary()
         {
             // given
             var scheduler = new TestScheduler();
@@ -732,7 +761,7 @@ namespace JB.Collections.Reactive.Tests
                 try
                 {
                     dictionaryChangesSubscription = observableDictionary.DictionaryChanges.Subscribe(observer);
-                    dictionaryItemChangesSubscription = observableDictionary.DictionaryItemChanges.Subscribe(itemChangesObserver);
+                    dictionaryItemChangesSubscription = observableDictionary.DictionaryValueChanges.Subscribe(itemChangesObserver);
 
                     // when
                     observableDictionary.Add(key, testInpcImplementationInstance); // first general message - ItemAdd
@@ -748,8 +777,8 @@ namespace JB.Collections.Reactive.Tests
                     observer.Messages[0].Value.Value.Key.Should().Be(key);
                     observer.Messages[0].Value.Value.Value.Should().Be(testInpcImplementationInstance);
 
-                    observer.Messages[1].Value.Value.ChangeType.Should().Be(ObservableDictionaryChangeType.ItemChanged);
-                    observer.Messages[1].Value.Value.Key.Should().Be(key);
+                    observer.Messages[1].Value.Value.ChangeType.Should().Be(ObservableDictionaryChangeType.ValueChanged);
+                    observer.Messages[1].Value.Value.Key.Should().Be(default(int));
                     observer.Messages[1].Value.Value.Value.Should().Be(testInpcImplementationInstance);
                     observer.Messages[1].Value.Value.OldValue.Should().BeNull();
                     observer.Messages[1].Value.Value.ChangedPropertyName.Should().Be(nameof(MyNotifyPropertyChanged<int, string>.FirstProperty));
@@ -759,8 +788,8 @@ namespace JB.Collections.Reactive.Tests
                     observer.Messages[2].Value.Value.Value.Should().Be(testInpcImplementationInstance);
 
                     itemChangesObserver.Messages.Count.Should().Be(1);
-                    itemChangesObserver.Messages.First().Value.Value.ChangeType.Should().Be(ObservableDictionaryChangeType.ItemChanged);
-                    itemChangesObserver.Messages.First().Value.Value.Key.Should().Be(key);
+                    itemChangesObserver.Messages.First().Value.Value.ChangeType.Should().Be(ObservableDictionaryChangeType.ValueChanged);
+                    itemChangesObserver.Messages.First().Value.Value.Key.Should().Be(default(int));
                     itemChangesObserver.Messages.First().Value.Value.Value.Should().Be(testInpcImplementationInstance);
                     itemChangesObserver.Messages.First().Value.Value.OldValue.Should().BeNull();
                     itemChangesObserver.Messages.First().Value.Value.ChangedPropertyName.Should().Be(nameof(MyNotifyPropertyChanged<int, string>.FirstProperty));
@@ -774,7 +803,76 @@ namespace JB.Collections.Reactive.Tests
         }
 
         [Fact]
-        public void ItemChangesWhileItemsAreInDictionaryNotifiesObservers()
+        public void ShouldNotifySubscribersAboutKeyChangesWhileItemsAreInDictionary()
+        {
+            // given
+            var scheduler = new TestScheduler();
+
+            int value = 1;
+            var key = new MyNotifyPropertyChanged<int, string>(value);
+
+            var observer = scheduler.CreateObserver<IObservableDictionaryChange<MyNotifyPropertyChanged<int, string>, int>>();
+            var itemChangesObserver = scheduler.CreateObserver<IObservableDictionaryChange<MyNotifyPropertyChanged<int, string>, int>>();
+            var collectionItemChangesObserver = scheduler.CreateObserver<IObservableCollectionChange<KeyValuePair<MyNotifyPropertyChanged<int, string>, int>>>();
+
+            using (var observableDictionary = new ObservableDictionary<MyNotifyPropertyChanged<int, string>, int>(scheduler: scheduler))
+            {
+                observableDictionary.ThresholdAmountWhenChangesAreNotifiedAsReset = int.MaxValue;
+
+                IDisposable dictionaryChangesSubscription = null;
+                IDisposable dictionaryKeyChangesSubscription = null;
+                IDisposable observableCollectionItemChangesSubscription = null;
+
+                try
+                {
+                    dictionaryChangesSubscription = observableDictionary.DictionaryChanges.Subscribe(observer);
+                    dictionaryKeyChangesSubscription = observableDictionary.DictionaryKeyChanges.Subscribe(itemChangesObserver);
+                    observableCollectionItemChangesSubscription = ((INotifyObservableCollectionItemChanges<KeyValuePair<MyNotifyPropertyChanged<int, string>, int>>)observableDictionary)
+                        .CollectionItemChanges
+                        .Subscribe(collectionItemChangesObserver);
+
+                    // when
+                    observableDictionary.Add(key, value);
+
+                    key.FirstProperty = Guid.NewGuid().ToString();
+                    scheduler.AdvanceBy(100);
+
+                    // then
+                    observer.Messages.Count.Should().Be(2);
+                    itemChangesObserver.Messages.Count.Should().Be(1);
+                    collectionItemChangesObserver.Messages.Count.Should().Be(1);
+
+                    observer.Messages.First().Value.Value.ChangeType.Should().Be(ObservableDictionaryChangeType.ItemAdded);
+                    observer.Messages.First().Value.Value.Key.Should().Be(key);
+                    observer.Messages.First().Value.Value.Value.Should().Be(value);
+
+                    observer.Messages.Last().Value.Value.ChangeType.Should().Be(ObservableDictionaryChangeType.KeyChanged);
+                    observer.Messages.Last().Value.Value.Key.Should().Be(key);
+                    observer.Messages.Last().Value.Value.Value.Should().Be(default(int));
+                    observer.Messages.Last().Value.Value.OldValue.Should().Be(default(int));
+                    observer.Messages.Last().Value.Value.ChangedPropertyName.Should().Be(nameof(MyNotifyPropertyChanged<int, string>.FirstProperty));
+
+                    itemChangesObserver.Messages.First().Value.Value.ChangeType.Should().Be(ObservableDictionaryChangeType.KeyChanged);
+                    itemChangesObserver.Messages.First().Value.Value.Key.Should().Be(key);
+                    itemChangesObserver.Messages.First().Value.Value.Value.Should().Be(default(int));
+                    itemChangesObserver.Messages.First().Value.Value.OldValue.Should().Be(default(int));
+                    itemChangesObserver.Messages.Last().Value.Value.ChangedPropertyName.Should().Be(nameof(MyNotifyPropertyChanged<int, string>.FirstProperty));
+
+                    collectionItemChangesObserver.Messages.First().Value.Value.ChangeType.Should().Be(ObservableCollectionChangeType.ItemChanged);
+                    collectionItemChangesObserver.Messages.First().Value.Value.Item.Key.Should().Be(key);
+                    collectionItemChangesObserver.Messages.First().Value.Value.Item.Value.Should().Be(value);
+                }
+                finally
+                {
+                    dictionaryChangesSubscription?.Dispose();
+                    dictionaryKeyChangesSubscription?.Dispose();
+                    observableCollectionItemChangesSubscription?.Dispose();
+                }
+            }
+        }
+
+        [Fact]
+        public void ShouldNotifySubscribersAboutValueChangesWhileItemsAreInDictionary()
         {
             // given
             var scheduler = new TestScheduler();
@@ -797,7 +895,7 @@ namespace JB.Collections.Reactive.Tests
                 try
                 {
                     dictionaryChangesSubscription = observableDictionary.DictionaryChanges.Subscribe(observer);
-                    dictionaryItemChangesSubscription = observableDictionary.DictionaryItemChanges.Subscribe(itemChangesObserver);
+                    dictionaryItemChangesSubscription = observableDictionary.DictionaryValueChanges.Subscribe(itemChangesObserver);
                     observableCollectionItemChangesSubscription = ((INotifyObservableCollectionItemChanges<KeyValuePair<int, MyNotifyPropertyChanged<int, string>>>)observableDictionary)
                         .CollectionItemChanges
                         .Subscribe(collectionItemChangesObserver);
@@ -817,14 +915,14 @@ namespace JB.Collections.Reactive.Tests
                     observer.Messages.First().Value.Value.Key.Should().Be(key);
                     observer.Messages.First().Value.Value.Value.Should().Be(testInpcImplementationInstance);
 
-                    observer.Messages.Last().Value.Value.ChangeType.Should().Be(ObservableDictionaryChangeType.ItemChanged);
-                    observer.Messages.Last().Value.Value.Key.Should().Be(key);
+                    observer.Messages.Last().Value.Value.ChangeType.Should().Be(ObservableDictionaryChangeType.ValueChanged);
+                    observer.Messages.Last().Value.Value.Key.Should().Be(default(int));
                     observer.Messages.Last().Value.Value.Value.Should().Be(testInpcImplementationInstance);
                     observer.Messages.Last().Value.Value.OldValue.Should().BeNull();
                     observer.Messages.Last().Value.Value.ChangedPropertyName.Should().Be(nameof(MyNotifyPropertyChanged<int, string>.FirstProperty));
 
-                    itemChangesObserver.Messages.First().Value.Value.ChangeType.Should().Be(ObservableDictionaryChangeType.ItemChanged);
-                    itemChangesObserver.Messages.First().Value.Value.Key.Should().Be(key);
+                    itemChangesObserver.Messages.First().Value.Value.ChangeType.Should().Be(ObservableDictionaryChangeType.ValueChanged);
+                    itemChangesObserver.Messages.First().Value.Value.Key.Should().Be(default(int));
                     itemChangesObserver.Messages.First().Value.Value.Value.Should().Be(testInpcImplementationInstance);
                     itemChangesObserver.Messages.First().Value.Value.OldValue.Should().BeNull();
                     itemChangesObserver.Messages.Last().Value.Value.ChangedPropertyName.Should().Be(nameof(MyNotifyPropertyChanged<int, string>.FirstProperty));
@@ -843,7 +941,65 @@ namespace JB.Collections.Reactive.Tests
         }
 
         [Fact]
-        public void ItemChangesWhileItemsAreInDictionaryNotifiesObserversAsResetIfRequested()
+        public void ShouldNotifySubscribersAboutKeyChangesAsResetIfRequestedWhileItemsAreInDictionary()
+        {
+            // given
+            var scheduler = new TestScheduler();
+
+            int value = 1;
+            var key = new MyNotifyPropertyChanged<int, string>(value);
+
+            var observer = scheduler.CreateObserver<IObservableDictionaryChange<MyNotifyPropertyChanged<int, string>, int>>();
+            var itemChangesObserver = scheduler.CreateObserver<IObservableDictionaryChange<MyNotifyPropertyChanged<int, string>, int>>();
+            var resetsObserver = scheduler.CreateObserver<Unit>();
+
+            using (var observableDictionary = new ObservableDictionary<MyNotifyPropertyChanged<int, string>, int>(scheduler: scheduler))
+            {
+                observableDictionary.ThresholdAmountWhenChangesAreNotifiedAsReset = Int32.MaxValue;
+
+                IDisposable dictionaryChangesSubscription = null;
+                IDisposable dictionaryItemChangesSubscription = null;
+                IDisposable dictionaryResetsSubscription = null;
+
+                try
+                {
+                    dictionaryChangesSubscription = observableDictionary.DictionaryChanges.Subscribe(observer);
+                    dictionaryItemChangesSubscription = observableDictionary.DictionaryKeyChanges.Subscribe(itemChangesObserver);
+                    dictionaryResetsSubscription = observableDictionary.Resets.Subscribe(resetsObserver);
+
+                    // when
+                    observableDictionary.Add(key, value);
+
+                    observableDictionary.ThresholdAmountWhenChangesAreNotifiedAsReset = 0;
+                    key.FirstProperty = Guid.NewGuid().ToString();
+                    scheduler.AdvanceBy(100);
+
+                    // then
+                    observer.Messages.Count.Should().Be(2);
+                    itemChangesObserver.Messages.Count.Should().Be(0);
+                    resetsObserver.Messages.Count.Should().Be(1);
+
+                    observer.Messages.First().Value.Value.ChangeType.Should().Be(ObservableDictionaryChangeType.ItemAdded);
+                    observer.Messages.First().Value.Value.Key.Should().Be(key);
+                    observer.Messages.First().Value.Value.Value.Should().Be(value);
+
+                    observer.Messages.Last().Value.Value.ChangeType.Should().Be(ObservableDictionaryChangeType.Reset);
+                    observer.Messages.Last().Value.Value.Key.Should().Be(default(MyNotifyPropertyChanged<int, string>));
+                    observer.Messages.Last().Value.Value.Value.Should().Be(default(int));
+                    observer.Messages.Last().Value.Value.OldValue.Should().Be(default(int));
+                    observer.Messages.Last().Value.Value.ChangedPropertyName.Should().BeEmpty();
+                }
+                finally
+                {
+                    dictionaryChangesSubscription?.Dispose();
+                    dictionaryItemChangesSubscription?.Dispose();
+                    dictionaryResetsSubscription?.Dispose();
+                }
+            }
+        }
+
+        [Fact]
+        public void ShouldNotifySubscribersAboutValueChangesAsResetIfRequestedWhileItemsAreInDictionary()
         {
             // given
             var scheduler = new TestScheduler();
@@ -866,7 +1022,7 @@ namespace JB.Collections.Reactive.Tests
                 try
                 {
                     dictionaryChangesSubscription = observableDictionary.DictionaryChanges.Subscribe(observer);
-                    dictionaryItemChangesSubscription = observableDictionary.DictionaryItemChanges.Subscribe(itemChangesObserver);
+                    dictionaryItemChangesSubscription = observableDictionary.DictionaryValueChanges.Subscribe(itemChangesObserver);
                     dictionaryResetsSubscription = observableDictionary.Resets.Subscribe(resetsObserver);
 
                     // when
@@ -1327,7 +1483,7 @@ namespace JB.Collections.Reactive.Tests
                 try
                 {
                     dictionaryChangesSubscription = observableDictionary.DictionaryChanges.Subscribe(dictionaryChangesObserver);
-                    dictionaryItemChangesSubscription = observableDictionary.DictionaryItemChanges.Subscribe(dictionaryItemChangesObserver);
+                    dictionaryItemChangesSubscription = observableDictionary.DictionaryValueChanges.Subscribe(dictionaryItemChangesObserver);
                     resetsSubscription = observableDictionary.Resets.Subscribe(resetsObserver);
 
                     using (observableDictionary.SuppressItemChangeNotifications(true))
@@ -1416,7 +1572,7 @@ namespace JB.Collections.Reactive.Tests
 
                 try
                 {
-                    dictionaryItemChangesSubscription = observableDictionary.DictionaryItemChanges.Subscribe(observer);
+                    dictionaryItemChangesSubscription = observableDictionary.DictionaryValueChanges.Subscribe(observer);
                     resetsSubscription = observableDictionary.Resets.Subscribe(resetsObserver);
 
                     using (observableDictionary.SuppressItemChangeNotifications(false))
