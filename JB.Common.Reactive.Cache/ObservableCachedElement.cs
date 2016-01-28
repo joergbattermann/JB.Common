@@ -69,6 +69,29 @@ namespace JB.Reactive.Cache
         public virtual bool HasExpiryBeenUpdated => ExpirationChangesCount > 0;
 
         /// <summary>
+        ///     The actual <see cref="KeyPropertyChanged" /> event.
+        /// </summary>
+        private EventHandler<ForwardedEventArgs<PropertyChangedEventArgs>> _keyPropertyChanged;
+
+        /// <summary>
+        /// Occurs when this instance's <see cref="Key"/> has raised an <see cref="INotifyPropertyChanged.PropertyChanged"/> event.
+        /// </summary>
+
+        public virtual event EventHandler<ForwardedEventArgs<PropertyChangedEventArgs>> KeyPropertyChanged
+        {
+            add
+            {
+                CheckForAndThrowIfDisposed();
+
+                _keyPropertyChanged += value;
+            }
+            remove
+            {
+                _keyPropertyChanged -= value;
+            }
+        }
+
+        /// <summary>
         ///     The actual <see cref="ValuePropertyChanged" /> event.
         /// </summary>
         private EventHandler<ForwardedEventArgs<PropertyChangedEventArgs>> _valuePropertyChanged;
@@ -92,16 +115,16 @@ namespace JB.Reactive.Cache
         }
 
         /// <summary>
-        ///     Raises the <see cref="ValuePropertyChanged"/> event.
+        ///     Forwards the property changed event for the <paramref name="sender"/>.
         /// </summary>
-        protected virtual void RaiseValuePropertyChanged(PropertyChangedEventArgs propertyChangedEventArgs)
+        protected virtual void RaiseForwardedPropertyChanged(EventHandler<ForwardedEventArgs<PropertyChangedEventArgs>> eventToRaise, object sender, PropertyChangedEventArgs propertyChangedEventArgs)
         {
             if (propertyChangedEventArgs == null) throw new ArgumentNullException(nameof(propertyChangedEventArgs));
 
             if (IsDisposed || IsDisposing)
                 return;
 
-            _valuePropertyChanged?.Invoke(this, new ForwardedEventArgs<PropertyChangedEventArgs>(Value, propertyChangedEventArgs));
+            eventToRaise?.Invoke(this, new ForwardedEventArgs<PropertyChangedEventArgs>(sender, propertyChangedEventArgs));
         }
 
         /// <summary>
@@ -164,14 +187,14 @@ namespace JB.Reactive.Cache
                             HasExpired = false;
 
                             // and re-add to value / property changed handling and forwarding
-                            AddValueToPropertyChangedHandling(Value);
+                            AddKeyAndValueToPropertyChangedHandling();
                         }
                     }
                     else
                     {
                         // otherwise, if this is basically the first call to this method & thereby initial start
                         // the value needs to be added to value / property changed handling and forwarding, too
-                        AddValueToPropertyChangedHandling(Value);
+                        AddKeyAndValueToPropertyChangedHandling();
                     }
 
                     // and finally schedule expiration on scheduler for given time
@@ -185,7 +208,7 @@ namespace JB.Reactive.Cache
                                 {
                                     lock (_expiryModificationLocker)
                                     {
-                                        RemoveValueFromPropertyChangedHandling(Value);
+                                        RemoveKeyAndValueFromPropertyChangedHandling();
                                         HasExpired = true;
                                     }
 
@@ -385,35 +408,35 @@ namespace JB.Reactive.Cache
         }
 
         /// <summary>
-        /// Adds <see cref="OnValuePropertyChanged"/> as event handler for <paramref name="value"/>'s <see cref="INotifyPropertyChanged.PropertyChanged"/> event.
+        /// Adds <see cref="OnPropertyChanged"/> as event handler for <see cref="Key"/> and <see cref="Value"/>'s <see cref="INotifyPropertyChanged.PropertyChanged"/> event.
         /// </summary>
-        /// <param name="value">The value.</param>
-        private void AddValueToPropertyChangedHandling(TValue value)
+        protected virtual void AddKeyAndValueToPropertyChangedHandling()
         {
             CheckForAndThrowIfDisposed();
 
-            var valueAsINotifyPropertyChanged = (value as INotifyPropertyChanged);
+            var keyAsINotifyPropertyChanged = (Key as INotifyPropertyChanged);
+            if (keyAsINotifyPropertyChanged != null)
+                keyAsINotifyPropertyChanged.PropertyChanged += OnPropertyChanged;
 
+            var valueAsINotifyPropertyChanged = (Value as INotifyPropertyChanged);
             if (valueAsINotifyPropertyChanged != null)
-            {
-                valueAsINotifyPropertyChanged.PropertyChanged += OnValuePropertyChanged;
-            }
+                valueAsINotifyPropertyChanged.PropertyChanged += OnPropertyChanged;
         }
 
         /// <summary>
-        /// Removes <see cref="OnValuePropertyChanged"/> as event handler for <paramref name="value"/>'s <see cref="INotifyPropertyChanged.PropertyChanged"/> event.
+        /// Removes <see cref="OnPropertyChanged"/> as event handler for <see cref="Key"/> and <see cref="Value"/>'s <see cref="INotifyPropertyChanged.PropertyChanged"/> event.
         /// </summary>
-        /// <param name="value">The value.</param>
-        private void RemoveValueFromPropertyChangedHandling(TValue value)
+        protected virtual void RemoveKeyAndValueFromPropertyChangedHandling()
         {
             CheckForAndThrowIfDisposed();
 
-            var valueAsINotifyPropertyChanged = (value as INotifyPropertyChanged);
+            var keyAsINotifyPropertyChanged = (Key as INotifyPropertyChanged);
+            if (keyAsINotifyPropertyChanged != null)
+                keyAsINotifyPropertyChanged.PropertyChanged -= OnPropertyChanged;
 
+            var valueAsINotifyPropertyChanged = (Value as INotifyPropertyChanged);
             if (valueAsINotifyPropertyChanged != null)
-            {
-                valueAsINotifyPropertyChanged.PropertyChanged -= OnValuePropertyChanged;
-            }
+                valueAsINotifyPropertyChanged.PropertyChanged -= OnPropertyChanged;
         }
 
         /// <summary>
@@ -422,11 +445,14 @@ namespace JB.Reactive.Cache
         /// </summary>
         /// <param name="sender">The sender.</param>
         /// <param name="e">The <see cref="PropertyChangedEventArgs"/> instance containing the event data.</param>
-        protected virtual void OnValuePropertyChanged(object sender, PropertyChangedEventArgs e)
+        protected virtual void OnPropertyChanged(object sender, PropertyChangedEventArgs e)
         {
             CheckForAndThrowIfDisposed();
             
-            RaiseValuePropertyChanged(e);
+            if (sender is TKey)
+                RaiseForwardedPropertyChanged(_keyPropertyChanged, sender, e);
+            else if (sender is TValue)
+                RaiseForwardedPropertyChanged(_valuePropertyChanged, sender, e);
         }
 
         /// <summary>
@@ -556,7 +582,7 @@ namespace JB.Reactive.Cache
 
                     if (!HasExpired)
                     {
-                        RemoveValueFromPropertyChangedHandling(Value);
+                        RemoveKeyAndValueFromPropertyChangedHandling();
                     }
 
                     _expirationScheduler = null;

@@ -16,19 +16,24 @@ namespace JB.Reactive.Cache
         ItemAdded,
 
         /// <summary>
-        ///     The item for a key has had one of its value(s) changed.
+        ///     The property of a key has changed.
         /// </summary>
-        ItemChanged,
+        ItemKeyChanged,
+
+        /// <summary>
+        ///     The property of a value has changed.
+        /// </summary>
+        ItemValueChanged,
 
         /// <summary>
         ///     The item for a key was replaced in the cache.
         /// </summary>
-        ItemReplaced,
+        ItemValueReplaced,
 
         /// <summary>
         ///     The item for a key has expired.
         ///     Depending on the <see cref="ObservableCacheExpirationType"/> for the affected element,
-        ///     this may be followed by either an <see cref="ItemRemoved"/> or <see cref="ItemReplaced"/>.
+        ///     this may be followed by either an <see cref="ItemRemoved"/> or <see cref="ItemValueReplaced"/>.
         /// </summary>
         ItemExpired,
 

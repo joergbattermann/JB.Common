@@ -76,7 +76,7 @@ namespace JB.Reactive.Cache
         public TValue Value { get; }
 
         /// <summary>
-        /// If <see cref="IObservableCacheChange{TKey,TValue}.ChangeType"/> is a <see cref="ObservableCacheChangeType.ItemChanged"/> one and <typeparamref name="TValue"/>
+        /// If <see cref="IObservableCacheChange{TKey,TValue}.ChangeType"/> is a <see cref="ObservableCacheChangeType.ItemValueChanged"/> one and <typeparamref name="TValue"/>
         /// implements <see cref="INotifyPropertyChanged"/> and the underlying item change originated from a <see cref="INotifyPropertyChanged.PropertyChanged"/>
         /// event, this will be the forwarded <see cref="PropertyChangedEventArgs.PropertyName"/> value.
         /// </summary>
@@ -93,8 +93,8 @@ namespace JB.Reactive.Cache
         /// <param name="changeType">Type of the change.</param>
         /// <param name="key">The key of the changed value.</param>
         /// <param name="value">The added, removed or changed, new value.</param>
-        /// <param name="oldValue">The replaced value, only applicable if <paramref name="changeType" /> is <see cref="ObservableCacheChangeType.ItemChanged" />.</param>
-        /// <param name="changedPropertyName">The changed property name, only applicable if <paramref name="changeType" /> is <see cref="ObservableCacheChangeType.ItemChanged" />.</param>
+        /// <param name="oldValue">The replaced value, only applicable if <paramref name="changeType" /> is <see cref="ObservableCacheChangeType.ItemValueChanged" />.</param>
+        /// <param name="changedPropertyName">The changed property name, only applicable if <paramref name="changeType" /> is <see cref="ObservableCacheChangeType.ItemValueChanged" />.</param>
         /// <param name="expiresAt">The expires <see cref="DateTime"/> the <paramref name="key"/> expires / expired at.</param>
         /// <param name="expirationType">Type of the expiration.</param>
         protected ObservableCacheChange(ObservableCacheChangeType changeType, TKey key = default(TKey), TValue value = default(TValue), TValue oldValue = default(TValue), string changedPropertyName = "", DateTime? expiresAt = default(DateTime?), ObservableCacheExpirationType? expirationType = default(ObservableCacheExpirationType?))
@@ -114,11 +114,11 @@ namespace JB.Reactive.Cache
             if (changeType == ObservableCacheChangeType.Reset && (ValueIsValueType.Value == false && !Equals(value, default(TValue))))
                 throw new ArgumentOutOfRangeException(nameof(value), $"Resets must not have a {nameof(value)}");
 
-            if ((changeType != ObservableCacheChangeType.ItemReplaced && changeType != ObservableCacheChangeType.ItemRemoved)
+            if ((changeType != ObservableCacheChangeType.ItemValueReplaced && changeType != ObservableCacheChangeType.ItemRemoved)
                 && (ValueIsValueType.Value == false && !Equals(oldValue, default(TValue))))
                 throw new ArgumentOutOfRangeException(nameof(oldValue), $"Only Changes may have a {nameof(oldValue)}");
 
-            if (changeType != ObservableCacheChangeType.ItemChanged && !string.IsNullOrWhiteSpace(changedPropertyName))
+            if (changeType != ObservableCacheChangeType.ItemValueChanged && changeType != ObservableCacheChangeType.ItemKeyChanged && !string.IsNullOrWhiteSpace(changedPropertyName))
                 throw new ArgumentOutOfRangeException(nameof(changedPropertyName), $"Only Changes may have a {nameof(changedPropertyName)}");
 
             ChangeType = changeType;
@@ -176,7 +176,39 @@ namespace JB.Reactive.Cache
             => new ObservableCacheChange<TKey, TValue>(ObservableCacheChangeType.ItemRemoved, key, value, expiresAt: expiresAt, expirationType: expirationType);
 
         /// <summary>
-        /// Gets a <see cref="IObservableCacheChange{TKey,TValue}" /> representing a <see cref="ObservableCacheChangeType.ItemReplaced" />,
+        /// Gets a <see cref="IObservableCacheChange{TKey,TValue}" /> representing a <see cref="ObservableCacheChangeType.ItemKeyChanged" />,
+        /// more particularly one for an item's property change.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="value">The new value.</param>
+        /// <param name="propertyName">Name of the property.</param>
+        /// <param name="expiresAt">The expires <see cref="DateTime"/> the <paramref name="key"/> expires / expired at.</param>
+        /// <param name="expirationType">Type of the expiration.</param>
+        /// <returns></returns>
+        /// <value>
+        /// An <see cref="IObservableCacheChange{TKey,TValue}">instance</see> representing an item property changed <see cref="ObservableCacheChangeType.ItemKeyChanged" />.
+        /// </value>
+        public static IObservableCacheChange<TKey, TValue> ItemKeyChanged(TKey key, TValue value, string propertyName, DateTime expiresAt, ObservableCacheExpirationType expirationType)
+            => new ObservableCacheChange<TKey, TValue>(ObservableCacheChangeType.ItemKeyChanged, key, value, changedPropertyName: propertyName, expiresAt: expiresAt, expirationType: expirationType);
+
+        /// <summary>
+        /// Gets a <see cref="IObservableCacheChange{TKey,TValue}" /> representing a <see cref="ObservableCacheChangeType.ItemValueChanged" />,
+        /// more particularly one for an item's property change.
+        /// </summary>
+        /// <param name="key">The key.</param>
+        /// <param name="value">The new value.</param>
+        /// <param name="propertyName">Name of the property.</param>
+        /// <param name="expiresAt">The expires <see cref="DateTime"/> the <paramref name="key"/> expires / expired at.</param>
+        /// <param name="expirationType">Type of the expiration.</param>
+        /// <returns></returns>
+        /// <value>
+        /// An <see cref="IObservableCacheChange{TKey,TValue}">instance</see> representing an item property changed <see cref="ObservableCacheChangeType.ItemValueChanged" />.
+        /// </value>
+        public static IObservableCacheChange<TKey, TValue> ItemValueChanged(TKey key, TValue value, string propertyName, DateTime expiresAt, ObservableCacheExpirationType expirationType)
+            => new ObservableCacheChange<TKey, TValue>(ObservableCacheChangeType.ItemValueChanged, key, value, changedPropertyName: propertyName, expiresAt: expiresAt, expirationType: expirationType);
+
+        /// <summary>
+        /// Gets a <see cref="IObservableCacheChange{TKey,TValue}" /> representing a <see cref="ObservableCacheChangeType.ItemValueReplaced" />,
         /// more particularly one for an item replacement inside the <see cref="IObservableCache{TKey,TValue}" />.
         /// </summary>
         /// <param name="key">The key.</param>
@@ -186,10 +218,10 @@ namespace JB.Reactive.Cache
         /// <param name="expirationType">Type of the expiration.</param>
         /// <returns></returns>
         /// <value>
-        /// An <see cref="IObservableCacheChange{TKey,TValue}">instance</see> representing an item replacement <see cref="ObservableCacheChangeType.ItemReplaced" />.
+        /// An <see cref="IObservableCacheChange{TKey,TValue}">instance</see> representing an item replacement <see cref="ObservableCacheChangeType.ItemValueReplaced" />.
         /// </value>
         public static IObservableCacheChange<TKey, TValue> ItemReplaced(TKey key, TValue newValue, TValue replacedOldValue, DateTime expiresAt, ObservableCacheExpirationType expirationType)
-            => new ObservableCacheChange<TKey, TValue>(ObservableCacheChangeType.ItemReplaced, key, newValue, replacedOldValue, expiresAt: expiresAt, expirationType: expirationType);
+            => new ObservableCacheChange<TKey, TValue>(ObservableCacheChangeType.ItemValueReplaced, key, newValue, replacedOldValue, expiresAt: expiresAt, expirationType: expirationType);
 
         /// <summary>
         /// Gets a <see cref="IObservableCacheChange{TKey,TValue}" /> representing a <see cref="ObservableCacheChangeType.ItemExpired" />,
@@ -206,20 +238,5 @@ namespace JB.Reactive.Cache
         public static IObservableCacheChange<TKey, TValue> ItemExpired(TKey key, TValue value, DateTime expiresAt, ObservableCacheExpirationType expirationType)
             => new ObservableCacheChange<TKey, TValue>(ObservableCacheChangeType.ItemExpired, key, value, expiresAt: expiresAt, expirationType: expirationType);
 
-        /// <summary>
-        /// Gets a <see cref="IObservableCacheChange{TKey,TValue}" /> representing a <see cref="ObservableCacheChangeType.ItemChanged" />,
-        /// more particularly one for an item's property change.
-        /// </summary>
-        /// <param name="key">The key.</param>
-        /// <param name="value">The new value.</param>
-        /// <param name="propertyName">Name of the property.</param>
-        /// <param name="expiresAt">The expires <see cref="DateTime"/> the <paramref name="key"/> expires / expired at.</param>
-        /// <param name="expirationType">Type of the expiration.</param>
-        /// <returns></returns>
-        /// <value>
-        /// An <see cref="IObservableCacheChange{TKey,TValue}">instance</see> representing an item property changed <see cref="ObservableCacheChangeType.ItemChanged" />.
-        /// </value>
-        public static IObservableCacheChange<TKey, TValue> ItemChanged(TKey key, TValue value, string propertyName, DateTime expiresAt, ObservableCacheExpirationType expirationType)
-            => new ObservableCacheChange<TKey, TValue>(ObservableCacheChangeType.ItemChanged, key, value, changedPropertyName: propertyName, expiresAt: expiresAt, expirationType: expirationType);
     }
 }

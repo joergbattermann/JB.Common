@@ -50,7 +50,7 @@ namespace JB.Collections.Reactive.ExtensionMethods
                             target.Add(dictionaryChange.Value);
                             break;
                         }
-                    case ObservableDictionaryChangeType.ValueChanged:
+                    case ObservableDictionaryChangeType.ItemValueChanged:
                         {
                             if (includeItemChanges)
                             {
@@ -63,7 +63,7 @@ namespace JB.Collections.Reactive.ExtensionMethods
                             }
                             break;
                         }
-                    case ObservableDictionaryChangeType.ValueReplaced:
+                    case ObservableDictionaryChangeType.ItemValueReplaced:
                         {
                             if (includeItemChanges)
                             {

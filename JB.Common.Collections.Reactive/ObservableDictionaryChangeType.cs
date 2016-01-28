@@ -11,16 +11,16 @@ namespace JB.Collections.Reactive
         /// <summary>
         /// A key that implements <see cref="INotifyPropertyChanged"/> has changed.
         /// </summary>
-        KeyChanged,
+        ItemKeyChanged,
         /// <summary>
         /// A value that implements <see cref="INotifyPropertyChanged"/> has changed.
         ///  </summary>
         /// <remarks>The same value can be used by different keys.</remarks>
-        ValueChanged,
+        ItemValueChanged,
         /// <summary>
         /// The value for a key has been replaced.
         /// </summary>
-        ValueReplaced,
+        ItemValueReplaced,
         /// <summary>
         /// One Item has been removed.
         /// </summary>

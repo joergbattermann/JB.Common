@@ -64,7 +64,7 @@ namespace JB.Reactive.Cache
         TValue Value { get; }
 
         /// <summary>
-        /// If <see cref="IObservableCacheChange{TKey,TValue}.ChangeType"/> is a <see cref="ObservableCacheChangeType.ItemChanged"/> one and <typeparamref name="TValue"/>
+        /// If <see cref="IObservableCacheChange{TKey,TValue}.ChangeType"/> is a <see cref="ObservableCacheChangeType.ItemValueChanged"/> one and <typeparamref name="TValue"/>
         /// implements <see cref="INotifyPropertyChanged"/> and the underlying item change originated from a <see cref="INotifyPropertyChanged.PropertyChanged"/>
         /// event, this will be the forwarded <see cref="PropertyChangedEventArgs.PropertyName"/> value.
         /// </summary>

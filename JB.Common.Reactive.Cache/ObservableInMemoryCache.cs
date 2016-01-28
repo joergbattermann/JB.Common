@@ -20,7 +20,6 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using JB.Collections;
 using JB.Collections.Reactive;
-using JB.ExtensionMethods;
 using JB.Reactive.Cache.ExtensionMethods;
 using JB.Reactive.Linq;
 using Observable = System.Reactive.Linq.Observable;
@@ -30,6 +29,9 @@ namespace JB.Reactive.Cache
     [DebuggerDisplay("Count={Count}")]
     public class ObservableInMemoryCache<TKey, TValue> : IObservableCache<TKey, TValue>, IDisposable
     {
+        protected static readonly Lazy<bool> KeyTypeImplementsINotifyPropertyChanged = new Lazy<bool>(() => typeof(TKey).IsAssignableFrom(typeof(INotifyPropertyChanged)));
+        protected static readonly Lazy<bool> ValueTypeImplementsINotifyPropertyChanged = new Lazy<bool>(() => typeof(TValue).IsAssignableFrom(typeof(INotifyPropertyChanged)));
+
         private Subject<IObservableCacheChange<TKey, TValue>> _cacheChangesSubject = new Subject<IObservableCacheChange<TKey, TValue>>();
         private Subject<ObserverException> _unhandledObserverExceptionsSubject = new Subject<ObserverException>();
         private Subject<ObservableCachedElement<TKey, TValue>> _expiredElementsSubject = new Subject<ObservableCachedElement<TKey, TValue>>();
@@ -216,7 +218,7 @@ namespace JB.Reactive.Cache
             // prepare subjects for RX
             ObserverExceptionsObserver = _unhandledObserverExceptionsSubject.NotifyOn(NotificationScheduler);
             CacheChangesObserver = _cacheChangesSubject.NotifyOn(NotificationScheduler);
-
+            
             _expiredElementsSubscription = ExpiredElements
                 .ObserveOn(ExpirationScheduler)
                 .Buffer(ExpiredElementsHandlingChillPeriod, ExpirationScheduler)
@@ -593,14 +595,72 @@ namespace JB.Reactive.Cache
         {
             CheckForAndThrowIfDisposed();
 
-            if (cachedElement != null)
-            {
+            if (cachedElement == null)
+                return;
+
+            if (KeyTypeImplementsINotifyPropertyChanged.Value == true)
+                cachedElement.KeyPropertyChanged += OnCachedElementKeyPropertyChanged;
+
+            if (ValueTypeImplementsINotifyPropertyChanged.Value == true)
                 cachedElement.ValuePropertyChanged += OnCachedElementValuePropertyChanged;
-                cachedElement.StartOrUpdateExpiration(
+
+            cachedElement.StartOrUpdateExpiration(
                     expiry,
                     ExpiredElementsObserver,
                     ObserverExceptionsObserver,
                     ExpirationScheduler);
+            
+        }
+
+        /// <summary>
+        /// Removes <see cref="OnCachedElementValuePropertyChanged"/> as event handlers for <paramref name="cachedElement"/>'s
+        /// <see cref="ObservableCachedElement{TKey,TValue}.ValuePropertyChanged"/>.
+        /// </summary>
+        /// <param name="cachedElement">The value.</param>
+        protected virtual void RemoveFromEventAndNotificationsHandlingAndStopExpiration(ObservableCachedElement<TKey, TValue> cachedElement)
+        {
+            CheckForAndThrowIfDisposed(false);
+
+            if (cachedElement == null)
+                return;
+
+            if (KeyTypeImplementsINotifyPropertyChanged.Value == true)
+                cachedElement.KeyPropertyChanged -= OnCachedElementKeyPropertyChanged;
+
+            if (ValueTypeImplementsINotifyPropertyChanged.Value == true)
+                cachedElement.ValuePropertyChanged -= OnCachedElementValuePropertyChanged;
+
+            cachedElement.StopExpiration();
+        }
+
+        /// <summary>
+        /// Called when a cached element's value property changed.
+        /// </summary>
+        /// <param name="sender">The sender.</param>
+        /// <param name="forwardedEventArgs">The <see cref="ForwardedEventArgs{PropertyChangedEventArgs}"/> instance containing the event data.</param>
+        protected virtual void OnCachedElementKeyPropertyChanged(object sender, ForwardedEventArgs<PropertyChangedEventArgs> forwardedEventArgs)
+        {
+            CheckForAndThrowIfDisposed(false);
+
+            try
+            {
+                if (forwardedEventArgs == null)
+                    throw new ArgumentNullException(nameof(forwardedEventArgs));
+
+                var senderAsObservableCachedElement = sender as ObservableCachedElement<TKey, TValue>;
+                if (senderAsObservableCachedElement == null)
+                    throw new ArgumentOutOfRangeException(nameof(sender), $"{nameof(sender)} must be a {typeof(ObservableCachedElement<TKey, TValue>).Name} instance");
+
+                CacheChangesObserver.OnNext(ObservableCacheChange<TKey, TValue>.ItemKeyChanged(senderAsObservableCachedElement.Key, senderAsObservableCachedElement.Value, forwardedEventArgs.OriginalEventArgs.PropertyName, senderAsObservableCachedElement.ExpiresAt(), senderAsObservableCachedElement.ExpirationType));
+            }
+            catch (Exception exception)
+            {
+                var observerException = new ObserverException($"An error occured notifying {nameof(Changes)} Observers of this {this.GetType().Name} about an element's Key Property Change.", exception);
+
+                ObserverExceptionsObserver.OnNext(observerException);
+
+                if (observerException.Handled == false)
+                    throw;
             }
         }
 
@@ -620,9 +680,9 @@ namespace JB.Reactive.Cache
 
                 var senderAsObservableCachedElement = sender as ObservableCachedElement<TKey, TValue>;
                 if (senderAsObservableCachedElement == null)
-                    throw new ArgumentOutOfRangeException(nameof(sender), $"{nameof(sender)} must be a {typeof (ObservableCachedElement<TKey, TValue>).Name} instance");
+                    throw new ArgumentOutOfRangeException(nameof(sender), $"{nameof(sender)} must be a {typeof(ObservableCachedElement<TKey, TValue>).Name} instance");
 
-                CacheChangesObserver.OnNext(ObservableCacheChange<TKey, TValue>.ItemChanged(senderAsObservableCachedElement.Key, senderAsObservableCachedElement.Value, forwardedEventArgs.OriginalEventArgs.PropertyName, senderAsObservableCachedElement.ExpiresAt(), senderAsObservableCachedElement.ExpirationType));
+                CacheChangesObserver.OnNext(ObservableCacheChange<TKey, TValue>.ItemValueChanged(senderAsObservableCachedElement.Key, senderAsObservableCachedElement.Value, forwardedEventArgs.OriginalEventArgs.PropertyName, senderAsObservableCachedElement.ExpiresAt(), senderAsObservableCachedElement.ExpirationType));
             }
             catch (Exception exception)
             {
@@ -632,22 +692,6 @@ namespace JB.Reactive.Cache
 
                 if (observerException.Handled == false)
                     throw;
-            }
-        }
-
-        /// <summary>
-        /// Removes <see cref="OnCachedElementValuePropertyChanged"/> as event handlers for <paramref name="cachedElement"/>'s
-        /// <see cref="ObservableCachedElement{TKey,TValue}.ValuePropertyChanged"/>.
-        /// </summary>
-        /// <param name="cachedElement">The value.</param>
-        protected virtual void RemoveFromEventAndNotificationsHandlingAndStopExpiration(ObservableCachedElement<TKey, TValue> cachedElement)
-        {
-            CheckForAndThrowIfDisposed(false);
-
-            if (cachedElement != null)
-            {
-                cachedElement.ValuePropertyChanged -= OnCachedElementValuePropertyChanged;
-                cachedElement.StopExpiration();
             }
         }
 
@@ -929,8 +973,17 @@ namespace JB.Reactive.Cache
             {
                 CheckForAndThrowIfDisposed();
 
-                return InnerDictionary.DictionaryChanges.SkipContinuouslyWhile(change => change.ChangeType != ObservableDictionaryChangeType.ValueChanged) // this must be handled here separately from the underlying dictionary
-                    .Select(dictionaryChange => dictionaryChange.ToObservableCacheChange()).Merge(_cacheChangesSubject).TakeWhile(_ => !IsDisposing && !IsDisposed).SkipContinuouslyWhile(change => !IsTrackingChanges).SkipContinuouslyWhile(change => change.ChangeType == ObservableCacheChangeType.ItemChanged && !IsTrackingItemChanges).SkipContinuouslyWhile(change => change.ChangeType == ObservableCacheChangeType.ItemReplaced && !IsTrackingItemChanges).SkipContinuouslyWhile(change => change.ChangeType == ObservableCacheChangeType.Reset && !IsTrackingResets);
+                return InnerDictionary
+                    .DictionaryChanges
+                    .SkipContinuouslyWhile(change => change.ChangeType != ObservableDictionaryChangeType.ItemValueChanged) // this must be handled here separately from the underlying dictionary
+                    .Select(dictionaryChange => dictionaryChange.ToObservableCacheChange())
+                    .Merge(_cacheChangesSubject)
+                    .TakeWhile(_ => !IsDisposing && !IsDisposed)
+                    .SkipContinuouslyWhile(change => !IsTrackingChanges)
+                    .SkipContinuouslyWhile(change => change.ChangeType == ObservableCacheChangeType.ItemKeyChanged && !IsTrackingItemChanges)
+                    .SkipContinuouslyWhile(change => change.ChangeType == ObservableCacheChangeType.ItemValueChanged && !IsTrackingItemChanges)
+                    .SkipContinuouslyWhile(change => change.ChangeType == ObservableCacheChangeType.ItemValueReplaced && !IsTrackingItemChanges)
+                    .SkipContinuouslyWhile(change => change.ChangeType == ObservableCacheChangeType.Reset && !IsTrackingResets);
             }
         }
 
@@ -1509,12 +1562,12 @@ namespace JB.Reactive.Cache
         #region Implementation of INotifyObservableCacheItemChanges<out TKey,out TValue>
 
         /// <summary>
-        /// Gets the observable streams of collection item changes.
+        /// Gets the observable streams of cached items' value changes or value replacements.
         /// </summary>
         /// <value>
-        /// The item changes.
+        /// The items' value changes.
         /// </value>
-        public virtual IObservable<IObservableCacheChange<TKey, TValue>> ItemChanges
+        public virtual IObservable<IObservableCacheChange<TKey, TValue>> ValueChanges
         {
             get
             {
@@ -1522,7 +1575,26 @@ namespace JB.Reactive.Cache
 
                 return Changes
                     .TakeWhile(_ => !IsDisposing && !IsDisposed)
-                    .Where(change => change.ChangeType == ObservableCacheChangeType.ItemChanged || change.ChangeType == ObservableCacheChangeType.ItemReplaced)
+                    .Where(change => change.ChangeType == ObservableCacheChangeType.ItemValueChanged || change.ChangeType == ObservableCacheChangeType.ItemValueReplaced)
+                    .SkipContinuouslyWhile(change => !IsTrackingItemChanges);
+            }
+        }
+
+        /// <summary>
+        /// Gets the observable streams of cached items' value changes.
+        /// </summary>
+        /// <value>
+        /// The items' value changes.
+        /// </value>
+        public virtual IObservable<IObservableCacheChange<TKey, TValue>> KeyChanges
+        {
+            get
+            {
+                CheckForAndThrowIfDisposed();
+
+                return Changes
+                    .TakeWhile(_ => !IsDisposing && !IsDisposed)
+                    .Where(change => change.ChangeType == ObservableCacheChangeType.ItemKeyChanged)
                     .SkipContinuouslyWhile(change => !IsTrackingItemChanges);
             }
         }

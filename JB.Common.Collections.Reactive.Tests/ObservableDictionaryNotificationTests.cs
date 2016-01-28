@@ -691,7 +691,7 @@ namespace JB.Collections.Reactive.Tests
                 try
                 {
                     dictionaryChangesSubscription = observableDictionary.DictionaryChanges.Subscribe(observer);
-                    dictionaryItemChangesSubscription = observableDictionary.DictionaryKeyChanges.Subscribe(itemChangesObserver);
+                    dictionaryItemChangesSubscription = observableDictionary.KeyChanges.Subscribe(itemChangesObserver);
 
                     // when
                     observableDictionary.Add(key, value); // first general message - ItemAdd
@@ -714,7 +714,7 @@ namespace JB.Collections.Reactive.Tests
                     observer.Messages[0].Value.Value.Key.Should().Be(key);
                     observer.Messages[0].Value.Value.Value.Should().Be(value);
 
-                    observer.Messages[1].Value.Value.ChangeType.Should().Be(ObservableDictionaryChangeType.KeyChanged);
+                    observer.Messages[1].Value.Value.ChangeType.Should().Be(ObservableDictionaryChangeType.ItemKeyChanged);
                     observer.Messages[1].Value.Value.Key.Should().Be(key);
                     observer.Messages[1].Value.Value.Value.Should().Be(default(int));
                     observer.Messages[1].Value.Value.OldValue.Should().Be(default(int));
@@ -725,7 +725,7 @@ namespace JB.Collections.Reactive.Tests
                     observer.Messages[2].Value.Value.Value.Should().Be(value);
 
                     itemChangesObserver.Messages.Count.Should().Be(1);
-                    itemChangesObserver.Messages.First().Value.Value.ChangeType.Should().Be(ObservableDictionaryChangeType.KeyChanged);
+                    itemChangesObserver.Messages.First().Value.Value.ChangeType.Should().Be(ObservableDictionaryChangeType.ItemKeyChanged);
                     itemChangesObserver.Messages.First().Value.Value.Key.Should().Be(key);
                     itemChangesObserver.Messages.First().Value.Value.Value.Should().Be(default(int));
                     itemChangesObserver.Messages.First().Value.Value.OldValue.Should().Be(default(int));
@@ -761,7 +761,7 @@ namespace JB.Collections.Reactive.Tests
                 try
                 {
                     dictionaryChangesSubscription = observableDictionary.DictionaryChanges.Subscribe(observer);
-                    dictionaryItemChangesSubscription = observableDictionary.DictionaryValueChanges.Subscribe(itemChangesObserver);
+                    dictionaryItemChangesSubscription = observableDictionary.ValueChanges.Subscribe(itemChangesObserver);
 
                     // when
                     observableDictionary.Add(key, testInpcImplementationInstance); // first general message - ItemAdd
@@ -777,7 +777,7 @@ namespace JB.Collections.Reactive.Tests
                     observer.Messages[0].Value.Value.Key.Should().Be(key);
                     observer.Messages[0].Value.Value.Value.Should().Be(testInpcImplementationInstance);
 
-                    observer.Messages[1].Value.Value.ChangeType.Should().Be(ObservableDictionaryChangeType.ValueChanged);
+                    observer.Messages[1].Value.Value.ChangeType.Should().Be(ObservableDictionaryChangeType.ItemValueChanged);
                     observer.Messages[1].Value.Value.Key.Should().Be(default(int));
                     observer.Messages[1].Value.Value.Value.Should().Be(testInpcImplementationInstance);
                     observer.Messages[1].Value.Value.OldValue.Should().BeNull();
@@ -788,7 +788,7 @@ namespace JB.Collections.Reactive.Tests
                     observer.Messages[2].Value.Value.Value.Should().Be(testInpcImplementationInstance);
 
                     itemChangesObserver.Messages.Count.Should().Be(1);
-                    itemChangesObserver.Messages.First().Value.Value.ChangeType.Should().Be(ObservableDictionaryChangeType.ValueChanged);
+                    itemChangesObserver.Messages.First().Value.Value.ChangeType.Should().Be(ObservableDictionaryChangeType.ItemValueChanged);
                     itemChangesObserver.Messages.First().Value.Value.Key.Should().Be(default(int));
                     itemChangesObserver.Messages.First().Value.Value.Value.Should().Be(testInpcImplementationInstance);
                     itemChangesObserver.Messages.First().Value.Value.OldValue.Should().BeNull();
@@ -826,7 +826,7 @@ namespace JB.Collections.Reactive.Tests
                 try
                 {
                     dictionaryChangesSubscription = observableDictionary.DictionaryChanges.Subscribe(observer);
-                    dictionaryKeyChangesSubscription = observableDictionary.DictionaryKeyChanges.Subscribe(itemChangesObserver);
+                    dictionaryKeyChangesSubscription = observableDictionary.KeyChanges.Subscribe(itemChangesObserver);
                     observableCollectionItemChangesSubscription = ((INotifyObservableCollectionItemChanges<KeyValuePair<MyNotifyPropertyChanged<int, string>, int>>)observableDictionary)
                         .CollectionItemChanges
                         .Subscribe(collectionItemChangesObserver);
@@ -846,13 +846,13 @@ namespace JB.Collections.Reactive.Tests
                     observer.Messages.First().Value.Value.Key.Should().Be(key);
                     observer.Messages.First().Value.Value.Value.Should().Be(value);
 
-                    observer.Messages.Last().Value.Value.ChangeType.Should().Be(ObservableDictionaryChangeType.KeyChanged);
+                    observer.Messages.Last().Value.Value.ChangeType.Should().Be(ObservableDictionaryChangeType.ItemKeyChanged);
                     observer.Messages.Last().Value.Value.Key.Should().Be(key);
                     observer.Messages.Last().Value.Value.Value.Should().Be(default(int));
                     observer.Messages.Last().Value.Value.OldValue.Should().Be(default(int));
                     observer.Messages.Last().Value.Value.ChangedPropertyName.Should().Be(nameof(MyNotifyPropertyChanged<int, string>.FirstProperty));
 
-                    itemChangesObserver.Messages.First().Value.Value.ChangeType.Should().Be(ObservableDictionaryChangeType.KeyChanged);
+                    itemChangesObserver.Messages.First().Value.Value.ChangeType.Should().Be(ObservableDictionaryChangeType.ItemKeyChanged);
                     itemChangesObserver.Messages.First().Value.Value.Key.Should().Be(key);
                     itemChangesObserver.Messages.First().Value.Value.Value.Should().Be(default(int));
                     itemChangesObserver.Messages.First().Value.Value.OldValue.Should().Be(default(int));
@@ -895,7 +895,7 @@ namespace JB.Collections.Reactive.Tests
                 try
                 {
                     dictionaryChangesSubscription = observableDictionary.DictionaryChanges.Subscribe(observer);
-                    dictionaryItemChangesSubscription = observableDictionary.DictionaryValueChanges.Subscribe(itemChangesObserver);
+                    dictionaryItemChangesSubscription = observableDictionary.ValueChanges.Subscribe(itemChangesObserver);
                     observableCollectionItemChangesSubscription = ((INotifyObservableCollectionItemChanges<KeyValuePair<int, MyNotifyPropertyChanged<int, string>>>)observableDictionary)
                         .CollectionItemChanges
                         .Subscribe(collectionItemChangesObserver);
@@ -915,13 +915,13 @@ namespace JB.Collections.Reactive.Tests
                     observer.Messages.First().Value.Value.Key.Should().Be(key);
                     observer.Messages.First().Value.Value.Value.Should().Be(testInpcImplementationInstance);
 
-                    observer.Messages.Last().Value.Value.ChangeType.Should().Be(ObservableDictionaryChangeType.ValueChanged);
+                    observer.Messages.Last().Value.Value.ChangeType.Should().Be(ObservableDictionaryChangeType.ItemValueChanged);
                     observer.Messages.Last().Value.Value.Key.Should().Be(default(int));
                     observer.Messages.Last().Value.Value.Value.Should().Be(testInpcImplementationInstance);
                     observer.Messages.Last().Value.Value.OldValue.Should().BeNull();
                     observer.Messages.Last().Value.Value.ChangedPropertyName.Should().Be(nameof(MyNotifyPropertyChanged<int, string>.FirstProperty));
 
-                    itemChangesObserver.Messages.First().Value.Value.ChangeType.Should().Be(ObservableDictionaryChangeType.ValueChanged);
+                    itemChangesObserver.Messages.First().Value.Value.ChangeType.Should().Be(ObservableDictionaryChangeType.ItemValueChanged);
                     itemChangesObserver.Messages.First().Value.Value.Key.Should().Be(default(int));
                     itemChangesObserver.Messages.First().Value.Value.Value.Should().Be(testInpcImplementationInstance);
                     itemChangesObserver.Messages.First().Value.Value.OldValue.Should().BeNull();
@@ -964,7 +964,7 @@ namespace JB.Collections.Reactive.Tests
                 try
                 {
                     dictionaryChangesSubscription = observableDictionary.DictionaryChanges.Subscribe(observer);
-                    dictionaryItemChangesSubscription = observableDictionary.DictionaryKeyChanges.Subscribe(itemChangesObserver);
+                    dictionaryItemChangesSubscription = observableDictionary.KeyChanges.Subscribe(itemChangesObserver);
                     dictionaryResetsSubscription = observableDictionary.Resets.Subscribe(resetsObserver);
 
                     // when
@@ -1022,7 +1022,7 @@ namespace JB.Collections.Reactive.Tests
                 try
                 {
                     dictionaryChangesSubscription = observableDictionary.DictionaryChanges.Subscribe(observer);
-                    dictionaryItemChangesSubscription = observableDictionary.DictionaryValueChanges.Subscribe(itemChangesObserver);
+                    dictionaryItemChangesSubscription = observableDictionary.ValueChanges.Subscribe(itemChangesObserver);
                     dictionaryResetsSubscription = observableDictionary.Resets.Subscribe(resetsObserver);
 
                     // when
@@ -1483,7 +1483,7 @@ namespace JB.Collections.Reactive.Tests
                 try
                 {
                     dictionaryChangesSubscription = observableDictionary.DictionaryChanges.Subscribe(dictionaryChangesObserver);
-                    dictionaryItemChangesSubscription = observableDictionary.DictionaryValueChanges.Subscribe(dictionaryItemChangesObserver);
+                    dictionaryItemChangesSubscription = observableDictionary.ValueChanges.Subscribe(dictionaryItemChangesObserver);
                     resetsSubscription = observableDictionary.Resets.Subscribe(resetsObserver);
 
                     using (observableDictionary.SuppressItemChangeNotifications(true))
@@ -1572,7 +1572,7 @@ namespace JB.Collections.Reactive.Tests
 
                 try
                 {
-                    dictionaryItemChangesSubscription = observableDictionary.DictionaryValueChanges.Subscribe(observer);
+                    dictionaryItemChangesSubscription = observableDictionary.ValueChanges.Subscribe(observer);
                     resetsSubscription = observableDictionary.Resets.Subscribe(resetsObserver);
 
                     using (observableDictionary.SuppressItemChangeNotifications(false))
