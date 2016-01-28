@@ -975,7 +975,7 @@ namespace JB.Reactive.Cache
 
                 return InnerDictionary
                     .DictionaryChanges
-                    .SkipContinuouslyWhile(change => change.ChangeType != ObservableDictionaryChangeType.ItemValueChanged) // this must be handled here separately from the underlying dictionary
+                    .Where(change => change.ChangeType != ObservableDictionaryChangeType.ItemKeyChanged && change.ChangeType != ObservableDictionaryChangeType.ItemValueChanged) // this must be handled here separately from the underlying dictionary
                     .Select(dictionaryChange => dictionaryChange.ToObservableCacheChange())
                     .Merge(_cacheChangesSubject)
                     .TakeWhile(_ => !IsDisposing && !IsDisposed)

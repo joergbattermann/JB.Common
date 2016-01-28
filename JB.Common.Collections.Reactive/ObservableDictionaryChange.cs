@@ -142,7 +142,7 @@ namespace JB.Collections.Reactive
         /// <value>
         /// An <see cref="IObservableDictionaryChange{TKey,TValue}">instance</see> representing an item property changed <see cref="ObservableDictionaryChangeType.ItemValueChanged" />.
         /// </value>
-        public static IObservableDictionaryChange<TKey, TValue> KeyChanged(TKey key, string propertyName)
+        public static IObservableDictionaryChange<TKey, TValue> ItemKeyChanged(TKey key, string propertyName)
             => new ObservableDictionaryChange<TKey, TValue>(ObservableDictionaryChangeType.ItemKeyChanged, key, changedPropertyName: propertyName);
 
         /// <summary>
@@ -155,7 +155,7 @@ namespace JB.Collections.Reactive
         /// <value>
         /// An <see cref="IObservableDictionaryChange{TKey,TValue}">instance</see> representing an item property changed <see cref="ObservableDictionaryChangeType.ItemValueChanged" />.
         /// </value>
-        public static IObservableDictionaryChange<TKey, TValue> ValueChanged(TValue value, string propertyName)
+        public static IObservableDictionaryChange<TKey, TValue> ItemValueChanged(TValue value, string propertyName)
             => new ObservableDictionaryChange<TKey, TValue>(ObservableDictionaryChangeType.ItemValueChanged, value: value, changedPropertyName: propertyName);
 
         /// <summary>
@@ -169,7 +169,7 @@ namespace JB.Collections.Reactive
         /// <value>
         /// An <see cref="IObservableDictionaryChange{TKey,TValue}">instance</see> representing an item replacement <see cref="ObservableDictionaryChangeType.ItemValueReplaced" />.
         /// </value>
-        public static IObservableDictionaryChange<TKey, TValue> ValueReplaced(TKey key, TValue newValue, TValue replacedOldValue)
+        public static IObservableDictionaryChange<TKey, TValue> ItemValueReplaced(TKey key, TValue newValue, TValue replacedOldValue)
             => new ObservableDictionaryChange<TKey, TValue>(ObservableDictionaryChangeType.ItemValueReplaced, key, newValue, replacedOldValue);
     }
 }

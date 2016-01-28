@@ -180,7 +180,7 @@ namespace JB.Collections.Reactive
             }
             else
             {
-                NotifyObserversAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.ValueReplaced(key, value, oldValueIfReplaced));
+                NotifyObserversAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.ItemValueReplaced(key, value, oldValueIfReplaced));
 
             }
         }
@@ -651,7 +651,7 @@ namespace JB.Collections.Reactive
                 else
                 {
                     // if not, send out individual item changed notification
-                    NotifyObserversAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.KeyChanged(key, e.PropertyName));
+                    NotifyObserversAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.ItemKeyChanged(key, e.PropertyName));
                 }
             }
         }
@@ -704,7 +704,7 @@ namespace JB.Collections.Reactive
                 else
                 {
                     // if not, send out individual item changed notification
-                    NotifyObserversAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.ValueChanged(item, e.PropertyName));
+                    NotifyObserversAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.ItemValueChanged(item, e.PropertyName));
                 }
             }
         }
