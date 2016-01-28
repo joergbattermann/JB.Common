@@ -30,6 +30,42 @@ namespace JB.Reactive.Cache
         /// </value>
         int Count { get; }
 
+        ///// <summary>
+        ///// Gets an <see cref="T:IObservable{TKey}"/> containing the keys of the <see cref="IObservableCache{TKey,TValue}"/>.
+        ///// </summary>
+        ///// 
+        ///// <returns>
+        ///// An <see cref="T:IObservable{TKey}"/> containing the keys of the object that implements <see cref="IObservableCache{TKey,TValue}"/>.
+        ///// </returns>
+        //IObservable<TKey> Keys { get; }
+
+        ///// <summary>
+        ///// Gets an <see cref="T:IObservable{TValue}"/> containing the keys of the <see cref="IObservableCache{TKey,TValue}"/>.
+        ///// </summary>
+        ///// 
+        ///// <returns>
+        ///// An <see cref="T:IObservable{TValue}"/> containing the keys of the object that implements <see cref="IObservableCache{TKey,TValue}"/>.
+        ///// </returns>
+        //IObservable<TValue> Values { get; }
+
+        /// <summary>
+        /// Gets an <see cref="T:ICollection{TKey}"/> containing the current keys inside the <see cref="IObservableCache{TKey,TValue}"/>.
+        /// </summary>
+        /// 
+        /// <returns>
+        /// An <see cref="T:IObservable{TKey}"/> containing the current keys of the object that implements <see cref="IObservableCache{TKey,TValue}"/>.
+        /// </returns>
+        ICollection<TKey> CurrentKeys { get; }
+
+        /// <summary>
+        /// Gets an <see cref="T:ICollection{TValue}"/> containing the current values inside the <see cref="IObservableCache{TKey,TValue}"/>.
+        /// </summary>
+        /// 
+        /// <returns>
+        /// An <see cref="T:IObservable{TValue}"/> containing the current values of the object that implements <see cref="IObservableCache{TKey,TValue}"/>.
+        /// </returns>
+        ICollection<TValue> CurrentValues { get; }
+
         /// <summary>
         /// Adds the specified <paramref name="key"/> with the given <paramref name="value"/> to the <see cref="IObservableCache{TKey,TValue}"/>.
         /// </summary>

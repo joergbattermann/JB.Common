@@ -1008,6 +1008,40 @@ namespace JB.Reactive.Cache
         }
 
         /// <summary>
+        /// Gets an <see cref="T:ICollection{TKey}"/> containing the current keys inside the <see cref="IObservableCache{TKey,TValue}"/>.
+        /// </summary>
+        /// 
+        /// <returns>
+        /// An <see cref="T:IObservable{TKey}"/> containing the current keys of the object that implements <see cref="IObservableCache{TKey,TValue}"/>.
+        /// </returns>
+        public virtual ICollection<TKey> CurrentKeys
+        {
+            get
+            {
+                CheckForAndThrowIfDisposed();
+
+                return InnerDictionary.Keys;
+            }
+        }
+
+        /// <summary>
+        /// Gets an <see cref="T:ICollection{TValue}"/> containing the current values inside the <see cref="IObservableCache{TKey,TValue}"/>.
+        /// </summary>
+        /// 
+        /// <returns>
+        /// An <see cref="T:IObservable{TValue}"/> containing the current values of the object that implements <see cref="IObservableCache{TKey,TValue}"/>.
+        /// </returns>
+        public virtual ICollection<TValue> CurrentValues
+        {
+            get
+            {
+                CheckForAndThrowIfDisposed();
+
+                return InnerDictionary.Values.Select(cachedElement => cachedElement.Value).ToList();
+            }
+        }
+
+        /// <summary>
         /// Adds the specified <paramref name="key" /> with the given <paramref name="value" /> to the <see cref="IObservableCache{TKey,TValue}" />
         /// with its expiry set to <see cref="TimeSpan.MaxValue"/> and <see cref="ObservableCacheExpirationType"/> to <see cref="ObservableCacheExpirationType.DoNothing"/>.
         /// </summary>

@@ -50,6 +50,11 @@ namespace JB.Collections.Reactive.ExtensionMethods
                             target.Add(dictionaryChange.Value);
                             break;
                         }
+                    case ObservableDictionaryChangeType.ItemKeyChanged:
+                    {
+                        // nothing to do here
+                        break;
+                    }
                     case ObservableDictionaryChangeType.ItemValueChanged:
                         {
                             if (includeItemChanges)
@@ -110,7 +115,8 @@ namespace JB.Collections.Reactive.ExtensionMethods
                             break;
                         }
                     default:
-                        break;
+                        throw new ArgumentOutOfRangeException(nameof(dictionaryChange),
+                            $"Only {ObservableDictionaryChangeType.ItemAdded}, {ObservableDictionaryChangeType.ItemKeyChanged}, {ObservableDictionaryChangeType.ItemValueChanged}, {ObservableDictionaryChangeType.ItemValueReplaced}, {ObservableDictionaryChangeType.ItemRemoved} and {ObservableDictionaryChangeType.Reset} are supported.");
                 }
             });
         }
