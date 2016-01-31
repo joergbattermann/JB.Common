@@ -6,7 +6,7 @@ namespace JB.Reactive.Cache
 {
     /// <summary>
     /// Classes implementing this interface provide an <see cref="ValueChanges">observable stream</see> of item changes IF
-    /// <typeparam name="TKey" /> and/or <typeparam name="TValue" /> implement the <see cref="INotifyPropertyChanged" /> interface.
+    /// <typeparamref name="TKey" /> and/or <typeparamref name="TValue" /> implement the <see cref="INotifyPropertyChanged" /> interface.
     /// </summary>
     /// <typeparam name="TKey">The type of the key.</typeparam>
     /// <typeparam name="TValue">The type of the value.</typeparam>

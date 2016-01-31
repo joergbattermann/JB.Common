@@ -1333,7 +1333,7 @@ namespace JB.Reactive.Cache
         /// <param name="throwIfExpired">If set to <c>true</c>, a <see cref="KeyHasExpiredException{TKey}"/> will be thrown if it has expired before retrieval.</param>
         /// <param name="scheduler">Scheduler to perform the retrieval on.</param>
         /// <returns>
-        /// An observable stream that returns the <see cref="TValue" /> for the provided <paramref name="key" />.
+        /// An observable stream that returns the <typeparamref name="TValue"/> for the provided <paramref name="key" />.
         /// </returns>
         public virtual IObservable<TValue> Get(TKey key, bool throwIfExpired = true, IScheduler scheduler = null)
         {
@@ -1354,7 +1354,7 @@ namespace JB.Reactive.Cache
         /// <param name="throwIfExpired">If set to <c>true</c>, a <see cref="KeyHasExpiredException{TKey}"/> will be thrown if it has expired before retrieval.</param>
         /// <param name="scheduler">Scheduler to run the retrieval on.</param>
         /// <returns>
-        /// An observable stream that returns the <see cref="TValue" /> for the provided <paramref name="key" />.
+        /// An observable stream that returns the <typeparamref name="TValue"/> for the provided <paramref name="key" />.
         /// </returns>
         protected virtual IObservable<ObservableCachedElement<TKey, TValue>> GetCachedElement(TKey key, bool throwIfExpired = true, IScheduler scheduler = null)
         {

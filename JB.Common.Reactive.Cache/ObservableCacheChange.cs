@@ -14,12 +14,12 @@ namespace JB.Reactive.Cache
     public class ObservableCacheChange<TKey, TValue> : IObservableCacheChange<TKey, TValue>
     {
         /// <summary>
-        /// The <typeparam name="TKey">key type</typeparam> is a value type. or not.
+        /// The <typeparamref name="TKey">key type</typeparamref> is a value type. or not.
         /// </summary>
         private static readonly Lazy<bool> KeyIsValueType = new Lazy<bool>(() => typeof(TKey).IsValueType);
 
         /// <summary>
-        /// The <typeparam name="TValue">value type</typeparam> is a.. err.. value type. or not.
+        /// The <typeparamref name="TValue">value type</typeparamref> is a.. err.. value type. or not.
         /// </summary>
         private static readonly Lazy<bool> ValueIsValueType = new Lazy<bool>(() => typeof(TValue).IsValueType);
 
@@ -147,7 +147,7 @@ namespace JB.Reactive.Cache
 
         /// <summary>
         /// Gets a <see cref="IObservableCacheChange{TKey,TValue}" /> representing a <see cref="ObservableCacheChangeType.ItemAdded" />
-        /// for the given <paramref name="key" /> and <see cref="value" />.
+        /// for the given <paramref name="key" /> and <paramref name="value"/>.
         /// </summary>
         /// <param name="key">The key.</param>
         /// <param name="value">The value.</param>
@@ -162,7 +162,7 @@ namespace JB.Reactive.Cache
 
         /// <summary>
         /// Gets a <see cref="IObservableCacheChange{TKey,TValue}" /> representing a <see cref="ObservableCacheChangeType.ItemRemoved" />
-        /// for the given <paramref name="key" /> and <see cref="value" />.
+        /// for the given <paramref name="key" /> and <paramref name="value"/>.
         /// </summary>
         /// <param name="key">The key.</param>
         /// <param name="value">The value.</param>

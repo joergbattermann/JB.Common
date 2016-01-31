@@ -1,3 +1,5 @@
+using System.ComponentModel;
+
 namespace JB.Collections.Reactive
 {
     public interface IObservableDictionaryChange<out TKey, out TValue>
@@ -37,7 +39,7 @@ namespace JB.Collections.Reactive
 
         /// <summary>
         /// If <see cref="ChangeType"/> is a <see cref="ObservableDictionaryChangeType.ItemValueChanged"/> one and <typeparamref name="TValue"/>
-        /// implements <see cref="INotifyPropertyChanged"/> and the underlying item change originated from a <see cref="INotifyPropertyChanged.PropertyChanged"/>
+        /// implements <see cref="INotifyPropertyChanged"/> and the underlying item change originated from a <see cref="E:INotifyPropertyChanged.PropertyChanged"/>
         /// event, this will be the forwarded <see cref="PropertyChangedEventArgs.PropertyName"/> value.
         /// </summary>
         /// <value>

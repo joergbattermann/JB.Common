@@ -17,7 +17,7 @@ namespace JB.Collections.Reactive.ExtensionMethods
         /// <typeparam name="TValue">The type of the value.</typeparam>
         /// <param name="observableDictionaryChange">The observable dictionary change.</param>
         /// <param name="dictionary">The sender <see cref="IObservableDictionary{TKey,TValue}" />.</param>
-        /// <param name="valueComparer">The <see cref="TValue"/> equality comparer.</param>
+        /// <param name="valueComparer">The <typeparamref name="TValue"/> equality comparer.</param>
         /// <returns></returns>
         /// <exception cref="System.ArgumentNullException">observableDictionaryChange</exception>
         /// <exception cref="System.ArgumentOutOfRangeException">$Only {ObservableDictionaryChangeType.ItemAdded}, {ObservableDictionaryChangeType.ItemValueChanged}, {ObservableDictionaryChangeType.ItemRemoved} and {ObservableDictionaryChangeType.Reset} are supported.</exception>

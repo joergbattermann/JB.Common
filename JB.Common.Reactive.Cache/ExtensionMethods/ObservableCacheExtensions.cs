@@ -168,7 +168,7 @@ namespace JB.Reactive.Cache.ExtensionMethods
         /// <param name="cache">The cache to use.</param>
         /// <param name="key">The key for the <paramref name="value" />.</param>
         /// <param name="value">The value to add or update.</param>
-        /// <param name="valueSelector">The value selector that gets provided the <see cref="key"/>, the existing value and the new value (in that order) and is expected to return which value to use.</param>
+        /// <param name="valueSelector">The value selector that gets provided the <paramref name="key"/>, the existing value and the new value (in that order) and is expected to return which value to use.</param>
         /// <param name="expiry">The expiry. If none is provided the <paramref name="key"/>/<paramref name="value"/> pair will virtually never expire.</param>
         /// <param name="expirationType">Defines how the <paramref name="key"/>/<paramref name="value"/> shall expire.</param>
         /// <returns>
@@ -272,8 +272,8 @@ namespace JB.Reactive.Cache.ExtensionMethods
         /// <param name="cache">The cache to use.</param>
         /// <param name="key">The key to get or produce and add.</param>
         /// <param name="producer">The producer function that gets handed in the <paramref name="key"/> and is expected to return a <typeparamref name="TValue"/> instance.</param>
-        /// <param name="expiry">The expiry. If none is provided the <paramref name=","/> will virtually never expire.</param>
-        /// <param name="expirationType">Defines how the <paramref name=","/> shall expire.</param>
+        /// <param name="expiry">The expiry. If none is provided the <paramref name="key"/> will virtually never expire.</param>
+        /// <param name="expirationType">Defines how the <paramref name="key"/> shall expire.</param>
         /// <returns>
         /// An observable stream containing the corresponding <typeparamref name="TValue"/> instance(s).
         /// </returns>
@@ -290,8 +290,8 @@ namespace JB.Reactive.Cache.ExtensionMethods
         /// <param name="cache">The cache to use.</param>
         /// <param name="keys">The keys to get or produce and add.</param>
         /// <param name="producer">The producer function that gets handed in the <paramref name="keys"/> one by one and is expected to return a <typeparamref name="TValue"/> instance per key.</param>
-        /// <param name="expiry">The expiry. If none is provided the <paramref name=","/> will virtually never expire.</param>
-        /// <param name="expirationType">Defines how the <paramref name=","/> shall expire.</param>
+        /// <param name="expiry">The expiry. If none is provided the <paramref name="keys"/> will virtually never expire.</param>
+        /// <param name="expirationType">Defines how the <paramref name="keys"/> shall expire.</param>
         /// <returns>
         /// An observable stream containing the corresponding <typeparamref name="TValue"/> instance(s).
         /// </returns>
@@ -308,8 +308,8 @@ namespace JB.Reactive.Cache.ExtensionMethods
         /// <param name="cache">The cache to use.</param>
         /// <param name="keys">The keys to get or produce and add.</param>
         /// <param name="producer">The producer function that gets handed in the <paramref name="keys"/> in bulk and is expected to return a corresponding .</param>
-        /// <param name="expiry">The expiry. If none is provided the <paramref name=","/> will virtually never expire.</param>
-        /// <param name="expirationType">Defines how the <paramref name=","/> shall expire.</param>
+        /// <param name="expiry">The expiry. If none is provided the <paramref name="keys"/> will virtually never expire.</param>
+        /// <param name="expirationType">Defines how the <paramref name="keys"/> shall expire.</param>
         /// <returns>
         /// An observable stream containing the corresponding <typeparamref name="TValue"/> instance(s).
         /// </returns>
@@ -354,7 +354,7 @@ namespace JB.Reactive.Cache.ExtensionMethods
         }
 
         /// <summary>
-        /// Attempts to remove the <paramref name="key"/> from the <see cref="cache"/> - if it exists in it.
+        /// Attempts to remove the <paramref name="key"/> from the <paramref name="cache"/> - if it exists in it.
         /// </summary>
         /// <typeparam name="TKey">The type of the key.</typeparam>
         /// <typeparam name="TValue">The type of the value.</typeparam>

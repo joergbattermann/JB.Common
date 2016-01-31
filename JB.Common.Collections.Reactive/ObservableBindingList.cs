@@ -426,11 +426,11 @@ namespace JB.Collections.Reactive
         }
 
         /// <summary>
-        ///     Raises <see cref="INotifyObservableCollectionChanges{T}.CollectionChanged" />,
-        ///     <see cref="INotifyCollectionChanged.CollectionChanged" />
-        ///     and <see cref="IBindingList.ListChanged" /> event(s) as well as notifies the
-        ///     <see cref="INotifyObservableCollectionChanges{T}.CollectionChanges" />
-        ///     and <see cref="INotifyObservableResets.Resets" /> subscribers signalling an entire List / Collection
+        ///     Raises <see cref="E:INotifyObservableCollectionChanges{T}.CollectionChanged" />,
+        ///     <see cref="E:INotifyCollectionChanged.CollectionChanged" />
+        ///     and <see cref="E:IBindingList.ListChanged" /> event(s) as well as notifies the
+        ///     <see cref="E:INotifyObservableCollectionChanges{T}.CollectionChanges" />
+        ///     and <see cref="E:INotifyObservableResets.Resets" /> subscribers signalling an entire List / Collection
         ///     Reset.
         /// </summary>
         public virtual void ResetBindings()
@@ -441,10 +441,10 @@ namespace JB.Collections.Reactive
         }
 
         /// <summary>
-        ///     Raises <see cref="INotifyObservableCollectionChanges{T}.CollectionChanged" />,
-        ///     <see cref="INotifyCollectionChanged.CollectionChanged" />
-        ///     and <see cref="IBindingList.ListChanged" /> event(s) as well as notifies the
-        ///     <see cref="INotifyObservableCollectionChanges{T}.CollectionChanges" />
+        ///     Raises <see cref="E:INotifyObservableCollectionChanges{T}.CollectionChanged" />,
+        ///     <see cref="E:INotifyCollectionChanged.CollectionChanged" />
+        ///     and <see cref="E:IBindingList.ListChanged" /> event(s) as well as notifies the
+        ///     <see cref="E:INotifyObservableCollectionChanges{T}.CollectionChanges" />
         ///     subscribers signalling a single item change event.
         /// </summary>
         /// <param name="index">A zero-based index position of the item to be reset.</param>
