@@ -232,7 +232,7 @@ namespace JB.Reactive.Cache.Tests
         }
 
         [Fact]
-        public async Task ShouldUpdateExpirationCorrectlyForExistingItem()
+        public void ShouldUpdateExpirationCorrectlyForExistingItem()
         {
             // given
             var testScheduler = new TestScheduler();
