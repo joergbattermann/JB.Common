@@ -20,6 +20,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using JB.Collections;
 using JB.Collections.Reactive;
+using JB.ExtensionMethods;
 using JB.Reactive.Cache.ExtensionMethods;
 using JB.Reactive.Linq;
 using Observable = System.Reactive.Linq.Observable;
@@ -29,8 +30,8 @@ namespace JB.Reactive.Cache
     [DebuggerDisplay("Count={Count}")]
     public class ObservableInMemoryCache<TKey, TValue> : IObservableCache<TKey, TValue>, IDisposable
     {
-        protected static readonly Lazy<bool> KeyTypeImplementsINotifyPropertyChanged = new Lazy<bool>(() => typeof(TKey).IsAssignableFrom(typeof(INotifyPropertyChanged)));
-        protected static readonly Lazy<bool> ValueTypeImplementsINotifyPropertyChanged = new Lazy<bool>(() => typeof(TValue).IsAssignableFrom(typeof(INotifyPropertyChanged)));
+        protected static readonly Lazy<bool> KeyTypeImplementsINotifyPropertyChanged = new Lazy<bool>(() => typeof(TKey).ImplementsInterface<INotifyPropertyChanged>());
+        protected static readonly Lazy<bool> ValueTypeImplementsINotifyPropertyChanged = new Lazy<bool>(() => typeof(TValue).ImplementsInterface<INotifyPropertyChanged>());
 
         private Subject<IObservableCacheChange<TKey, TValue>> _cacheChangesSubject = new Subject<IObservableCacheChange<TKey, TValue>>();
         private Subject<ObserverException> _unhandledObserverExceptionsSubject = new Subject<ObserverException>();

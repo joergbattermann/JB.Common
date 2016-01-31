@@ -30,6 +30,55 @@ namespace JB.Collections.Reactive.Tests
         }
 
         [Fact]
+        public void ShouldBeEmptyOnConstructionWithNoInitialItems()
+        {
+            // given
+            // when
+            using (var observableDictionary = new ObservableDictionary<int, string>())
+            {
+                // then
+                observableDictionary.IsEmpty.Should().BeTrue();
+            }
+        }
+
+        [Fact]
+        public void ShouldNotBeEmptyOnConstructionWithInitialItems()
+        {
+            // given
+            var initialItems = new List<KeyValuePair<int, string>>()
+            {
+                new KeyValuePair<int, string>(1, "One"),
+                new KeyValuePair<int, string>(2, "Two")
+            };
+
+            // when
+            using (var observableDictionary = new ObservableDictionary<int, string>(initialItems))
+            {
+                // then
+                observableDictionary.IsEmpty.Should().BeFalse();
+            }
+        }
+
+        [Fact]
+        public void ShouldBeEmptyAfterClear()
+        {
+            // given
+            var initialItems = new List<KeyValuePair<int, string>>()
+            {
+                new KeyValuePair<int, string>(1, "One"),
+                new KeyValuePair<int, string>(2, "Two")
+            };
+            using (var observableDictionary = new ObservableDictionary<int, string>(initialItems))
+            {
+                // when
+                observableDictionary.Clear();
+
+                // then
+                observableDictionary.IsEmpty.Should().BeTrue();
+            }
+        }
+
+        [Fact]
         public void ShouldUseProvidedSyncRoot()
         {
             // given

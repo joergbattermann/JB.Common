@@ -96,7 +96,7 @@ namespace JB.Reactive.Cache.Tests
                 reRetrievedValue.Should().Be("One");
             }
         }
-        
+
         [Fact]
         public async Task ContainsWhichShouldReturnCorrespondingly()
         {
@@ -107,7 +107,7 @@ namespace JB.Reactive.Cache.Tests
                 await cache.Add(2, "Two");
 
                 // when
-                var resultForNonEmptyList = await cache.ContainsWhich(new List<int>() { 1, 2, 3, 4 }).ToList();
+                var resultForNonEmptyList = await cache.ContainsWhich(new List<int>() {1, 2, 3, 4}).ToList();
                 var resultForEmptyList = await cache.ContainsWhich(new List<int>()).ToList();
 
                 // then
@@ -128,8 +128,8 @@ namespace JB.Reactive.Cache.Tests
                 await cache.Add(2, "Two");
 
                 // when
-                var containsAllAddedKey = await cache.ContainsAll(new [] {1,2});
-                var doesNotContainOneOftheAddedKeysAndOneUnAddedOne = await cache.ContainsAll(new [] {2,3});
+                var containsAllAddedKey = await cache.ContainsAll(new[] {1, 2});
+                var doesNotContainOneOftheAddedKeysAndOneUnAddedOne = await cache.ContainsAll(new[] {2, 3});
                 var resultForEmptyContainsAllKeys = await cache.ContainsAll(new List<int>());
 
                 // then
@@ -255,7 +255,7 @@ namespace JB.Reactive.Cache.Tests
                     async (scheduler, token) =>
                     {
                         tickAtTimeOfUpdate = scheduler.Now.Ticks;
-                        await cache.UpdateExpiration(1, TimeSpan.FromTicks(3 * expiresAtTicks));
+                        await cache.UpdateExpiration(1, TimeSpan.FromTicks(3*expiresAtTicks));
                     });
 
                 // when
@@ -271,10 +271,10 @@ namespace JB.Reactive.Cache.Tests
                 testScheduler.AdvanceBy(1);
 
                 // then
-                updatedExpiration.Should().Be(TimeSpan.FromTicks((3 * expiresAtTicks) + tickAtTimeOfUpdate - tickAtTimeOfExpirationCheck));
+                updatedExpiration.Should().Be(TimeSpan.FromTicks((3*expiresAtTicks) + tickAtTimeOfUpdate - tickAtTimeOfExpirationCheck));
             }
         }
-        
+
         [Fact]
         public async Task ShouldExpireInAndAtProvideAccurateFutureNowAndPastExpirationInformation()
         {
@@ -309,7 +309,7 @@ namespace JB.Reactive.Cache.Tests
                 expiresAt = await cache.ExpiresAt(1);
 
                 // then
-                expiresIn.ShouldBeEquivalentTo(TimeSpan.FromTicks(expiresAtTicks * -1));
+                expiresIn.ShouldBeEquivalentTo(TimeSpan.FromTicks(expiresAtTicks*-1));
                 expiresAt.ShouldBeEquivalentTo(testScheduler.Now.UtcDateTime.Subtract(TimeSpan.FromTicks(expiresAtTicks)));
             }
         }
@@ -331,7 +331,7 @@ namespace JB.Reactive.Cache.Tests
                     });
 
                 // when
-                testScheduler.AdvanceBy(expirationTimeoutInTicks * 10);
+                testScheduler.AdvanceBy(expirationTimeoutInTicks*10);
 
                 // then
                 cache.Count.Should().Be(1);
@@ -356,7 +356,7 @@ namespace JB.Reactive.Cache.Tests
                     });
 
                 // when
-                testScheduler.AdvanceBy(expirationTimeoutInTicks * 10);
+                testScheduler.AdvanceBy(expirationTimeoutInTicks*10);
                 Func<Task> action = async () =>
                 {
                     await cache.Get(1);
@@ -387,7 +387,7 @@ namespace JB.Reactive.Cache.Tests
                     });
 
                 // when
-                testScheduler.AdvanceBy(expirationTimeoutInTicks * 10);
+                testScheduler.AdvanceBy(expirationTimeoutInTicks*10);
                 Func<Task> action = async () =>
                 {
                     await cache.Update(1, "ONE");
@@ -417,7 +417,7 @@ namespace JB.Reactive.Cache.Tests
                     });
 
                 // when
-                testScheduler.AdvanceBy(expirationTimeoutInTicks * 10);
+                testScheduler.AdvanceBy(expirationTimeoutInTicks*10);
                 Func<Task> action = async () =>
                 {
                     await cache.Get(1, false);
@@ -584,7 +584,7 @@ namespace JB.Reactive.Cache.Tests
             var expirationTimeoutInTicks = 10;
             var exceptionsObserver = testScheduler.CreateObserver<ObserverException>();
 
-            Func<IEnumerable<int>, IEnumerable<KeyValuePair<int, string>>> multipleKeysUpdater = (ints) => { return ints.ToDictionary(i => i * 10, i => (i * 20).ToString()); };
+            Func<IEnumerable<int>, IEnumerable<KeyValuePair<int, string>>> multipleKeysUpdater = (ints) => { return ints.ToDictionary(i => i*10, i => (i*20).ToString()); };
 
             using (var cache = new ObservableInMemoryCache<int, string>(multipleKeysRetrievalFunction: multipleKeysUpdater, expiredElementsHandlingChillPeriod: TimeSpan.FromTicks(expirationTimeoutInTicks), expirationScheduler: testScheduler, throwOnExpirationHandlingExceptions: false))
             {
@@ -739,7 +739,7 @@ namespace JB.Reactive.Cache.Tests
                 {
                     await cache.Add(1, "One", TimeSpan.MaxValue);
                 };
-                
+
                 // then
                 action.ShouldThrow<ArgumentException>().WithMessage("The key already existed in the dictionary.");
             }
@@ -763,7 +763,7 @@ namespace JB.Reactive.Cache.Tests
                 action.ShouldThrow<KeyNotFoundException>();
             }
         }
-        
+
         [Fact]
         public async Task ShouldThrowOnGetOfNonExistingKey()
         {
@@ -814,6 +814,137 @@ namespace JB.Reactive.Cache.Tests
 
                 // then
                 action.ShouldThrow<KeyNotFoundException>();
+            }
+        }
+
+        [Fact]
+        public async Task ShouldNotifySubscribersAboutValueChangesWhileItemsAreInCache()
+        {
+            // given
+            var notificationScheduler = new TestScheduler();
+
+            int key = 1;
+            var testInpcImplementationInstance = new MyNotifyPropertyChanged<int, string>(key);
+
+            var changesObserver = notificationScheduler.CreateObserver<IObservableCacheChange<int, MyNotifyPropertyChanged<int, string>>>();
+            var valueChangesObserver = notificationScheduler.CreateObserver<IObservableCacheChange<int, MyNotifyPropertyChanged<int, string>>>();
+
+            using (var cache = new ObservableInMemoryCache<int, MyNotifyPropertyChanged<int, string>>(notificationScheduler: notificationScheduler))
+            {
+                cache.ThresholdAmountWhenChangesAreNotifiedAsReset = int.MaxValue;
+
+                IDisposable cacheChangesSubscription = null;
+                IDisposable valueChangesSubscription = null;
+
+                try
+                {
+                    cacheChangesSubscription = cache.Changes.Subscribe(changesObserver);
+                    valueChangesSubscription = cache.ValueChanges.Subscribe(valueChangesObserver);
+
+                    // when
+                    await cache.Add(key, testInpcImplementationInstance);
+                    notificationScheduler.AdvanceBy(2);
+
+                    // then
+                    changesObserver.Messages.Count.Should().Be(1);
+                    changesObserver.Messages.First().Value.Value.ChangeType.Should().Be(ObservableCacheChangeType.ItemAdded);
+                    changesObserver.Messages.First().Value.Value.Key.Should().Be(key);
+                    changesObserver.Messages.First().Value.Value.Value.Should().Be(testInpcImplementationInstance);
+
+                    valueChangesObserver.Messages.Count.Should().Be(0);
+
+                    // and when
+                    testInpcImplementationInstance.FirstProperty = Guid.NewGuid().ToString();
+
+                    notificationScheduler.AdvanceBy(2);
+
+                    // then
+                    changesObserver.Messages.Count.Should().Be(2);
+                    valueChangesObserver.Messages.Count.Should().Be(1);
+
+                    changesObserver.Messages.Last().Value.Value.ChangeType.Should().Be(ObservableCacheChangeType.ItemValueChanged);
+                    changesObserver.Messages.Last().Value.Value.Key.Should().Be(1);
+                    changesObserver.Messages.Last().Value.Value.Value.Should().Be(testInpcImplementationInstance);
+                    changesObserver.Messages.Last().Value.Value.OldValue.Should().BeNull();
+                    changesObserver.Messages.Last().Value.Value.ChangedPropertyName.Should().Be(nameof(MyNotifyPropertyChanged<int, string>.FirstProperty));
+
+                    valueChangesObserver.Messages.First().Value.Value.ChangeType.Should().Be(ObservableCacheChangeType.ItemValueChanged);
+                    valueChangesObserver.Messages.First().Value.Value.Key.Should().Be(1);
+                    valueChangesObserver.Messages.First().Value.Value.Value.Should().Be(testInpcImplementationInstance);
+                    valueChangesObserver.Messages.First().Value.Value.OldValue.Should().BeNull();
+                    valueChangesObserver.Messages.Last().Value.Value.ChangedPropertyName.Should().Be(nameof(MyNotifyPropertyChanged<int, string>.FirstProperty));
+                }
+                finally
+                {
+                    cacheChangesSubscription?.Dispose();
+                    valueChangesSubscription?.Dispose();
+                }
+            }
+
+        }
+
+        [Fact]
+        public async Task ShouldNotifySubscribersAboutKeyChangesWhileItemsAreInCache()
+        {
+            // given
+            var notificationScheduler = new TestScheduler();
+
+            int value = 1;
+            var key = new MyNotifyPropertyChanged<int, string>(value);
+
+            var changesObserver = notificationScheduler.CreateObserver<IObservableCacheChange<MyNotifyPropertyChanged<int, string>, int>>();
+            var keyChangesObserver = notificationScheduler.CreateObserver<IObservableCacheChange<MyNotifyPropertyChanged<int, string>, int>>();
+
+            using (var cache = new ObservableInMemoryCache<MyNotifyPropertyChanged<int, string>, int>(notificationScheduler: notificationScheduler))
+            {
+                cache.ThresholdAmountWhenChangesAreNotifiedAsReset = int.MaxValue;
+
+                IDisposable cacheChangesSubscription = null;
+                IDisposable keyChangesSubscription = null;
+
+                try
+                {
+                    cacheChangesSubscription = cache.Changes.Subscribe(changesObserver);
+                    keyChangesSubscription = cache.KeyChanges.Subscribe(keyChangesObserver);
+
+                    // when
+                    await cache.Add(key, value);
+                    notificationScheduler.AdvanceBy(2);
+
+                    // then
+                    changesObserver.Messages.Count.Should().Be(1);
+                    changesObserver.Messages.First().Value.Value.ChangeType.Should().Be(ObservableCacheChangeType.ItemAdded);
+                    changesObserver.Messages.First().Value.Value.Key.Should().Be(key);
+                    changesObserver.Messages.First().Value.Value.Value.Should().Be(value);
+
+                    keyChangesObserver.Messages.Count.Should().Be(0);
+
+                    // and when
+                    key.FirstProperty = Guid.NewGuid().ToString();
+
+                    notificationScheduler.AdvanceBy(2);
+
+                    // then
+                    changesObserver.Messages.Count.Should().Be(2);
+                    keyChangesObserver.Messages.Count.Should().Be(1);
+
+                    changesObserver.Messages.Last().Value.Value.ChangeType.Should().Be(ObservableCacheChangeType.ItemKeyChanged);
+                    changesObserver.Messages.Last().Value.Value.Key.Should().Be(key);
+                    changesObserver.Messages.Last().Value.Value.Value.Should().Be(1);
+                    changesObserver.Messages.Last().Value.Value.OldValue.Should().Be(default(int));
+                    changesObserver.Messages.Last().Value.Value.ChangedPropertyName.Should().Be(nameof(MyNotifyPropertyChanged<int, string>.FirstProperty));
+
+                    keyChangesObserver.Messages.First().Value.Value.ChangeType.Should().Be(ObservableCacheChangeType.ItemKeyChanged);
+                    keyChangesObserver.Messages.First().Value.Value.Key.Should().Be(key);
+                    keyChangesObserver.Messages.First().Value.Value.Value.Should().Be(1);
+                    keyChangesObserver.Messages.First().Value.Value.OldValue.Should().Be(default(int));
+                    keyChangesObserver.Messages.Last().Value.Value.ChangedPropertyName.Should().Be(nameof(MyNotifyPropertyChanged<int, string>.FirstProperty));
+                }
+                finally
+                {
+                    cacheChangesSubscription?.Dispose();
+                    keyChangesSubscription?.Dispose();
+                }
             }
         }
     }
