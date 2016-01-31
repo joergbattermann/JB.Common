@@ -158,6 +158,80 @@ namespace JB.Reactive.Cache.Tests
         }
 
         [Fact]
+        public async Task ShouldContainAllCurrentKeys()
+        {
+            // given
+            using (var cache = new ObservableInMemoryCache<int, string>())
+            {
+                await cache.Add(1, "One");
+                await cache.Add(2, "Two");
+                await cache.Add(3, "Three");
+
+                // when
+                var keys = cache.CurrentKeys;
+
+                // then
+                keys.Count.Should().Be(3);
+
+                keys.Should().Contain(1);
+                keys.Should().Contain(2);
+                keys.Should().Contain(3);
+            }
+        }
+
+        [Fact]
+        public async Task ShouldProvideExistingAndAddedKeys()
+        {
+            // given
+            var testScheduler = new TestScheduler();
+            var expiresAtTicks = 10;
+            var keysObserver = testScheduler.CreateObserver<int>();
+
+            using (var cache = new ObservableInMemoryCache<int, string>(notificationScheduler: testScheduler))
+            {
+                cache.Add(1, "One", testScheduler).Subscribe();
+                cache.Add(2, "Two", testScheduler).Subscribe();
+                cache.Add(3, "Three", testScheduler).Subscribe();
+                testScheduler.AdvanceBy(3);
+
+                // when
+                using (cache.Keys.Subscribe(keysObserver))
+                {
+                    cache.Add(4, "Four").Subscribe();
+                    cache.Add(5, "Five").Subscribe();
+
+                    testScheduler.AdvanceBy(2);
+                }
+
+                // then
+                keysObserver.Messages.Count.Should().Be(5);
+                keysObserver.Messages.Last().Should().NotBeNull();
+            }
+        }
+
+        [Fact]
+        public async Task ShouldContainAllCurrentValues()
+        {
+            // given
+            using (var cache = new ObservableInMemoryCache<int, string>())
+            {
+                await cache.Add(1, "One");
+                await cache.Add(2, "Two");
+                await cache.Add(3, "Three");
+
+                // when
+                var values = cache.CurrentValues;
+
+                // then
+                values.Count.Should().Be(3);
+
+                values.Should().Contain("One");
+                values.Should().Contain("Two");
+                values.Should().Contain("Three");
+            }
+        }
+
+        [Fact]
         public async Task ShouldUpdateExpirationCorrectlyForExistingItem()
         {
             // given
@@ -175,6 +249,7 @@ namespace JB.Reactive.Cache.Tests
 
                 // when
                 long tickAtTimeOfUpdate = -1; // this 'remembers' the virtual time the expiration update took place
+                TimeSpan updatedExpiration = default(TimeSpan);
                 testScheduler.ScheduleAsync(
                     TimeSpan.FromTicks(1),
                     async (scheduler, token) =>
@@ -185,10 +260,18 @@ namespace JB.Reactive.Cache.Tests
 
                 // when
                 testScheduler.AdvanceBy(expiresAtTicks);
-                var updatedExpiration = await cache.ExpiresIn(1);
+
+                long tickAtTimeOfExpirationCheck = -1; // this 'remembers' the virtual time the expiration check took place
+                testScheduler.ScheduleAsync(
+                    async (scheduler, token) =>
+                    {
+                        tickAtTimeOfExpirationCheck = scheduler.Now.Ticks;
+                        updatedExpiration = await cache.ExpiresIn(1);
+                    });
+                testScheduler.AdvanceBy(1);
 
                 // then
-                updatedExpiration.ShouldBeEquivalentTo(TimeSpan.FromTicks((2 * expiresAtTicks) + tickAtTimeOfUpdate));
+                updatedExpiration.Should().Be(TimeSpan.FromTicks((3 * expiresAtTicks) + tickAtTimeOfUpdate - tickAtTimeOfExpirationCheck));
             }
         }
         

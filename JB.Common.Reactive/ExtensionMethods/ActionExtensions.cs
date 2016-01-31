@@ -9,6 +9,7 @@
 using System;
 using System.Reactive;
 using System.Reactive.Concurrency;
+using System.Reactive.Linq;
 
 namespace JB.Reactive.ExtensionMethods
 {
@@ -17,22 +18,6 @@ namespace JB.Reactive.ExtensionMethods
     /// </summary>
     public static class ActionExtensions
     {
-        /// <summary>
-        /// Returns an observable sequence that invokes the <paramref name="action"/> synchronously upon subscription.
-        /// </summary>
-        /// <param name="action">Action to run on subscription.</param>
-        /// <returns>
-        /// An observable sequence exposing the result value upon completion of the given <paramref name="action"/>, or an exception if one occured.
-        /// </returns>
-        /// <exception cref="T:System.ArgumentNullException"><paramref name="action"/> is null.</exception>
-        public static IObservable<Unit> ToObservable(this Action action)
-        {
-            if (action == null)
-                throw new ArgumentNullException(nameof(action));
-
-            return Linq.Observable.Run(action);
-        }
-
         /// <summary>
         /// Returns an observable sequence that schedules the given <paramref name="action"/> on the <paramref name="scheduler"/> for immediate execution upon subscription.
         /// </summary>
@@ -44,14 +29,14 @@ namespace JB.Reactive.ExtensionMethods
         /// <exception cref="T:System.ArgumentNullException">
         ///     <paramref name="action"/> or <paramref name="scheduler"/> is  null.
         /// </exception>
-        public static IObservable<Unit> ToObservable(this Action action, IScheduler scheduler)
+        public static IObservable<Unit> ToObservable(this Action action, IScheduler scheduler = null)
         {
             if (action == null)
                 throw new ArgumentNullException(nameof(action));
-            if (scheduler == null)
-                throw new ArgumentNullException(nameof(scheduler));
-
-            return Linq.Observable.Run(action, scheduler);
+            
+            return scheduler != null
+                ? Observable.Start(action, scheduler)
+                : Observable.Start(action);
         }
     }
 }

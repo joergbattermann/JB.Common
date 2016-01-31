@@ -22,6 +22,66 @@ namespace JB.Reactive.Linq
     public static class ObservableExtensions
     {
         /// <summary>
+        /// Invokes an action for each element in the observable sequence and signals when the <paramref name="action"/> completed.
+        /// </summary>
+        /// <typeparam name="TSource">The type of the elements in the source sequence.</typeparam>
+        /// <param name="source">Source sequence.</param>
+        /// <param name="action">Action to invoke for each element in the observable sequence.</param>
+        /// <param name="scheduler">Scheduler to perform the <paramref name="action"/> on.</param>
+        /// <returns>
+        /// An observable sequence of <see cref="Unit"/> that signals the completion of an <paramref name="action"/>.
+        /// </returns>
+        /// <exception cref="T:System.ArgumentNullException"><paramref name="source"/> or <paramref name="action"/> is null.</exception>
+        public static IObservable<Unit> Run<TSource>(this IObservable<TSource> source, Action action, IScheduler scheduler = null)
+        {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            if (action == null) throw new ArgumentNullException(nameof(action));
+
+            return source.SelectMany(_ => Observable.Run(action, scheduler));
+        }
+
+        /// <summary>
+        /// Invokes an action for each element in the observable sequence and signals when the <paramref name="action"/> completed.
+        /// </summary>
+        /// <typeparam name="TSource">The type of the elements in the source sequence.</typeparam>
+        /// <param name="source">Source sequence.</param>
+        /// <param name="action">Action to invoke for each element in the observable sequence.</param>
+        /// <param name="scheduler">Scheduler to perform the <paramref name="action"/> on.</param>
+        /// <returns>
+        /// An observable sequence of <see cref="Unit"/> that signals the completion of an <paramref name="action"/>.
+        /// </returns>
+        /// <exception cref="T:System.ArgumentNullException"><paramref name="source"/> or <paramref name="action"/> is null.</exception>
+        public static IObservable<Unit> Run<TSource>(this IObservable<TSource> source, Action<TSource> action, IScheduler scheduler = null)
+        {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            if (action == null) throw new ArgumentNullException(nameof(action));
+            
+            return source.SelectMany(element => Observable.Run(() => { action(element); }, scheduler));
+        }
+
+        /// <summary>
+        /// Projects each element of the <paramref name="source"/> sequence to the <typeparamref name="TTarget"/> type using the <paramref name="action"/> provided.
+        /// </summary>
+        /// <typeparam name="TSource">The type of the elements in the source sequence.</typeparam>
+        /// <typeparam name="TTarget">The target type of the projection.</typeparam>
+        /// <param name="source">Source sequence.</param>
+        /// <param name="action">Projection to invoke for each element in the observable sequence.</param>
+        /// <param name="scheduler">Scheduler to perform the <paramref name="action" /> on.</param>
+        /// <returns>
+        /// An observable sequence of <see cref="Unit" /> that signals the completion of an <paramref name="action" />.
+        /// </returns>
+        /// <exception cref="System.ArgumentNullException">
+        /// </exception>
+        /// <exception cref="T:System.ArgumentNullException"><paramref name="source" /> or <paramref name="action" /> is null.</exception>
+        public static IObservable<TTarget> Select<TSource, TTarget>(this IObservable<TSource> source, Func<TSource, TTarget> action, IScheduler scheduler = null)
+        {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            if (action == null) throw new ArgumentNullException(nameof(action));
+
+            return source.SelectMany(element => Observable.Run(() => action(element), scheduler));
+        }
+
+        /// <summary>
         /// Continues an observable sequence that is terminated by an exception of the specified type with a reconnection to the source, if wanted.
         /// </summary>
         /// <typeparam name="TSource">The type of the elements in the source sequence.</typeparam>
