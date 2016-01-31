@@ -77,7 +77,7 @@ namespace JB.Collections.Reactive
                                                     $"An error occured notifying observers of this {this.GetType().Name} - consistency and future notifications are no longer guaranteed.",
                                                     exception);
 
-                        UnhandledObserverExceptionsObserver.OnNext(observerException);
+                        ObserverExceptionsObserver.OnNext(observerException);
                     });
         }
 
@@ -118,28 +118,12 @@ namespace JB.Collections.Reactive
                     $"An error occured notifying {nameof(ListChanges)} observers of this {this.GetType().Name}.",
                     exception);
 
-                UnhandledObserverExceptionsObserver.OnNext(observerException);
+                ObserverExceptionsObserver.OnNext(observerException);
 
                 if (observerException.Handled == false)
                     throw;
             }
-
-            try
-            {
-                RaiseObservableListChanged(new ObservableListChangedEventArgs<T>(actualObservableListChange));
-            }
-            catch (Exception exception)
-            {
-                var observerException = new ObserverException(
-                    $"An error occured notifying {nameof(ObservableListChanged)} subscribers of this {this.GetType().Name}.",
-                    exception);
-
-                UnhandledObserverExceptionsObserver.OnNext(observerException);
-
-                if (observerException.Handled == false)
-                    throw;
-            }
-
+            
             if (actualObservableListChange.ChangeType == ObservableListChangeType.ItemMoved)
             {
                 try
@@ -152,7 +136,7 @@ namespace JB.Collections.Reactive
                                         $"An error occured notifying {nameof(PropertyChanged)} subscribers of this {this.GetType().Name}.",
                                         exception);
 
-                    UnhandledObserverExceptionsObserver.OnNext(observerException);
+                    ObserverExceptionsObserver.OnNext(observerException);
 
                     if (observerException.Handled == false)
                         throw;
@@ -528,62 +512,7 @@ namespace JB.Collections.Reactive
                     .SkipContinuouslyWhile(change => change.ChangeType == ObservableListChangeType.Reset && !IsTrackingResets);
             }
         }
-
-        /// <summary>
-        ///     The actual <see cref="ObservableListChanged" /> event.
-        /// </summary>
-        private EventHandler<ObservableListChangedEventArgs<T>> _observableListChanged;
-
-        /// <summary>
-        /// Occurs when the corresponding <see cref="T:JB.Collections.Reactive.IObservableList`1" /> changed.
-        /// This, contrary to <see cref="INotifyObservableCollectionChanges{T}.CollectionChanged"/>
-        /// also notifies about move operations inside the underlying list of items and provides index positions
-        /// per change event.
-        /// </summary>
-        [Obsolete("This shall be removed pre 1.0")]
-        public event EventHandler<ObservableListChangedEventArgs<T>> ObservableListChanged
-        {
-            add
-            {
-                CheckForAndThrowIfDisposed();
-                _observableListChanged += value;
-            }
-            remove
-            {
-                CheckForAndThrowIfDisposed();
-                _observableListChanged -= value;
-            }
-        }
-
-        /// <summary>
-        ///     Raises the <see cref="E:ObservableListChanged" /> event.
-        /// </summary>
-        /// <param name="observableListChangedEventArgs">
-        ///     The <see cref="ObservableListChangedEventArgs{T}" /> instance
-        ///     containing the event data.
-        /// </param>
-        protected virtual void RaiseObservableListChanged(ObservableListChangedEventArgs<T> observableListChangedEventArgs)
-        {
-            if (observableListChangedEventArgs == null) throw new ArgumentNullException(nameof(observableListChangedEventArgs));
-
-            if (IsDisposed || IsDisposing)
-                return;
-
-            // only raise event if it's currently allowed
-            if (!IsTrackingChanges
-                || (observableListChangedEventArgs.ChangeType == ObservableListChangeType.ItemChanged && !IsTrackingItemChanges)
-                || (observableListChangedEventArgs.ChangeType == ObservableListChangeType.Reset && !IsTrackingResets))
-            {
-                return;
-            }
-
-            var eventHandler = _observableListChanged;
-            if (eventHandler != null)
-            {
-                Scheduler.Schedule(() => eventHandler.Invoke(this, observableListChangedEventArgs));
-            }
-        }
-
+        
         #endregion
     }
 }

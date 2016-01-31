@@ -51,7 +51,7 @@ namespace JB.Collections.Reactive
         /// <value>
         /// The thrown exceptions observer.
         /// </value>
-        protected IObserver<ObserverException> UnhandledObserverExceptionsObserver { get; private set; }
+        protected IObserver<ObserverException> ObserverExceptionsObserver { get; private set; }
 
         /// <summary>
         /// Gets the dictionary changes observer.
@@ -802,7 +802,7 @@ namespace JB.Collections.Reactive
                         $"An error occured notifying {nameof(CountChanges)} Observers of this {this.GetType().Name}.",
                         exception);
 
-                    UnhandledObserverExceptionsObserver.OnNext(observerException);
+                    ObserverExceptionsObserver.OnNext(observerException);
 
                     if (observerException.Handled == false)
                         throw;
@@ -819,7 +819,7 @@ namespace JB.Collections.Reactive
                     $"An error occured notifying {nameof(DictionaryChanges)} Observers of this {this.GetType().Name}.",
                     exception);
 
-                UnhandledObserverExceptionsObserver.OnNext(observerException);
+                ObserverExceptionsObserver.OnNext(observerException);
 
                 if (observerException.Handled == false)
                     throw;
@@ -835,7 +835,7 @@ namespace JB.Collections.Reactive
                     $"An error occured notifying CollectionChanged Subscribers of this {this.GetType().Name}.",
                     exception);
 
-                UnhandledObserverExceptionsObserver.OnNext(observerException);
+                ObserverExceptionsObserver.OnNext(observerException);
 
                 if (observerException.Handled == false)
                     throw;
@@ -873,7 +873,7 @@ namespace JB.Collections.Reactive
         private void SetupObservablesAndObserversAndSubjects()
         {
             // prepare subjects for RX
-            UnhandledObserverExceptionsObserver = _unhandledObserverExceptionsSubject.NotifyOn(Scheduler);
+            ObserverExceptionsObserver = _unhandledObserverExceptionsSubject.NotifyOn(Scheduler);
             DictionaryChangesObserver = _dictionaryChangesSubject.NotifyOn(Scheduler);
             CountChangesObserver = _countChangesSubject.NotifyOn(Scheduler);
 
@@ -998,9 +998,9 @@ namespace JB.Collections.Reactive
                         _dictionaryChangesSubject = null;
                     }
 
-                    var thrownExceptionsObserverAsDisposable = UnhandledObserverExceptionsObserver as IDisposable;
+                    var thrownExceptionsObserverAsDisposable = ObserverExceptionsObserver as IDisposable;
                     thrownExceptionsObserverAsDisposable?.Dispose();
-                    UnhandledObserverExceptionsObserver = null;
+                    ObserverExceptionsObserver = null;
 
                     if (_unhandledObserverExceptionsSubject != null)
                     {

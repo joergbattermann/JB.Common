@@ -45,7 +45,7 @@ namespace JB.Collections.Reactive
         /// <value>
         /// The thrown exceptions observer.
         /// </value>
-        protected IObserver<ObserverException> UnhandledObserverExceptionsObserver { get; private set; }
+        protected IObserver<ObserverException> ObserverExceptionsObserver { get; private set; }
 
         /// <summary>
         /// Gets the collection changes observer.
@@ -548,7 +548,7 @@ namespace JB.Collections.Reactive
         /// </summary>
         private void SetupObservablesAndObserversAndSubjects()
         {
-            UnhandledObserverExceptionsObserver = _observerExceptionsSubject.NotifyOn(Scheduler);
+            ObserverExceptionsObserver = _observerExceptionsSubject.NotifyOn(Scheduler);
             CollectionChangesObserver = _collectionChangesSubject.NotifyOn(Scheduler);
             CountChangesObserver = _countChangesSubject.NotifyOn(Scheduler);
             
@@ -569,7 +569,7 @@ namespace JB.Collections.Reactive
                         var observerException = new ObserverException(
                             $"An error occured notifying observers of this {this.GetType().Name} - consistency and future notifications are no longer guaranteed.",
                             exception);
-                        UnhandledObserverExceptionsObserver.OnNext(observerException);
+                        ObserverExceptionsObserver.OnNext(observerException);
                     });
 
 
@@ -642,7 +642,7 @@ namespace JB.Collections.Reactive
                         $"An error occured notifying {nameof(CountChanges)} Observers of this {this.GetType().Name}.",
                         exception);
 
-                    UnhandledObserverExceptionsObserver.OnNext(observerException);
+                    ObserverExceptionsObserver.OnNext(observerException);
 
                     if (observerException.Handled == false)
                         throw;
@@ -659,7 +659,7 @@ namespace JB.Collections.Reactive
                     $"An error occured notifying {nameof(CollectionChanges)} Observers of this {this.GetType().Name}.",
                     exception);
 
-                UnhandledObserverExceptionsObserver.OnNext(observerException);
+                ObserverExceptionsObserver.OnNext(observerException);
 
                 if (observerException.Handled == false)
                     throw;
@@ -675,7 +675,7 @@ namespace JB.Collections.Reactive
                     $"An error occured notifying CollectionChanged Subscribers of this {this.GetType().Name}.",
                     exception);
 
-                UnhandledObserverExceptionsObserver.OnNext(observerException);
+                ObserverExceptionsObserver.OnNext(observerException);
 
                 if (observerException.Handled == false)
                     throw;
@@ -804,9 +804,9 @@ namespace JB.Collections.Reactive
                     _collectionChangesSubject = null;
                 }
 
-                var thrownExceptionsObserverAsDisposable = UnhandledObserverExceptionsObserver as IDisposable;
+                var thrownExceptionsObserverAsDisposable = ObserverExceptionsObserver as IDisposable;
                 thrownExceptionsObserverAsDisposable?.Dispose();
-                UnhandledObserverExceptionsObserver = null;
+                ObserverExceptionsObserver = null;
 
                 if (_observerExceptionsSubject != null)
                 {

@@ -3,13 +3,16 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Reactive.Concurrency;
+using System.Reactive.Linq;
 using JB.Collections.Reactive.ExtensionMethods;
-using JB.Reactive;
+using JB.Reactive.Linq;
 
 namespace JB.Collections.Reactive
 {
     public class ObservableBindingList<T> : ObservableList<T>, IObservableBindingList<T>
     {
+        private IDisposable _listChangesForwardingSubscription;
+
         /// <summary>
         /// Initializes a new instance of the <see cref="ObservableBindingList{T}" /> class.
         /// </summary>
@@ -19,33 +22,16 @@ namespace JB.Collections.Reactive
         public ObservableBindingList(IList<T> list = null, object syncRoot = null, IScheduler scheduler = null)
             : base(list, syncRoot, scheduler)
         {
-            ObservableListChanged += ObservableListChangedAsListChangedForwarder;
+            _listChangesForwardingSubscription = ListChanges
+                .ObserveOn(Scheduler ?? System.Reactive.Concurrency.Scheduler.CurrentThread)
+                .Do(listChange => RaiseListChanged(listChange.ToListChangedEventArgs()))
+                .CatchAndForward<IObservableListChange<T>, Exception>(
+                    ObserverExceptionsObserver,
+                    exception => $"An error occured notifying {nameof(ListChanged)} subscribers of this {this.GetType().Name}.",
+                    true)
+                .Subscribe();
         }
-
-        /// <summary>
-        /// Handles the CollectionChanged event of the underlying <see cref="ObservableList{T}"/>.
-        /// </summary>
-        /// <param name="sender">The source of the event.</param>
-        /// <param name="observableListChangedEventArgs">The <see cref="ObservableListChangedEventArgs{T}"/> instance containing the event data.</param>
-        private void ObservableListChangedAsListChangedForwarder(object sender, ObservableListChangedEventArgs<T> observableListChangedEventArgs)
-        {
-            try
-            {
-                RaiseListChanged(observableListChangedEventArgs.Change.ToListChangedEventArgs());
-            }
-            catch (Exception exception)
-            {
-                var observerException = new ObserverException(
-                    $"An error occured notifying {nameof(ListChanged)} subscribers of this {this.GetType().Name}.",
-                    exception);
-
-                UnhandledObserverExceptionsObserver.OnNext(observerException);
-
-                if (observerException.Handled == false)
-                    throw;
-            }
-        }
-
+        
         #region Overrides of ObservableList<T>
 
         /// <summary>
@@ -56,7 +42,8 @@ namespace JB.Collections.Reactive
         /// </param>
         protected override void Dispose(bool disposeManagedResources)
         {
-            ObservableListChanged -= ObservableListChangedAsListChangedForwarder;
+            _listChangesForwardingSubscription?.Dispose();
+            _listChangesForwardingSubscription = null;
 
             base.Dispose(disposeManagedResources);
         }
