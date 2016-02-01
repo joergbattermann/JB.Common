@@ -271,7 +271,7 @@ namespace JB.Reactive.Cache.Tests
                 testScheduler.AdvanceBy(1);
 
                 // then
-                updatedExpiration.Should().Be(TimeSpan.FromTicks((3 * expiresAtTicks) + tickAtTimeOfUpdate - tickAtTimeOfExpirationCheck));
+                updatedExpiration.Ticks.Should().Be((3 * expiresAtTicks) + tickAtTimeOfUpdate - tickAtTimeOfExpirationCheck);
             }
         }
 
