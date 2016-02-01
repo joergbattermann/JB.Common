@@ -232,7 +232,7 @@ namespace JB.Reactive.Cache.Tests
         }
 
         [Fact]
-        public void ShouldUpdateExpirationCorrectlyForExistingItem()
+        public async Task ShouldUpdateExpirationCorrectlyForExistingItem()
         {
             // given
             var testScheduler = new TestScheduler();
@@ -268,6 +268,7 @@ namespace JB.Reactive.Cache.Tests
                         tickAtTimeOfExpirationCheck = scheduler.Now.Ticks;
                         updatedExpiration = await cache.ExpiresIn(1);
                     });
+
                 testScheduler.AdvanceBy(1);
 
                 // then
