@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reactive;
 using System.Reactive.Concurrency;
 using System.Threading.Tasks;
 using FluentAssertions;
@@ -232,7 +233,7 @@ namespace JB.Reactive.Cache.Tests
         }
 
         [Fact]
-        public async Task ShouldUpdateExpirationCorrectlyForExistingItem()
+        public void ShouldUpdateExpirationCorrectlyForExistingItem()
         {
             // given
             var expirationScheduler = new TestScheduler();
@@ -241,40 +242,42 @@ namespace JB.Reactive.Cache.Tests
 
             using (var cache = new ObservableInMemoryCache<int, string>(expirationScheduler: expirationScheduler))
             {
-                workerScheduler.Start();
-                expirationScheduler.ScheduleAsync(
-                    TimeSpan.Zero,
-                    async (scheduler, token) =>
+                var workerObserver = workerScheduler.CreateObserver<Unit>();
+                expirationScheduler.Schedule(
+                    TimeSpan.Zero, _ =>
                     {
-                        await cache.Add(1, "One", TimeSpan.FromTicks(expiresAtTicks), ObservableCacheExpirationType.DoNothing, workerScheduler);
+                        cache.Add(1, "One", TimeSpan.FromTicks(expiresAtTicks), ObservableCacheExpirationType.DoNothing, workerScheduler).Subscribe(workerObserver);
+                        workerScheduler.AdvanceBy(2);
                     });
 
                 // when
                 long tickAtTimeOfUpdate = -1; // this 'remembers' the virtual time the expiration update took place
-                TimeSpan updatedExpiration = default(TimeSpan);
-                expirationScheduler.ScheduleAsync(
-                    TimeSpan.FromTicks(1),
-                    async (scheduler, token) =>
-                    {
-                        tickAtTimeOfUpdate = scheduler.Now.Ticks;
-                        await cache.UpdateExpiration(1, TimeSpan.FromTicks(3 * expiresAtTicks), scheduler: workerScheduler);
+                expirationScheduler.Schedule(
+                    TimeSpan.FromTicks(5),
+                    _ =>
+                    { 
+                        cache.UpdateExpiration(1, TimeSpan.FromTicks(2 * expiresAtTicks), scheduler: workerScheduler).Subscribe(workerObserver);
+                        workerScheduler.AdvanceBy(2);
                     });
 
                 // when
-                expirationScheduler.AdvanceBy(expiresAtTicks);
+                expirationScheduler.AdvanceBy(5);
 
-                long tickAtTimeOfExpirationCheck = -1; // this 'remembers' the virtual time the expiration check took place
-                expirationScheduler.ScheduleAsync(
-                    async (scheduler, token) =>
+                var expirationUpdateObserver = workerScheduler.CreateObserver<TimeSpan>();
+                expirationScheduler.Schedule(
+                    TimeSpan.FromTicks(5),
+                    _ =>
                     {
-                        tickAtTimeOfExpirationCheck = scheduler.Now.Ticks;
-                        updatedExpiration = await cache.ExpiresIn(1, workerScheduler);
+                        cache.ExpiresIn(1, workerScheduler).Subscribe(expirationUpdateObserver);
+                        workerScheduler.AdvanceBy(2);
                     });
 
-                expirationScheduler.AdvanceBy(1);
+                expirationScheduler.AdvanceBy(5);
 
                 // then
-                updatedExpiration.Ticks.Should().Be((3 * expiresAtTicks) + tickAtTimeOfUpdate - tickAtTimeOfExpirationCheck);
+                expirationUpdateObserver.Messages.Count.Should().Be(2);
+                expirationUpdateObserver.Messages.First().Value.Value.Ticks.Should().Be(15);
+                //updatedExpiration.Ticks.Should().Be((3 * expiresAtTicks) + tickAtTimeOfUpdate - tickAtTimeOfExpirationCheck);
             }
         }
 
