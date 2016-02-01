@@ -209,27 +209,27 @@ namespace JB.Reactive.Cache.Tests
             }
         }
 
-        //    [Fact]
-        //    public async Task ShouldContainAllCurrentValues()
-        //    {
-        //        // given
-        //        using (var cache = new ObservableInMemoryCache<int, string>())
-        //        {
-        //            await cache.Add(1, "One");
-        //            await cache.Add(2, "Two");
-        //            await cache.Add(3, "Three");
+        [Fact]
+        public async Task ShouldContainAllCurrentValues()
+        {
+            // given
+            using (var cache = new ObservableInMemoryCache<int, string>())
+            {
+                await cache.Add(1, "One");
+                await cache.Add(2, "Two");
+                await cache.Add(3, "Three");
 
-        //            // when
-        //            var values = cache.CurrentValues;
+                // when
+                var values = cache.CurrentValues;
 
-        //            // then
-        //            values.Count.Should().Be(3);
+                // then
+                values.Count.Should().Be(3);
 
-        //            values.Should().Contain("One");
-        //            values.Should().Contain("Two");
-        //            values.Should().Contain("Three");
-        //        }
-        //    }
+                values.Should().Contain("One");
+                values.Should().Contain("Two");
+                values.Should().Contain("Three");
+            }
+        }
 
         //    [Fact]
         //    public void ShouldUpdateExpirationCorrectlyForExistingItem()
