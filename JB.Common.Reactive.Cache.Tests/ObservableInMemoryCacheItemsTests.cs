@@ -231,49 +231,49 @@ namespace JB.Reactive.Cache.Tests
             }
         }
 
-        //    [Fact]
-        //    public void ShouldUpdateExpirationCorrectlyForExistingItem()
-        //    {
-        //        // given
-        //        var testScheduler = new TestScheduler();
-        //        var expiresAtTicks = 10;
+        [Fact]
+        public void ShouldUpdateExpirationCorrectlyForExistingItem()
+        {
+            // given
+            var testScheduler = new TestScheduler();
+            var expiresAtTicks = 10;
 
-        //        using (var cache = new ObservableInMemoryCache<int, string>(expirationScheduler: testScheduler))
-        //        {
-        //            testScheduler.ScheduleAsync(
-        //                TimeSpan.Zero,
-        //                async (scheduler, token) =>
-        //                {
-        //                    await cache.Add(1, "One", TimeSpan.FromTicks(expiresAtTicks), ObservableCacheExpirationType.DoNothing);
-        //                });
+            using (var cache = new ObservableInMemoryCache<int, string>(expirationScheduler: testScheduler))
+            {
+                testScheduler.ScheduleAsync(
+                    TimeSpan.Zero,
+                    async (scheduler, token) =>
+                    {
+                        await cache.Add(1, "One", TimeSpan.FromTicks(expiresAtTicks), ObservableCacheExpirationType.DoNothing);
+                    });
 
-        //            // when
-        //            long tickAtTimeOfUpdate = -1; // this 'remembers' the virtual time the expiration update took place
-        //            TimeSpan updatedExpiration = default(TimeSpan);
-        //            testScheduler.ScheduleAsync(
-        //                TimeSpan.FromTicks(1),
-        //                async (scheduler, token) =>
-        //                {
-        //                    tickAtTimeOfUpdate = scheduler.Now.Ticks;
-        //                    await cache.UpdateExpiration(1, TimeSpan.FromTicks(3 * expiresAtTicks));
-        //                });
+                // when
+                long tickAtTimeOfUpdate = -1; // this 'remembers' the virtual time the expiration update took place
+                TimeSpan updatedExpiration = default(TimeSpan);
+                testScheduler.ScheduleAsync(
+                    TimeSpan.FromTicks(1),
+                    async (scheduler, token) =>
+                    {
+                        tickAtTimeOfUpdate = scheduler.Now.Ticks;
+                        await cache.UpdateExpiration(1, TimeSpan.FromTicks(3 * expiresAtTicks));
+                    });
 
-        //            // when
-        //            testScheduler.AdvanceBy(expiresAtTicks);
+                // when
+                testScheduler.AdvanceBy(expiresAtTicks);
 
-        //            long tickAtTimeOfExpirationCheck = -1; // this 'remembers' the virtual time the expiration check took place
-        //            testScheduler.ScheduleAsync(
-        //                async (scheduler, token) =>
-        //                {
-        //                    tickAtTimeOfExpirationCheck = scheduler.Now.Ticks;
-        //                    updatedExpiration = await cache.ExpiresIn(1);
-        //                });
-        //            testScheduler.AdvanceBy(1);
+                long tickAtTimeOfExpirationCheck = -1; // this 'remembers' the virtual time the expiration check took place
+                testScheduler.ScheduleAsync(
+                    async (scheduler, token) =>
+                    {
+                        tickAtTimeOfExpirationCheck = scheduler.Now.Ticks;
+                        updatedExpiration = await cache.ExpiresIn(1);
+                    });
+                testScheduler.AdvanceBy(1);
 
-        //            // then
-        //            updatedExpiration.Should().Be(TimeSpan.FromTicks((3 * expiresAtTicks) + tickAtTimeOfUpdate - tickAtTimeOfExpirationCheck));
-        //        }
-        //    }
+                // then
+                updatedExpiration.Should().Be(TimeSpan.FromTicks((3 * expiresAtTicks) + tickAtTimeOfUpdate - tickAtTimeOfExpirationCheck));
+            }
+        }
 
         //    [Fact]
         //    public async Task ShouldExpireInAndAtProvideAccurateFutureNowAndPastExpirationInformation()
