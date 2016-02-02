@@ -6,7 +6,6 @@ using System.Reactive.Concurrency;
 using System.Threading.Tasks;
 using FluentAssertions;
 using System.Reactive.Linq;
-using JB.Collections;
 using Microsoft.Reactive.Testing;
 using Xunit;
 
@@ -277,103 +276,129 @@ namespace JB.Reactive.Cache.Tests
                 // then
                 expirationUpdateObserver.Messages.Count.Should().Be(2);
                 expirationUpdateObserver.Messages.First().Value.Value.Ticks.Should().Be(15);
-                //updatedExpiration.Ticks.Should().Be((3 * expiresAtTicks) + tickAtTimeOfUpdate - tickAtTimeOfExpirationCheck);
             }
         }
 
-        //    [Fact]
-        //    public async Task ShouldExpireInAndAtProvideAccurateFutureNowAndPastExpirationInformation()
-        //    {
-        //        // given
-        //        var testScheduler = new TestScheduler();
-        //        var expiresAtTicks = 10;
+        [Fact]
+        public async Task ShouldExpireInAndAtProvideAccurateFutureNowAndPastExpirationInformation()
+        {
+            // given
+            var expirationScheduler = new TestScheduler();
+            var workerScheduler = new TestScheduler();
 
-        //        using (var cache = new ObservableInMemoryCache<int, string>(expirationScheduler: testScheduler))
-        //        {
-        //            await cache.Add(1, "One", TimeSpan.FromTicks(expiresAtTicks), ObservableCacheExpirationType.DoNothing);
+            var expiresInObserver = workerScheduler.CreateObserver<TimeSpan>();
+            var expiresAtObserver = workerScheduler.CreateObserver<DateTime>();
 
-        //            // when
-        //            var expiresIn = await cache.ExpiresIn(1);
-        //            var expiresAt = await cache.ExpiresAt(1);
+            var expiresAtTicks = 10;
 
-        //            // then
-        //            expiresIn.ShouldBeEquivalentTo(TimeSpan.FromTicks(expiresAtTicks));
-        //            expiresAt.ShouldBeEquivalentTo(testScheduler.Now.UtcDateTime.AddTicks(expiresAtTicks));
+            using (var cache = new ObservableInMemoryCache<int, string>(expirationScheduler: expirationScheduler))
+            {
+                cache.Add(1, "One", TimeSpan.FromTicks(expiresAtTicks), ObservableCacheExpirationType.DoNothing, workerScheduler).Subscribe();
+                expirationScheduler.AdvanceBy(1);
+                workerScheduler.AdvanceBy(2);
+                
+                // when
+                cache.ExpiresIn(1, workerScheduler).Subscribe(expiresInObserver);
+                workerScheduler.AdvanceBy(2);
 
-        //            // and when
-        //            testScheduler.AdvanceBy(expiresAtTicks);
-        //            expiresIn = await cache.ExpiresIn(1);
-        //            expiresAt = await cache.ExpiresAt(1);
+                cache.ExpiresAt(1, workerScheduler).Subscribe(expiresAtObserver);
+                workerScheduler.AdvanceBy(2);
 
-        //            // then
-        //            expiresIn.ShouldBeEquivalentTo(TimeSpan.Zero);
-        //            expiresAt.ShouldBeEquivalentTo(testScheduler.Now.UtcDateTime);
+                // then
+                expiresInObserver.Messages.Count.Should().Be(2);
+                expiresAtObserver.Messages.Count.Should().Be(2);
 
-        //            // and finally when
-        //            testScheduler.AdvanceBy(expiresAtTicks);
-        //            expiresIn = await cache.ExpiresIn(1);
-        //            expiresAt = await cache.ExpiresAt(1);
+                expiresInObserver.Messages.First().Value.Value.ShouldBeEquivalentTo(TimeSpan.FromTicks(expiresAtTicks));
+                expiresAtObserver.Messages.First().Value.Value.ShouldBeEquivalentTo(expirationScheduler.Now.UtcDateTime.AddTicks(expiresAtTicks));
 
-        //            // then
-        //            expiresIn.ShouldBeEquivalentTo(TimeSpan.FromTicks(expiresAtTicks * -1));
-        //            expiresAt.ShouldBeEquivalentTo(testScheduler.Now.UtcDateTime.Subtract(TimeSpan.FromTicks(expiresAtTicks)));
-        //        }
-        //    }
+                // and when
+                expiresInObserver.Messages.Clear();
+                expiresAtObserver.Messages.Clear();
+                expirationScheduler.AdvanceBy(expiresAtTicks);
 
-        //    [Fact]
-        //    public void ShouldExpireAndKeepSingleElementForDoNothingExpiryType()
-        //    {
-        //        // given
-        //        var testScheduler = new TestScheduler();
-        //        var expirationTimeoutInTicks = 10;
+                cache.ExpiresIn(1, workerScheduler).Subscribe(expiresInObserver);
+                workerScheduler.AdvanceBy(2);
 
-        //        using (var cache = new ObservableInMemoryCache<int, string>(expiredElementsHandlingChillPeriod: TimeSpan.FromTicks(expirationTimeoutInTicks)))
-        //        {
-        //            testScheduler.ScheduleAsync(
-        //                TimeSpan.Zero,
-        //                async (scheduler, token) =>
-        //                {
-        //                    await cache.Add(1, "One", TimeSpan.Zero, ObservableCacheExpirationType.DoNothing);
-        //                });
+                cache.ExpiresAt(1, workerScheduler).Subscribe(expiresAtObserver);
+                workerScheduler.AdvanceBy(2);
 
-        //            // when
-        //            testScheduler.AdvanceBy(expirationTimeoutInTicks * 10);
+                // then
+                expiresInObserver.Messages.Count.Should().Be(2);
+                expiresAtObserver.Messages.Count.Should().Be(2);
 
-        //            // then
-        //            cache.Count.Should().Be(1);
-        //        }
-        //    }
+                expiresInObserver.Messages.First().Value.Value.ShouldBeEquivalentTo(TimeSpan.Zero);
+                expiresAtObserver.Messages.First().Value.Value.ShouldBeEquivalentTo(expirationScheduler.Now.UtcDateTime);
 
-        //    [Fact]
-        //    public void ShouldThrowKeyHasExpiredExceptionOnGetAfterKeyHasExpiredWithDoNothingExpiryType()
-        //    {
-        //        // given
-        //        var testScheduler = new TestScheduler();
-        //        var initialTestSchedulerDateTime = testScheduler.Now.DateTime;
-        //        var expirationTimeoutInTicks = 10;
 
-        //        using (var cache = new ObservableInMemoryCache<int, string>(expirationScheduler: testScheduler, expiredElementsHandlingChillPeriod: TimeSpan.FromTicks(expirationTimeoutInTicks)))
-        //        {
-        //            testScheduler.ScheduleAsync(
-        //                TimeSpan.Zero,
-        //                async (scheduler, token) =>
-        //                {
-        //                    await cache.Add(1, "One", TimeSpan.Zero, ObservableCacheExpirationType.DoNothing);
-        //                });
+                // and finally when
+                expiresInObserver.Messages.Clear();
+                expiresAtObserver.Messages.Clear();
+                expirationScheduler.AdvanceBy(expiresAtTicks);
 
-        //            // when
-        //            testScheduler.AdvanceBy(expirationTimeoutInTicks * 10);
-        //            Func<Task> action = async () =>
-        //            {
-        //                await cache.Get(1);
-        //            };
+                cache.ExpiresIn(1, workerScheduler).Subscribe(expiresInObserver);
+                workerScheduler.AdvanceBy(2);
 
-        //            // then
-        //            action
-        //                .ShouldThrow<KeyHasExpiredException<int>>()
-        //                .WithMessage($"The key has expired on {initialTestSchedulerDateTime}.");
-        //        }
-        //    }
+                cache.ExpiresAt(1, workerScheduler).Subscribe(expiresAtObserver);
+                workerScheduler.AdvanceBy(2);
+
+                // then
+                expiresInObserver.Messages.Count.Should().Be(2);
+                expiresAtObserver.Messages.Count.Should().Be(2);
+
+                expiresInObserver.Messages.First().Value.Value.ShouldBeEquivalentTo(TimeSpan.FromTicks(expiresAtTicks * -1));
+                expiresAtObserver.Messages.First().Value.Value.ShouldBeEquivalentTo(expirationScheduler.Now.UtcDateTime.Subtract(TimeSpan.FromTicks(expiresAtTicks)));
+            }
+        }
+
+        [Fact]
+        public void ShouldExpireAndKeepSingleElementForDoNothingExpiryType()
+        {
+            // given
+            var testScheduler = new TestScheduler();
+            var expirationTimeoutInTicks = 10;
+
+            using (var cache = new ObservableInMemoryCache<int, string>(expiredElementsHandlingChillPeriod: TimeSpan.FromTicks(expirationTimeoutInTicks)))
+            {
+                cache.Add(1, "One", TimeSpan.Zero, ObservableCacheExpirationType.DoNothing).Subscribe();
+
+                // when
+                testScheduler.AdvanceBy(expirationTimeoutInTicks * 10);
+
+                // then
+                cache.Count.Should().Be(1);
+            }
+        }
+
+        [Fact]
+        public void ShouldThrowKeyHasExpiredExceptionOnGetAfterKeyHasExpiredWithDoNothingExpiryType()
+        {
+            // given
+            var expirationScheduler = new TestScheduler();
+            var workerScheduler = new TestScheduler();
+
+            var initialTestSchedulerDateTime = expirationScheduler.Now.DateTime;
+            var expirationTimeoutInTicks = 10;
+
+            using (var cache = new ObservableInMemoryCache<int, string>(expirationScheduler: expirationScheduler, expiredElementsHandlingChillPeriod: TimeSpan.FromTicks(expirationTimeoutInTicks)))
+            {
+                cache.Add(1, "One", TimeSpan.Zero, ObservableCacheExpirationType.DoNothing, workerScheduler).Subscribe();
+                workerScheduler.AdvanceBy(2);
+
+                // when
+                expirationScheduler.AdvanceBy(expirationTimeoutInTicks * 10);
+
+                // and
+                var valueObserver = workerScheduler.CreateObserver<string>();
+                cache.Get(1, true, workerScheduler).Subscribe(valueObserver);
+                workerScheduler.AdvanceBy(2);
+
+                // then
+                valueObserver.Messages.Count.Should().Be(1);
+                valueObserver.Messages.First().Value.Kind.Should().Be(NotificationKind.OnError);
+                valueObserver.Messages.First().Value.Exception.Should().BeOfType<KeyHasExpiredException<int>>();
+                valueObserver.Messages.First().Value.Exception.Message.Should().Be($"The key has expired on {initialTestSchedulerDateTime}.");
+            }
+        }
 
         //    [Fact]
         //    public void ShouldThrowKeyHasExpiredExceptionOnUpdateAfterKeyHasExpiredWithDoNothingExpiryType()
