@@ -280,7 +280,7 @@ namespace JB.Reactive.Cache.Tests
         }
 
         [Fact]
-        public async Task ShouldExpireInAndAtProvideAccurateFutureNowAndPastExpirationInformation()
+        public void ShouldExpireInAndAtProvideAccurateFutureNowAndPastExpirationInformation()
         {
             // given
             var expirationScheduler = new TestScheduler();
@@ -400,119 +400,115 @@ namespace JB.Reactive.Cache.Tests
             }
         }
 
-        //    [Fact]
-        //    public void ShouldThrowKeyHasExpiredExceptionOnUpdateAfterKeyHasExpiredWithDoNothingExpiryType()
-        //    {
-        //        // given
-        //        var testScheduler = new TestScheduler();
-        //        var initialTestSchedulerDateTime = testScheduler.Now.DateTime;
-        //        var expirationTimeoutInTicks = 10;
+        [Fact]
+        public void ShouldThrowKeyHasExpiredExceptionOnUpdateAfterKeyHasExpiredWithDoNothingExpiryType()
+        {
+            // given
+            var expirationScheduler = new TestScheduler();
+            var workerScheduler = new TestScheduler();
 
-        //        using (var cache = new ObservableInMemoryCache<int, string>(expirationScheduler: testScheduler, expiredElementsHandlingChillPeriod: TimeSpan.FromTicks(expirationTimeoutInTicks)))
-        //        {
-        //            testScheduler.ScheduleAsync(
-        //                TimeSpan.Zero,
-        //                async (scheduler, token) =>
-        //                {
-        //                    await cache.Add(1, "One", TimeSpan.Zero, ObservableCacheExpirationType.DoNothing);
-        //                });
+            var initialTestSchedulerDateTime = expirationScheduler.Now.DateTime;
+            var expirationTimeoutInTicks = 10;
 
-        //            // when
-        //            testScheduler.AdvanceBy(expirationTimeoutInTicks * 10);
-        //            Func<Task> action = async () =>
-        //            {
-        //                await cache.Update(1, "ONE");
-        //            };
+            using (var cache = new ObservableInMemoryCache<int, string>(expirationScheduler: expirationScheduler, expiredElementsHandlingChillPeriod: TimeSpan.FromTicks(expirationTimeoutInTicks)))
+            {
+                cache.Add(1, "One", TimeSpan.Zero, ObservableCacheExpirationType.DoNothing, workerScheduler).Subscribe();
+                workerScheduler.AdvanceBy(2);
 
-        //            // then
-        //            action
-        //                .ShouldThrow<KeyHasExpiredException<int>>()
-        //                .WithMessage($"The key has expired on {initialTestSchedulerDateTime}.");
-        //        }
-        //    }
+                // when
+                expirationScheduler.AdvanceBy(expirationTimeoutInTicks * 10);
 
-        //    [Fact]
-        //    public void ShouldNotThrowKeyHasExpiredExceptionOnGetIfWantedAfterKeyHasExpiredWithDoNothingExpiryType()
-        //    {
-        //        // given
-        //        var testScheduler = new TestScheduler();
-        //        var expirationTimeoutInTicks = 10;
+                // and
+                var observer = workerScheduler.CreateObserver<Unit>();
+                cache.Update(1, "ONE", true, workerScheduler).Subscribe(observer);
+                workerScheduler.AdvanceBy(2);
 
-        //        using (var cache = new ObservableInMemoryCache<int, string>(expiredElementsHandlingChillPeriod: TimeSpan.FromTicks(expirationTimeoutInTicks)))
-        //        {
-        //            testScheduler.ScheduleAsync(
-        //                TimeSpan.Zero,
-        //                async (scheduler, token) =>
-        //                {
-        //                    await cache.Add(1, "One", TimeSpan.Zero, ObservableCacheExpirationType.DoNothing);
-        //                });
+                // then
+                observer.Messages.Count.Should().Be(1);
+                observer.Messages.First().Value.Kind.Should().Be(NotificationKind.OnError);
+                observer.Messages.First().Value.Exception.Should().BeOfType<KeyHasExpiredException<int>>();
+                observer.Messages.First().Value.Exception.Message.Should().Be($"The key has expired on {initialTestSchedulerDateTime}.");
+            }
+        }
 
-        //            // when
-        //            testScheduler.AdvanceBy(expirationTimeoutInTicks * 10);
-        //            Func<Task> action = async () =>
-        //            {
-        //                await cache.Get(1, false);
-        //            };
+        [Fact]
+        public void ShouldNotThrowKeyHasExpiredExceptionOnGetIfWantedAfterKeyHasExpiredWithDoNothingExpiryType()
+        {
+            // given
+            var expirationScheduler = new TestScheduler();
+            var workerScheduler = new TestScheduler();
+            
+            var expirationTimeoutInTicks = 10;
 
-        //            // then
-        //            action
-        //                .ShouldNotThrow<KeyHasExpiredException<int>>();
-        //        }
-        //    }
+            using (var cache = new ObservableInMemoryCache<int, string>(expirationScheduler: expirationScheduler, expiredElementsHandlingChillPeriod: TimeSpan.FromTicks(expirationTimeoutInTicks)))
+            {
+                cache.Add(1, "One", TimeSpan.Zero, ObservableCacheExpirationType.DoNothing, workerScheduler).Subscribe();
+                workerScheduler.AdvanceBy(2);
 
-        //    [Fact]
-        //    public void ShouldExpireAndRemoveSingleElementForRemovalExpiryType()
-        //    {
-        //        // given
-        //        var testScheduler = new TestScheduler();
-        //        var expirationTimeoutInTicks = 10;
+                // when
+                expirationScheduler.AdvanceBy(expirationTimeoutInTicks * 10);
 
-        //        using (var cache = new ObservableInMemoryCache<int, string>(expirationScheduler: testScheduler, expiredElementsHandlingChillPeriod: TimeSpan.FromTicks(expirationTimeoutInTicks)))
-        //        {
-        //            testScheduler.ScheduleAsync(
-        //                TimeSpan.Zero,
-        //                async (scheduler, token) =>
-        //                {
-        //                    await cache.Add(1, "One", TimeSpan.FromTicks(1), ObservableCacheExpirationType.Remove);
-        //                });
+                // and
+                var valueObserver = workerScheduler.CreateObserver<string>();
+                cache.Get(1, false, workerScheduler).Subscribe(valueObserver);
+                workerScheduler.AdvanceBy(2);
 
-        //            // when
-        //            testScheduler.AdvanceBy(expirationTimeoutInTicks);
+                // then
+                valueObserver.Messages.Count.Should().Be(2);
+                valueObserver.Messages.First().Value.Kind.Should().Be(NotificationKind.OnNext);
+                valueObserver.Messages.Last().Value.Kind.Should().Be(NotificationKind.OnCompleted);
 
-        //            // then
-        //            cache.Count.Should().Be(0);
-        //        }
-        //    }
+                valueObserver.Messages.First().Value.Value.Should().Be("One");
+            }
+        }
 
-        //    [Fact]
-        //    public async Task ShouldExpireAndUpdateSingleElementWithSingleKeyUpdaterFuncForUpdateExpiryType()
-        //    {
-        //        // given
-        //        var testScheduler = new TestScheduler();
-        //        var expirationTimeoutInTicks = 10;
+        [Fact]
+        public void ShouldExpireAndRemoveSingleElementForRemovalExpiryType()
+        {
+            // given
+            var testScheduler = new TestScheduler();
+            var expirationTimeoutInTicks = 10;
 
-        //        Func<int, string> singleKeyUpdater = (i) => i.ToString();
+            using (var cache = new ObservableInMemoryCache<int, string>(expirationScheduler: testScheduler, expiredElementsHandlingChillPeriod: TimeSpan.FromTicks(expirationTimeoutInTicks)))
+            {
+                cache.Add(1, "One", TimeSpan.FromTicks(1), ObservableCacheExpirationType.Remove).Subscribe();
 
-        //        using (var cache = new ObservableInMemoryCache<int, string>(singleKeyRetrievalFunction: singleKeyUpdater, expiredElementsHandlingChillPeriod: TimeSpan.FromTicks(expirationTimeoutInTicks), expirationScheduler: testScheduler))
-        //        {
-        //            testScheduler.ScheduleAsync(
-        //                TimeSpan.Zero,
-        //                async (scheduler, token) =>
-        //                {
-        //                    await cache.Add(1, "One", TimeSpan.Zero, ObservableCacheExpirationType.Update);
-        //                });
+                // when
+                testScheduler.AdvanceBy(expirationTimeoutInTicks);
 
+                // then
+                cache.Count.Should().Be(0);
+            }
+        }
 
-        //            // when
-        //            testScheduler.AdvanceBy(expirationTimeoutInTicks);
+        [Fact]
+        public void ShouldExpireAndUpdateSingleElementWithSingleKeyUpdaterFuncForUpdateExpiryType()
+        {
+            // given
+            var workerScheduler = new TestScheduler();
+            var expirationScheduler = new TestScheduler();
+            var expirationTimeoutInTicks = 10;
 
-        //            // then
-        //            var updatedValue = await cache.Get(1);
+            Func<int, string> singleKeyUpdater = (i) => i.ToString();
 
-        //            cache.Count.Should().Be(1);
-        //            updatedValue.Should().Be("1");
-        //        }
-        //    }
+            using (var cache = new ObservableInMemoryCache<int, string>(singleKeyRetrievalFunction: singleKeyUpdater, expiredElementsHandlingChillPeriod: TimeSpan.FromTicks(expirationTimeoutInTicks), expirationScheduler: expirationScheduler))
+            {
+                cache.Add(1, "One", TimeSpan.Zero, ObservableCacheExpirationType.Update).Subscribe();
+
+                // when
+                expirationScheduler.AdvanceBy(expirationTimeoutInTicks);
+
+                // then
+                var updatedValueGetObserver = workerScheduler.CreateObserver<string>();
+                cache.Get(1, true, workerScheduler).Subscribe(updatedValueGetObserver);
+                workerScheduler.AdvanceBy(2);
+
+                cache.Count.Should().Be(1);
+
+                updatedValueGetObserver.Messages.Count.Should().Be(2);
+                updatedValueGetObserver.Messages.First().Value.Value.Should().Be("1");
+            }
+        }
 
         //    [Fact]
         //    public async Task ShouldExpireAndUpdateMultipleElementsWithSingleKeyUpdaterFuncForUpdateExpiryType()
