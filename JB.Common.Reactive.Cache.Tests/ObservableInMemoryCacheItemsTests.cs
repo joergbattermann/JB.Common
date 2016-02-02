@@ -510,37 +510,38 @@ namespace JB.Reactive.Cache.Tests
             }
         }
 
-        //    [Fact]
-        //    public async Task ShouldExpireAndUpdateMultipleElementsWithSingleKeyUpdaterFuncForUpdateExpiryType()
-        //    {
-        //        // given
-        //        var testScheduler = new TestScheduler();
-        //        var expirationTimeoutInTicks = 10;
+        [Fact]
+        public void ShouldExpireAndUpdateMultipleElementsWithSingleKeyUpdaterFuncForUpdateExpiryType()
+        {
+            // given
+            var workerScheduler = new TestScheduler();
+            var expirationScheduler = new TestScheduler();
+            var expirationTimeoutInTicks = 10;
 
-        //        Func<int, string> singleKeyUpdater = (i) => i.ToString();
+            Func<int, string> singleKeyUpdater = (i) => i.ToString();
 
-        //        using (var cache = new ObservableInMemoryCache<int, string>(singleKeyRetrievalFunction: singleKeyUpdater, expiredElementsHandlingChillPeriod: TimeSpan.FromTicks(expirationTimeoutInTicks), expirationScheduler: testScheduler))
-        //        {
-        //            testScheduler.ScheduleAsync(
-        //                TimeSpan.Zero,
-        //                async (scheduler, token) =>
-        //                {
-        //                    await cache.Add(1, "One", TimeSpan.Zero, ObservableCacheExpirationType.Update);
-        //                    await cache.Add(2, "Two", TimeSpan.Zero, ObservableCacheExpirationType.Update);
-        //                });
+            using (var cache = new ObservableInMemoryCache<int, string>(singleKeyRetrievalFunction: singleKeyUpdater, expiredElementsHandlingChillPeriod: TimeSpan.FromTicks(expirationTimeoutInTicks), expirationScheduler: expirationScheduler))
+            {
+                cache.Add(1, "One", TimeSpan.Zero, ObservableCacheExpirationType.Update, workerScheduler).Subscribe();
+                cache.Add(2, "Two", TimeSpan.Zero, ObservableCacheExpirationType.Update, workerScheduler).Subscribe();
+                workerScheduler.AdvanceBy(4);
 
-        //            // when
-        //            testScheduler.AdvanceBy(expirationTimeoutInTicks);
+                // when
+                expirationScheduler.AdvanceBy(expirationTimeoutInTicks);
 
-        //            // then
-        //            var updatedValueOne = await cache.Get(1);
-        //            var updatedValueTwo = await cache.Get(2);
+                // then
+                var updatedValueGetObserver = workerScheduler.CreateObserver<string>();
+                cache.Get(1, true, workerScheduler).Subscribe(updatedValueGetObserver);
+                cache.Get(2, true, workerScheduler).Subscribe(updatedValueGetObserver);
+                workerScheduler.AdvanceBy(4);
 
-        //            cache.Count.Should().Be(2);
-        //            updatedValueOne.Should().Be("1");
-        //            updatedValueTwo.Should().Be("2");
-        //        }
-        //    }
+                cache.Count.Should().Be(2);
+
+                updatedValueGetObserver.Messages.Count.Should().Be(4);
+                updatedValueGetObserver.Messages[0].Value.Value.Should().Be("1");
+                updatedValueGetObserver.Messages[2].Value.Value.Should().Be("2");
+            }
+        }
 
         //    [Fact]
         //    public async Task ShouldExpireAndUpdateSingleElementWithMultipleKeyUpdaterFuncForUpdateExpiryType()
@@ -753,96 +754,104 @@ namespace JB.Reactive.Cache.Tests
         //        }
         //    }
 
-        //    [Fact]
-        //    public async Task ShouldThrowOnAddingOfItemWithExistingKey()
-        //    {
-        //        // given
-        //        using (var cache = new ObservableInMemoryCache<int, string>())
-        //        {
-        //            await cache.Add(1, "One", TimeSpan.MaxValue);
+        [Fact]
+        public void ShouldThrowOnAddingOfItemWithExistingKey()
+        {
+            // given
+            var workerScheduler = new TestScheduler();
+            using (var cache = new ObservableInMemoryCache<int, string>())
+            {
+                cache.Add(1, "One", TimeSpan.MaxValue, scheduler: workerScheduler).Subscribe();
+                workerScheduler.AdvanceBy(2);
 
-        //            // when
-        //            Func<Task> action = async () =>
-        //            {
-        //                await cache.Add(1, "One", TimeSpan.MaxValue);
-        //            };
+                // when
+                var observer = workerScheduler.CreateObserver<Unit>();
+                cache.Add(1, "ReallyOne", TimeSpan.MaxValue, scheduler: workerScheduler).Subscribe(observer);
+                workerScheduler.AdvanceBy(2);
 
-        //            // then
-        //            action.ShouldThrow<ArgumentException>().WithMessage("The key already existed in the dictionary.");
-        //        }
-        //    }
+                // then
+                observer.Messages.Count.Should().Be(1);
+                observer.Messages.First().Value.Kind.Should().Be(NotificationKind.OnError);
+                observer.Messages.First().Value.Exception.Should().BeOfType<ArgumentException>();
+                observer.Messages.First().Value.Exception.Message.Should().Be("The key already existed in the dictionary.");
+            }
+        }
 
-        //    [Fact]
-        //    public async Task ShouldThrowOnRemovalOfNonExistingKey()
-        //    {
-        //        // given
-        //        using (var cache = new ObservableInMemoryCache<int, string>())
-        //        {
-        //            await cache.Add(1, "One", TimeSpan.MaxValue);
+        [Fact]
+        public void ShouldThrowOnRemovalOfNonExistingKey()
+        {
+            // given
+            var workerScheduler = new TestScheduler();
+            using (var cache = new ObservableInMemoryCache<int, string>())
+            {
+                // when
+                var observer = workerScheduler.CreateObserver<Unit>();
+                cache.Remove(1, workerScheduler).Subscribe(observer);
+                workerScheduler.AdvanceBy(2);
 
-        //            // when
-        //            Func<Task> action = async () =>
-        //            {
-        //                await cache.Remove(2);
-        //            };
+                // then
+                observer.Messages.Count.Should().Be(1);
+                observer.Messages.First().Value.Kind.Should().Be(NotificationKind.OnError);
+                observer.Messages.First().Value.Exception.Should().BeOfType<KeyNotFoundException>();
+            }
+        }
 
-        //            // then
-        //            action.ShouldThrow<KeyNotFoundException>();
-        //        }
-        //    }
+        [Fact]
+        public void ShouldThrowOnGetOfNonExistingKey()
+        {
+            // given
+            var workerScheduler = new TestScheduler();
+            using (var cache = new ObservableInMemoryCache<int, string>())
+            {
+                // when
+                var observer = workerScheduler.CreateObserver<string>();
+                cache.Get(1, true, workerScheduler).Subscribe(observer);
+                workerScheduler.AdvanceBy(2);
 
-        //    [Fact]
-        //    public async Task ShouldThrowOnGetOfNonExistingKey()
-        //    {
-        //        // given
-        //        using (var cache = new ObservableInMemoryCache<int, string>())
-        //        {
-        //            await cache.Add(1, "One", TimeSpan.MaxValue);
+                // then
+                observer.Messages.Count.Should().Be(1);
+                observer.Messages.First().Value.Kind.Should().Be(NotificationKind.OnError);
+                observer.Messages.First().Value.Exception.Should().BeOfType<KeyNotFoundException>();
+            }
+        }
 
-        //            // when
-        //            Func<Task> action = async () =>
-        //            {
-        //                await cache.Get(2);
-        //            };
+        [Fact]
+        public void ShouldThrowOnExpiresInOfNonExistingKey()
+        {
+            // given
+            var workerScheduler = new TestScheduler();
+            using (var cache = new ObservableInMemoryCache<int, string>())
+            {
+                // when
+                var observer = workerScheduler.CreateObserver<TimeSpan>();
+                cache.ExpiresIn(1, workerScheduler).Subscribe(observer);
+                workerScheduler.AdvanceBy(2);
 
-        //            // then
-        //            action.ShouldThrow<KeyNotFoundException>();
-        //        }
-        //    }
+                // then
+                observer.Messages.Count.Should().Be(1);
+                observer.Messages.First().Value.Kind.Should().Be(NotificationKind.OnError);
+                observer.Messages.First().Value.Exception.Should().BeOfType<KeyNotFoundException>();
+            }
+        }
 
-        //    [Fact]
-        //    public void ShouldThrowOnExpiresInOfNonExistingKey()
-        //    {
-        //        // given
-        //        using (var cache = new ObservableInMemoryCache<int, string>())
-        //        {
-        //            // when
-        //            Func<Task> action = async () =>
-        //            {
-        //                await cache.ExpiresIn(2);
-        //            };
+        [Fact]
+        public void ShouldThrowOnExpiresAtOfNonExistingKey()
+        {
+            // given
+            var workerScheduler = new TestScheduler();
+            using (var cache = new ObservableInMemoryCache<int, string>())
+            {
+                // when
+                var observer = workerScheduler.CreateObserver<DateTime>();
+                cache.ExpiresAt(1, workerScheduler).Subscribe(observer);
+                workerScheduler.AdvanceBy(2);
 
-        //            // then
-        //            action.ShouldThrow<KeyNotFoundException>();
-        //        }
-        //    }
-
-        //    [Fact]
-        //    public void ShouldThrowOnExpiresAtOfNonExistingKey()
-        //    {
-        //        // given
-        //        using (var cache = new ObservableInMemoryCache<int, string>())
-        //        {
-        //            // when
-        //            Func<Task> action = async () =>
-        //            {
-        //                await cache.ExpiresAt(2);
-        //            };
-
-        //            // then
-        //            action.ShouldThrow<KeyNotFoundException>();
-        //        }
-        //    }
+                // then
+                observer.Messages.Count.Should().Be(1);
+                observer.Messages.First().Value.Kind.Should().Be(NotificationKind.OnError);
+                observer.Messages.First().Value.Exception.Should().BeOfType<KeyNotFoundException>();
+            }
+        }
 
         //    [Fact]
         //    public async Task ShouldNotifySubscribersAboutValueChangesWhileItemsAreInCache()
