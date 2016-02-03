@@ -6,6 +6,7 @@ using System.Reactive.Concurrency;
 using System.Threading.Tasks;
 using FluentAssertions;
 using System.Reactive.Linq;
+using JB.Collections;
 using Microsoft.Reactive.Testing;
 using Xunit;
 
@@ -543,216 +544,204 @@ namespace JB.Reactive.Cache.Tests
             }
         }
 
-        //    [Fact]
-        //    public async Task ShouldExpireAndUpdateSingleElementWithMultipleKeyUpdaterFuncForUpdateExpiryType()
-        //    {
-        //        // given
-        //        var testScheduler = new TestScheduler();
-        //        var expirationTimeoutInTicks = 10;
+        [Fact]
+        public void ShouldExpireAndUpdateSingleElementWithMultipleKeyUpdaterFuncForUpdateExpiryType()
+        {
+            // given
+            var workerScheduler = new TestScheduler();
+            var expirationScheduler = new TestScheduler();
+            var expirationTimeoutInTicks = 10;
 
-        //        Func<IEnumerable<int>, IEnumerable<KeyValuePair<int, string>>> multipleKeysUpdater = (ints) => { return ints.ToDictionary(i => i, i => i.ToString()); };
+            Func<IEnumerable<int>, IEnumerable<KeyValuePair<int, string>>> multipleKeysUpdater = (ints) => { return ints.ToDictionary(i => i, i => i.ToString()); };
 
-        //        using (var cache = new ObservableInMemoryCache<int, string>(multipleKeysRetrievalFunction: multipleKeysUpdater, expiredElementsHandlingChillPeriod: TimeSpan.FromTicks(expirationTimeoutInTicks), expirationScheduler: testScheduler))
-        //        {
-        //            testScheduler.ScheduleAsync(
-        //                TimeSpan.Zero,
-        //                async (scheduler, token) =>
-        //                {
-        //                    await cache.Add(1, "One", TimeSpan.Zero, ObservableCacheExpirationType.Update);
-        //                });
+            using (var cache = new ObservableInMemoryCache<int, string>(multipleKeysRetrievalFunction: multipleKeysUpdater, expiredElementsHandlingChillPeriod: TimeSpan.FromTicks(expirationTimeoutInTicks), expirationScheduler: expirationScheduler))
+            {
+                cache.Add(1, "One", TimeSpan.Zero, ObservableCacheExpirationType.Update, workerScheduler).Subscribe();
+                workerScheduler.AdvanceBy(2);
 
-        //            // when
-        //            testScheduler.AdvanceBy(expirationTimeoutInTicks);
+                // when
+                expirationScheduler.AdvanceBy(expirationTimeoutInTicks);
 
-        //            // then
-        //            var updatedValue = await cache.Get(1);
+                // then
+                var getObserver = workerScheduler.CreateObserver<string>();
+                cache.Get(1, true, workerScheduler).Subscribe(getObserver);
+                workerScheduler.AdvanceBy(2);
 
-        //            cache.Count.Should().Be(1);
-        //            updatedValue.Should().Be("1");
-        //        }
-        //    }
+                cache.Count.Should().Be(1);
+                getObserver.Messages.Count.Should().Be(2);
+                getObserver.Messages.First().Value.Value.Should().Be("1");
+            }
+        }
 
-        //    [Fact]
-        //    public async Task ShouldExpireAndUpdateMultipleElementsWithMultipleKeyUpdaterFuncForUpdateExpiryType()
-        //    {
-        //        // given
-        //        var testScheduler = new TestScheduler();
-        //        var expirationTimeoutInTicks = 10;
+        [Fact]
+        public async Task ShouldExpireAndUpdateMultipleElementsWithMultipleKeyUpdaterFuncForUpdateExpiryType()
+        {
+            // given
+            var workerScheduler = new TestScheduler();
+            var expirationScheduler = new TestScheduler();
+            var expirationTimeoutInTicks = 10;
 
-        //        Func<IEnumerable<int>, IEnumerable<KeyValuePair<int, string>>> multipleKeysUpdater = (ints) => { return ints.ToDictionary(i => i, i => i.ToString()); };
+            Func<IEnumerable<int>, IEnumerable<KeyValuePair<int, string>>> multipleKeysUpdater = (ints) => { return ints.ToDictionary(i => i, i => i.ToString()); };
 
-        //        using (var cache = new ObservableInMemoryCache<int, string>(multipleKeysRetrievalFunction: multipleKeysUpdater, expiredElementsHandlingChillPeriod: TimeSpan.FromTicks(expirationTimeoutInTicks), expirationScheduler: testScheduler))
-        //        {
-        //            testScheduler.ScheduleAsync(
-        //                TimeSpan.Zero,
-        //                async (scheduler, token) =>
-        //                {
-        //                    await cache.Add(1, "One", TimeSpan.Zero, ObservableCacheExpirationType.Update);
-        //                    await cache.Add(2, "Two", TimeSpan.Zero, ObservableCacheExpirationType.Update);
-        //                });
+            using (var cache = new ObservableInMemoryCache<int, string>(multipleKeysRetrievalFunction: multipleKeysUpdater, expiredElementsHandlingChillPeriod: TimeSpan.FromTicks(expirationTimeoutInTicks), expirationScheduler: expirationScheduler))
+            {
+                cache.Add(1, "One", TimeSpan.Zero, ObservableCacheExpirationType.Update, workerScheduler).Subscribe();
+                cache.Add(2, "Two", TimeSpan.Zero, ObservableCacheExpirationType.Update, workerScheduler).Subscribe();
+                workerScheduler.AdvanceBy(4);
 
-        //            // when
-        //            testScheduler.AdvanceBy(expirationTimeoutInTicks);
+                // when
+                expirationScheduler.AdvanceBy(expirationTimeoutInTicks);
 
-        //            // then
-        //            var updatedValueOne = await cache.Get(1);
-        //            var updatedValueTwo = await cache.Get(2);
+                // then
+                var getObserver = workerScheduler.CreateObserver<string>();
 
-        //            cache.Count.Should().Be(2);
-        //            updatedValueOne.Should().Be("1");
-        //            updatedValueTwo.Should().Be("2");
-        //        }
-        //    }
+                cache.Get(1, true, workerScheduler).Subscribe(getObserver);
+                cache.Get(2, true, workerScheduler).Subscribe(getObserver);
+                workerScheduler.AdvanceBy(4);
 
-        //    [Fact]
-        //    public void ShouldThrowAggregateExceptionWhenMultipleKeyUpdaterFuncDoesNotReturnUpdatedValuesForMultipleKeysForUpdateExpiryType()
-        //    {
-        //        // given
-        //        var testScheduler = new TestScheduler();
-        //        var expirationTimeoutInTicks = 10;
-        //        var exceptionsObserver = testScheduler.CreateObserver<ObserverException>();
+                cache.Count.Should().Be(2);
+                getObserver.Messages.Count.Should().Be(4);
+                getObserver.Messages[0].Value.Value.Should().Be("1");
+                getObserver.Messages[2].Value.Value.Should().Be("2");
+            }
+        }
 
-        //        Func<IEnumerable<int>, IEnumerable<KeyValuePair<int, string>>> multipleKeysUpdater = (ints) => { return ints.ToDictionary(i => i * 10, i => (i * 20).ToString()); };
+        [Fact]
+        public void ShouldThrowAggregateExceptionWhenMultipleKeyUpdaterFuncDoesNotReturnUpdatedValuesForMultipleKeysForUpdateExpiryType()
+        {
+            // given
+            var workerScheduler = new TestScheduler();
+            var expirationScheduler = new TestScheduler();
+            var expirationTimeoutInTicks = 10;
 
-        //        using (var cache = new ObservableInMemoryCache<int, string>(multipleKeysRetrievalFunction: multipleKeysUpdater, expiredElementsHandlingChillPeriod: TimeSpan.FromTicks(expirationTimeoutInTicks), expirationScheduler: testScheduler, throwOnExpirationHandlingExceptions: false))
-        //        {
-        //            cache.ObserverExceptions.Subscribe(exceptionsObserver);
+            var exceptionsObserver = expirationScheduler.CreateObserver<ObserverException>();
 
-        //            testScheduler.ScheduleAsync(
-        //                TimeSpan.Zero,
-        //                async (scheduler, token) =>
-        //                {
-        //                    await cache.Add(1, "One", TimeSpan.Zero, ObservableCacheExpirationType.Update);
-        //                    await cache.Add(2, "Two", TimeSpan.Zero, ObservableCacheExpirationType.Update);
-        //                });
+            Func<IEnumerable<int>, IEnumerable<KeyValuePair<int, string>>> multipleKeysUpdater = (ints) => { return ints.ToDictionary(i => i * 10, i => (i * 20).ToString()); };
 
-        //            // when
-        //            testScheduler.AdvanceBy(expirationTimeoutInTicks);
+            using (var cache = new ObservableInMemoryCache<int, string>(multipleKeysRetrievalFunction: multipleKeysUpdater, expiredElementsHandlingChillPeriod: TimeSpan.FromTicks(expirationTimeoutInTicks), expirationScheduler: expirationScheduler, throwOnExpirationHandlingExceptions: false))
+            {
+                cache.ObserverExceptions.Subscribe(exceptionsObserver);
 
-        //            // then
-        //            exceptionsObserver.Messages.Count.Should().Be(1);
-        //            exceptionsObserver.Messages.Last().Should().NotBeNull();
-        //            exceptionsObserver.Messages.Last().Value.Value.InnerException.Should().NotBeNull().And.BeOfType<AggregateException>();
-        //            exceptionsObserver.Messages.Last().Value.Value.InnerException.As<AggregateException>().InnerExceptions.Count.Should().Be(2);
-        //            exceptionsObserver.Messages.Last().Value.Value.InnerException.As<AggregateException>().InnerExceptions.First().Should().BeOfType<KeyNotFoundException<int>>();
-        //            exceptionsObserver.Messages.Last().Value.Value.InnerException.As<AggregateException>().InnerExceptions.Last().Should().BeOfType<KeyNotFoundException<int>>();
-        //            exceptionsObserver.Messages.Last().Value.Value.InnerException.As<AggregateException>().InnerExceptions.First().As<KeyNotFoundException<int>>().Key.Should().Be(1);
-        //            exceptionsObserver.Messages.Last().Value.Value.InnerException.As<AggregateException>().InnerExceptions.Last().As<KeyNotFoundException<int>>().Key.Should().Be(2);
-        //        }
-        //    }
+                cache.Add(1, "One", TimeSpan.Zero, ObservableCacheExpirationType.Update, workerScheduler).Subscribe();
+                cache.Add(2, "Two", TimeSpan.Zero, ObservableCacheExpirationType.Update, workerScheduler).Subscribe();
+                workerScheduler.AdvanceBy(4);
 
-        //    [Fact]
-        //    public void ShouldThrowKeyNotFoundExceptionWhenMultipleKeyUpdaterFuncDoesNotReturnOneUpdatedValueForMultipleKeysForUpdateExpiryType()
-        //    {
-        //        // given
-        //        var testScheduler = new TestScheduler();
-        //        var expirationTimeoutInTicks = 10;
-        //        var exceptionsObserver = testScheduler.CreateObserver<ObserverException>();
+                // when
+                expirationScheduler.AdvanceBy(expirationTimeoutInTicks);
 
-        //        Func<IEnumerable<int>, IEnumerable<KeyValuePair<int, string>>> multipleKeysUpdater = (ints) => { return ints.Skip(1).ToDictionary(i => i, i => i.ToString()); };
+                // then
+                exceptionsObserver.Messages.Count.Should().Be(1);
+                exceptionsObserver.Messages.Last().Should().NotBeNull();
+                exceptionsObserver.Messages.Last().Value.Value.InnerException.Should().NotBeNull().And.BeOfType<AggregateException>();
+                exceptionsObserver.Messages.Last().Value.Value.InnerException.As<AggregateException>().InnerExceptions.Count.Should().Be(2);
+                exceptionsObserver.Messages.Last().Value.Value.InnerException.As<AggregateException>().InnerExceptions.First().Should().BeOfType<KeyNotFoundException<int>>();
+                exceptionsObserver.Messages.Last().Value.Value.InnerException.As<AggregateException>().InnerExceptions.Last().Should().BeOfType<KeyNotFoundException<int>>();
+                exceptionsObserver.Messages.Last().Value.Value.InnerException.As<AggregateException>().InnerExceptions.First().As<KeyNotFoundException<int>>().Key.Should().Be(1);
+                exceptionsObserver.Messages.Last().Value.Value.InnerException.As<AggregateException>().InnerExceptions.Last().As<KeyNotFoundException<int>>().Key.Should().Be(2);
+            }
+        }
 
-        //        using (var cache = new ObservableInMemoryCache<int, string>(multipleKeysRetrievalFunction: multipleKeysUpdater, expiredElementsHandlingChillPeriod: TimeSpan.FromTicks(expirationTimeoutInTicks), expirationScheduler: testScheduler, throwOnExpirationHandlingExceptions: false))
-        //        {
-        //            cache.ObserverExceptions.Subscribe(exceptionsObserver);
+        [Fact]
+        public void ShouldThrowKeyNotFoundExceptionWhenMultipleKeyUpdaterFuncDoesNotReturnOneUpdatedValueForMultipleKeysForUpdateExpiryType()
+        {
+            // given
+            var workerScheduler = new TestScheduler();
+            var expirationScheduler = new TestScheduler();
+            var expirationTimeoutInTicks = 10;
 
-        //            testScheduler.ScheduleAsync(
-        //                TimeSpan.Zero,
-        //                async (scheduler, token) =>
-        //                {
-        //                    await cache.Add(1, "One", TimeSpan.Zero, ObservableCacheExpirationType.Update);
-        //                    await cache.Add(2, "Two", TimeSpan.Zero, ObservableCacheExpirationType.Update);
-        //                });
+            var exceptionsObserver = expirationScheduler.CreateObserver<ObserverException>();
 
-        //            // when
-        //            testScheduler.AdvanceBy(expirationTimeoutInTicks);
+            Func<IEnumerable<int>, IEnumerable<KeyValuePair<int, string>>> multipleKeysUpdater = (ints) => { return ints.Skip(1).ToDictionary(i => i, i => i.ToString()); };
 
-        //            // then
-        //            exceptionsObserver.Messages.Count.Should().Be(1);
-        //            exceptionsObserver.Messages.Last().Should().NotBeNull();
-        //            exceptionsObserver.Messages.Last().Value.Value.InnerException.Should().NotBeNull().And.BeOfType<KeyNotFoundException<int>>();
-        //            exceptionsObserver.Messages.Last().Value.Value.InnerException.As<KeyNotFoundException<int>>().Key.Should().Be(1);
-        //        }
-        //    }
+            using (var cache = new ObservableInMemoryCache<int, string>(multipleKeysRetrievalFunction: multipleKeysUpdater, expiredElementsHandlingChillPeriod: TimeSpan.FromTicks(expirationTimeoutInTicks), expirationScheduler: expirationScheduler, throwOnExpirationHandlingExceptions: false))
+            {
+                cache.ObserverExceptions.Subscribe(exceptionsObserver);
 
-        //    [Fact]
-        //    public void ShouldNotExpireElementWithCorrespondingExpiryTime()
-        //    {
-        //        // given
-        //        var testScheduler = new TestScheduler();
-        //        var expirationTimeoutInTicks = 10;
+                cache.Add(1, "One", TimeSpan.Zero, ObservableCacheExpirationType.Update, workerScheduler).Subscribe();
+                cache.Add(2, "Two", TimeSpan.Zero, ObservableCacheExpirationType.Update, workerScheduler).Subscribe();
+                workerScheduler.AdvanceBy(4);
 
-        //        using (var cache = new ObservableInMemoryCache<int, string>(expiredElementsHandlingChillPeriod: TimeSpan.FromTicks(expirationTimeoutInTicks), expirationScheduler: testScheduler))
-        //        {
-        //            testScheduler.ScheduleAsync(
-        //                TimeSpan.Zero,
-        //                async (scheduler, token) =>
-        //                {
-        //                    await cache.Add(1, "One", TimeSpan.Zero, ObservableCacheExpirationType.Remove);
-        //                    await cache.Add(2, "Two", TimeSpan.FromDays(10), ObservableCacheExpirationType.Remove);
-        //                });
+                // when
+                expirationScheduler.AdvanceBy(expirationTimeoutInTicks);
 
-        //            // when
-        //            testScheduler.AdvanceBy(expirationTimeoutInTicks);
+                // then
+                exceptionsObserver.Messages.Count.Should().Be(1);
+                exceptionsObserver.Messages.Last().Should().NotBeNull();
+                exceptionsObserver.Messages.Last().Value.Value.InnerException.Should().NotBeNull().And.BeOfType<KeyNotFoundException<int>>();
+                exceptionsObserver.Messages.Last().Value.Value.InnerException.As<KeyNotFoundException<int>>().Key.Should().Be(1);
+            }
+        }
 
-        //            // then
-        //            cache.Count.Should().Be(1);
-        //        }
-        //    }
+        [Fact]
+        public void ShouldNotExpireElementWithCorrespondingExpiryTime()
+        {
+            // given
+            var workerScheduler = new TestScheduler();
+            var expirationScheduler = new TestScheduler();
+            var expirationTimeoutInTicks = 10;
 
-        //    [Fact]
-        //    public void ShouldExpireElementWithCorrespondingExpiryTimeWhenDue()
-        //    {
-        //        // given
-        //        var testScheduler = new TestScheduler();
-        //        var expirationTimeoutInTicks = 10;
+            using (var cache = new ObservableInMemoryCache<int, string>(expiredElementsHandlingChillPeriod: TimeSpan.FromTicks(expirationTimeoutInTicks), expirationScheduler: expirationScheduler))
+            {
+                cache.Add(1, "One", TimeSpan.Zero, ObservableCacheExpirationType.Remove, workerScheduler).Subscribe();
+                cache.Add(2, "Two", TimeSpan.FromDays(10), ObservableCacheExpirationType.Remove, workerScheduler).Subscribe();
+                workerScheduler.AdvanceBy(4);
+                
+                // when
+                expirationScheduler.AdvanceBy(expirationTimeoutInTicks);
 
-        //        using (var cache = new ObservableInMemoryCache<int, string>(expiredElementsHandlingChillPeriod: TimeSpan.FromTicks(expirationTimeoutInTicks), expirationScheduler: testScheduler))
-        //        {
-        //            testScheduler.ScheduleAsync(
-        //                TimeSpan.Zero,
-        //                async (scheduler, token) =>
-        //                {
-        //                    await cache.Add(1, "One", TimeSpan.FromTicks(expirationTimeoutInTicks), ObservableCacheExpirationType.Remove);
-        //                });
+                // then
+                cache.Count.Should().Be(1);
+            }
+        }
 
-        //            // when
-        //            testScheduler.AdvanceBy(expirationTimeoutInTicks);
+        [Fact]
+        public void ShouldExpireElementWithCorrespondingExpiryTimeWhenDue()
+        {
+            // given
+            var workerScheduler = new TestScheduler();
+            var expirationScheduler = new TestScheduler();
+            var expirationTimeoutInTicks = 10;
 
-        //            // then
-        //            cache.Count.Should().Be(1);
+            using (var cache = new ObservableInMemoryCache<int, string>(expiredElementsHandlingChillPeriod: TimeSpan.FromTicks(expirationTimeoutInTicks), expirationScheduler: expirationScheduler))
+            {
+                cache.Add(1, "One", TimeSpan.FromTicks(expirationTimeoutInTicks), ObservableCacheExpirationType.Remove, workerScheduler).Subscribe();
+                workerScheduler.AdvanceBy(2);
+                
+                // when
+                expirationScheduler.AdvanceBy(expirationTimeoutInTicks);
 
-        //            // but when
-        //            testScheduler.AdvanceBy(expirationTimeoutInTicks);
+                // then
+                cache.Count.Should().Be(1);
 
-        //            // then
-        //            cache.Count.Should().Be(0);
-        //        }
-        //    }
+                // but when
+                expirationScheduler.AdvanceBy(expirationTimeoutInTicks);
 
-        //    [Fact]
-        //    public void ShouldExpireAndRemoveMultipleElementsWithDifferentExpiryTimesForRemovalExpiryType()
-        //    {
-        //        // given
-        //        var testScheduler = new TestScheduler();
-        //        var expirationTimeoutInTicks = 10;
+                // then
+                cache.Count.Should().Be(0);
+            }
+        }
 
-        //        using (var cache = new ObservableInMemoryCache<int, string>(expiredElementsHandlingChillPeriod: TimeSpan.FromTicks(expirationTimeoutInTicks), expirationScheduler: testScheduler))
-        //        {
-        //            testScheduler.ScheduleAsync(
-        //                TimeSpan.Zero,
-        //                async (scheduler, token) =>
-        //                {
-        //                    await cache.Add(1, "One", TimeSpan.FromTicks(1), ObservableCacheExpirationType.Remove);
-        //                    await cache.Add(2, "Two", TimeSpan.FromTicks(2), ObservableCacheExpirationType.Remove);
-        //                });
+        [Fact]
+        public void ShouldExpireAndRemoveMultipleElementsWithDifferentExpiryTimesForRemovalExpiryType()
+        {
+            // given
+            var workerScheduler = new TestScheduler();
+            var expirationScheduler = new TestScheduler();
+            var expirationTimeoutInTicks = 10;
 
-        //            // when
-        //            testScheduler.AdvanceBy(expirationTimeoutInTicks);
+            using (var cache = new ObservableInMemoryCache<int, string>(expiredElementsHandlingChillPeriod: TimeSpan.FromTicks(expirationTimeoutInTicks), expirationScheduler: expirationScheduler))
+            {
+                cache.Add(1, "One", TimeSpan.FromTicks(1), ObservableCacheExpirationType.Remove, workerScheduler).Subscribe();
+                cache.Add(2, "Two", TimeSpan.FromTicks(2), ObservableCacheExpirationType.Remove, workerScheduler).Subscribe();
+                workerScheduler.AdvanceBy(4);
 
-        //            // then
-        //            cache.Count.Should().Be(0);
-        //        }
-        //    }
+                // when
+                expirationScheduler.AdvanceBy(expirationTimeoutInTicks);
+
+                // then
+                cache.Count.Should().Be(0);
+            }
+        }
 
         [Fact]
         public void ShouldThrowOnAddingOfItemWithExistingKey()
