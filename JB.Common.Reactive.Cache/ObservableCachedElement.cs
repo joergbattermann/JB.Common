@@ -45,14 +45,10 @@ namespace JB.Reactive.Cache
         {
             get
             {
-                CheckForAndThrowIfDisposed(false);
-
                 return Interlocked.Read(ref _hasExpired) == 1;
             }
             protected set
             {
-                CheckForAndThrowIfDisposed();
-
                 if (Equals(value, HasExpired))
                     return;
                
@@ -211,7 +207,7 @@ namespace JB.Reactive.Cache
                                         RemoveKeyAndValueFromPropertyChangedHandling();
                                         HasExpired = true;
                                     }
-
+                                    
                                     expirationObserver.OnNext(this);
                                 }
                                 catch (Exception exception)
@@ -428,8 +424,6 @@ namespace JB.Reactive.Cache
         /// </summary>
         protected virtual void RemoveKeyAndValueFromPropertyChangedHandling()
         {
-            CheckForAndThrowIfDisposed();
-
             var keyAsINotifyPropertyChanged = (Key as INotifyPropertyChanged);
             if (keyAsINotifyPropertyChanged != null)
                 keyAsINotifyPropertyChanged.PropertyChanged -= OnPropertyChanged;

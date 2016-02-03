@@ -181,7 +181,7 @@ namespace JB.Reactive.Cache.Tests
         }
 
         [Fact]
-        public async Task ShouldProvideExistingAndAddedKeys()
+        public void ShouldProvideExistingAndAddedKeys()
         {
             // given
             var testScheduler = new TestScheduler();
@@ -574,7 +574,7 @@ namespace JB.Reactive.Cache.Tests
         }
 
         [Fact]
-        public async Task ShouldExpireAndUpdateMultipleElementsWithMultipleKeyUpdaterFuncForUpdateExpiryType()
+        public void ShouldExpireAndUpdateMultipleElementsWithMultipleKeyUpdaterFuncForUpdateExpiryType()
         {
             // given
             var workerScheduler = new TestScheduler();
@@ -824,6 +824,41 @@ namespace JB.Reactive.Cache.Tests
         }
 
         [Fact]
+        public void ShouldNotExpireCachedElementsOfDisposedCache()
+        {
+            // given
+            var expirationScheduler = new TestScheduler();
+            var workerScheduler = new TestScheduler();
+
+            var cache = new ObservableInMemoryCache<int, string>(expirationScheduler: expirationScheduler);
+            cache.Add(1, "One", TimeSpan.FromTicks(5), ObservableCacheExpirationType.Remove, workerScheduler).Subscribe();
+            workerScheduler.AdvanceBy(2);
+            
+            // when
+            cache.Dispose();
+            cache = null;
+
+            Action action = () => { expirationScheduler.AdvanceBy(10); };
+
+            // then
+            action.ShouldNotThrow<ObjectDisposedException>();
+            
+
+            //using ()
+            //{
+            //    // when
+            //    var observer = expirationScheduler.CreateObserver<DateTime>();
+            //    cache.ExpiresAt(1, expirationScheduler).Subscribe(observer);
+            //    expirationScheduler.AdvanceBy(2);
+
+            //    // then
+            //    observer.Messages.Count.Should().Be(1);
+            //    observer.Messages.First().Value.Kind.Should().Be(NotificationKind.OnError);
+            //    observer.Messages.First().Value.Exception.Should().BeOfType<KeyNotFoundException>();
+            //}
+        }
+
+        [Fact]
         public void ShouldThrowOnExpiresAtOfNonExistingKey()
         {
             // given
@@ -842,135 +877,139 @@ namespace JB.Reactive.Cache.Tests
             }
         }
 
-        //    [Fact]
-        //    public async Task ShouldNotifySubscribersAboutValueChangesWhileItemsAreInCache()
-        //    {
-        //        // given
-        //        var notificationScheduler = new TestScheduler();
+        [Fact]
+        public void ShouldNotifySubscribersAboutValueChangesWhileItemsAreInCache()
+        {
+            // given
+            var notificationScheduler = new TestScheduler();
+            var workerScheduler = new TestScheduler();
 
-        //        int key = 1;
-        //        var testInpcImplementationInstance = new MyNotifyPropertyChanged<int, string>(key);
+            int key = 1;
+            var testInpcImplementationInstance = new MyNotifyPropertyChanged<int, string>(key);
 
-        //        var changesObserver = notificationScheduler.CreateObserver<IObservableCacheChange<int, MyNotifyPropertyChanged<int, string>>>();
-        //        var valueChangesObserver = notificationScheduler.CreateObserver<IObservableCacheChange<int, MyNotifyPropertyChanged<int, string>>>();
+            var changesObserver = notificationScheduler.CreateObserver<IObservableCacheChange<int, MyNotifyPropertyChanged<int, string>>>();
+            var valueChangesObserver = notificationScheduler.CreateObserver<IObservableCacheChange<int, MyNotifyPropertyChanged<int, string>>>();
 
-        //        using (var cache = new ObservableInMemoryCache<int, MyNotifyPropertyChanged<int, string>>(notificationScheduler: notificationScheduler))
-        //        {
-        //            cache.ThresholdAmountWhenChangesAreNotifiedAsReset = int.MaxValue;
+            using (var cache = new ObservableInMemoryCache<int, MyNotifyPropertyChanged<int, string>>(notificationScheduler: notificationScheduler))
+            {
+                cache.ThresholdAmountWhenChangesAreNotifiedAsReset = int.MaxValue;
 
-        //            IDisposable cacheChangesSubscription = null;
-        //            IDisposable valueChangesSubscription = null;
+                IDisposable cacheChangesSubscription = null;
+                IDisposable valueChangesSubscription = null;
 
-        //            try
-        //            {
-        //                cacheChangesSubscription = cache.Changes.Subscribe(changesObserver);
-        //                valueChangesSubscription = cache.ValueChanges.Subscribe(valueChangesObserver);
+                try
+                {
+                    cacheChangesSubscription = cache.Changes.Subscribe(changesObserver);
+                    valueChangesSubscription = cache.ValueChanges.Subscribe(valueChangesObserver);
 
-        //                // when
-        //                await cache.Add(key, testInpcImplementationInstance);
-        //                notificationScheduler.AdvanceBy(2);
+                    // when
+                    cache.Add(key, testInpcImplementationInstance, workerScheduler).Subscribe();
+                    workerScheduler.AdvanceBy(2);
+                    notificationScheduler.AdvanceBy(2);
 
-        //                // then
-        //                changesObserver.Messages.Count.Should().Be(1);
-        //                changesObserver.Messages.First().Value.Value.ChangeType.Should().Be(ObservableCacheChangeType.ItemAdded);
-        //                changesObserver.Messages.First().Value.Value.Key.Should().Be(key);
-        //                changesObserver.Messages.First().Value.Value.Value.Should().Be(testInpcImplementationInstance);
+                    // then
+                    changesObserver.Messages.Count.Should().Be(1);
+                    changesObserver.Messages.First().Value.Value.ChangeType.Should().Be(ObservableCacheChangeType.ItemAdded);
+                    changesObserver.Messages.First().Value.Value.Key.Should().Be(key);
+                    changesObserver.Messages.First().Value.Value.Value.Should().Be(testInpcImplementationInstance);
 
-        //                valueChangesObserver.Messages.Count.Should().Be(0);
+                    valueChangesObserver.Messages.Count.Should().Be(0);
 
-        //                // and when
-        //                testInpcImplementationInstance.FirstProperty = Guid.NewGuid().ToString();
+                    // and when
+                    testInpcImplementationInstance.FirstProperty = Guid.NewGuid().ToString();
 
-        //                notificationScheduler.AdvanceBy(2);
+                    notificationScheduler.AdvanceBy(2);
 
-        //                // then
-        //                changesObserver.Messages.Count.Should().Be(2);
-        //                valueChangesObserver.Messages.Count.Should().Be(1);
+                    // then
+                    changesObserver.Messages.Count.Should().Be(2);
+                    valueChangesObserver.Messages.Count.Should().Be(1);
 
-        //                changesObserver.Messages.Last().Value.Value.ChangeType.Should().Be(ObservableCacheChangeType.ItemValueChanged);
-        //                changesObserver.Messages.Last().Value.Value.Key.Should().Be(1);
-        //                changesObserver.Messages.Last().Value.Value.Value.Should().Be(testInpcImplementationInstance);
-        //                changesObserver.Messages.Last().Value.Value.OldValue.Should().BeNull();
-        //                changesObserver.Messages.Last().Value.Value.ChangedPropertyName.Should().Be(nameof(MyNotifyPropertyChanged<int, string>.FirstProperty));
+                    changesObserver.Messages.Last().Value.Value.ChangeType.Should().Be(ObservableCacheChangeType.ItemValueChanged);
+                    changesObserver.Messages.Last().Value.Value.Key.Should().Be(1);
+                    changesObserver.Messages.Last().Value.Value.Value.Should().Be(testInpcImplementationInstance);
+                    changesObserver.Messages.Last().Value.Value.OldValue.Should().BeNull();
+                    changesObserver.Messages.Last().Value.Value.ChangedPropertyName.Should().Be(nameof(MyNotifyPropertyChanged<int, string>.FirstProperty));
 
-        //                valueChangesObserver.Messages.First().Value.Value.ChangeType.Should().Be(ObservableCacheChangeType.ItemValueChanged);
-        //                valueChangesObserver.Messages.First().Value.Value.Key.Should().Be(1);
-        //                valueChangesObserver.Messages.First().Value.Value.Value.Should().Be(testInpcImplementationInstance);
-        //                valueChangesObserver.Messages.First().Value.Value.OldValue.Should().BeNull();
-        //                valueChangesObserver.Messages.Last().Value.Value.ChangedPropertyName.Should().Be(nameof(MyNotifyPropertyChanged<int, string>.FirstProperty));
-        //            }
-        //            finally
-        //            {
-        //                cacheChangesSubscription?.Dispose();
-        //                valueChangesSubscription?.Dispose();
-        //            }
-        //        }
+                    valueChangesObserver.Messages.First().Value.Value.ChangeType.Should().Be(ObservableCacheChangeType.ItemValueChanged);
+                    valueChangesObserver.Messages.First().Value.Value.Key.Should().Be(1);
+                    valueChangesObserver.Messages.First().Value.Value.Value.Should().Be(testInpcImplementationInstance);
+                    valueChangesObserver.Messages.First().Value.Value.OldValue.Should().BeNull();
+                    valueChangesObserver.Messages.Last().Value.Value.ChangedPropertyName.Should().Be(nameof(MyNotifyPropertyChanged<int, string>.FirstProperty));
+                }
+                finally
+                {
+                    cacheChangesSubscription?.Dispose();
+                    valueChangesSubscription?.Dispose();
+                }
+            }
 
-        //    }
+        }
 
-        //    [Fact]
-        //    public async Task ShouldNotifySubscribersAboutKeyChangesWhileItemsAreInCache()
-        //    {
-        //        // given
-        //        var notificationScheduler = new TestScheduler();
+        [Fact]
+        public async Task ShouldNotifySubscribersAboutKeyChangesWhileItemsAreInCache()
+        {
+            // given
+            var notificationScheduler = new TestScheduler();
+            var workerScheduler = new TestScheduler();
 
-        //        int value = 1;
-        //        var key = new MyNotifyPropertyChanged<int, string>(value);
+            int value = 1;
+            var key = new MyNotifyPropertyChanged<int, string>(value);
 
-        //        var changesObserver = notificationScheduler.CreateObserver<IObservableCacheChange<MyNotifyPropertyChanged<int, string>, int>>();
-        //        var keyChangesObserver = notificationScheduler.CreateObserver<IObservableCacheChange<MyNotifyPropertyChanged<int, string>, int>>();
+            var changesObserver = notificationScheduler.CreateObserver<IObservableCacheChange<MyNotifyPropertyChanged<int, string>, int>>();
+            var keyChangesObserver = notificationScheduler.CreateObserver<IObservableCacheChange<MyNotifyPropertyChanged<int, string>, int>>();
 
-        //        using (var cache = new ObservableInMemoryCache<MyNotifyPropertyChanged<int, string>, int>(notificationScheduler: notificationScheduler))
-        //        {
-        //            cache.ThresholdAmountWhenChangesAreNotifiedAsReset = int.MaxValue;
+            using (var cache = new ObservableInMemoryCache<MyNotifyPropertyChanged<int, string>, int>(notificationScheduler: notificationScheduler))
+            {
+                cache.ThresholdAmountWhenChangesAreNotifiedAsReset = int.MaxValue;
 
-        //            IDisposable cacheChangesSubscription = null;
-        //            IDisposable keyChangesSubscription = null;
+                IDisposable cacheChangesSubscription = null;
+                IDisposable keyChangesSubscription = null;
 
-        //            try
-        //            {
-        //                cacheChangesSubscription = cache.Changes.Subscribe(changesObserver);
-        //                keyChangesSubscription = cache.KeyChanges.Subscribe(keyChangesObserver);
+                try
+                {
+                    cacheChangesSubscription = cache.Changes.Subscribe(changesObserver);
+                    keyChangesSubscription = cache.KeyChanges.Subscribe(keyChangesObserver);
 
-        //                // when
-        //                await cache.Add(key, value);
-        //                notificationScheduler.AdvanceBy(2);
+                    // when
+                    cache.Add(key, value, workerScheduler).Subscribe();
+                    workerScheduler.AdvanceBy(2);
+                    notificationScheduler.AdvanceBy(2);
 
-        //                // then
-        //                changesObserver.Messages.Count.Should().Be(1);
-        //                changesObserver.Messages.First().Value.Value.ChangeType.Should().Be(ObservableCacheChangeType.ItemAdded);
-        //                changesObserver.Messages.First().Value.Value.Key.Should().Be(key);
-        //                changesObserver.Messages.First().Value.Value.Value.Should().Be(value);
+                    // then
+                    changesObserver.Messages.Count.Should().Be(1);
+                    changesObserver.Messages.First().Value.Value.ChangeType.Should().Be(ObservableCacheChangeType.ItemAdded);
+                    changesObserver.Messages.First().Value.Value.Key.Should().Be(key);
+                    changesObserver.Messages.First().Value.Value.Value.Should().Be(value);
 
-        //                keyChangesObserver.Messages.Count.Should().Be(0);
+                    keyChangesObserver.Messages.Count.Should().Be(0);
 
-        //                // and when
-        //                key.FirstProperty = Guid.NewGuid().ToString();
+                    // and when
+                    key.FirstProperty = Guid.NewGuid().ToString();
 
-        //                notificationScheduler.AdvanceBy(2);
+                    notificationScheduler.AdvanceBy(2);
 
-        //                // then
-        //                changesObserver.Messages.Count.Should().Be(2);
-        //                keyChangesObserver.Messages.Count.Should().Be(1);
+                    // then
+                    changesObserver.Messages.Count.Should().Be(2);
+                    keyChangesObserver.Messages.Count.Should().Be(1);
 
-        //                changesObserver.Messages.Last().Value.Value.ChangeType.Should().Be(ObservableCacheChangeType.ItemKeyChanged);
-        //                changesObserver.Messages.Last().Value.Value.Key.Should().Be(key);
-        //                changesObserver.Messages.Last().Value.Value.Value.Should().Be(1);
-        //                changesObserver.Messages.Last().Value.Value.OldValue.Should().Be(default(int));
-        //                changesObserver.Messages.Last().Value.Value.ChangedPropertyName.Should().Be(nameof(MyNotifyPropertyChanged<int, string>.FirstProperty));
+                    changesObserver.Messages.Last().Value.Value.ChangeType.Should().Be(ObservableCacheChangeType.ItemKeyChanged);
+                    changesObserver.Messages.Last().Value.Value.Key.Should().Be(key);
+                    changesObserver.Messages.Last().Value.Value.Value.Should().Be(1);
+                    changesObserver.Messages.Last().Value.Value.OldValue.Should().Be(default(int));
+                    changesObserver.Messages.Last().Value.Value.ChangedPropertyName.Should().Be(nameof(MyNotifyPropertyChanged<int, string>.FirstProperty));
 
-        //                keyChangesObserver.Messages.First().Value.Value.ChangeType.Should().Be(ObservableCacheChangeType.ItemKeyChanged);
-        //                keyChangesObserver.Messages.First().Value.Value.Key.Should().Be(key);
-        //                keyChangesObserver.Messages.First().Value.Value.Value.Should().Be(1);
-        //                keyChangesObserver.Messages.First().Value.Value.OldValue.Should().Be(default(int));
-        //                keyChangesObserver.Messages.Last().Value.Value.ChangedPropertyName.Should().Be(nameof(MyNotifyPropertyChanged<int, string>.FirstProperty));
-        //            }
-        //            finally
-        //            {
-        //                cacheChangesSubscription?.Dispose();
-        //                keyChangesSubscription?.Dispose();
-        //            }
-        //        }
-        //    }
+                    keyChangesObserver.Messages.First().Value.Value.ChangeType.Should().Be(ObservableCacheChangeType.ItemKeyChanged);
+                    keyChangesObserver.Messages.First().Value.Value.Key.Should().Be(key);
+                    keyChangesObserver.Messages.First().Value.Value.Value.Should().Be(1);
+                    keyChangesObserver.Messages.First().Value.Value.OldValue.Should().Be(default(int));
+                    keyChangesObserver.Messages.Last().Value.Value.ChangedPropertyName.Should().Be(nameof(MyNotifyPropertyChanged<int, string>.FirstProperty));
+                }
+                finally
+                {
+                    cacheChangesSubscription?.Dispose();
+                    keyChangesSubscription?.Dispose();
+                }
+            }
+        }
     }
 }
