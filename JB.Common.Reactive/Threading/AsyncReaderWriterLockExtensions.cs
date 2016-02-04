@@ -212,28 +212,28 @@ namespace JB.Reactive.Threading
 			return asyncReaderWriterLock.AcquireConcurrentReaderLock().PerformReaderWriterLockedWorkOnScheduler(workerObservable, scheduler);
 		}
 
-		/// <summary>
-		/// Schedules the actual work on the scheduler.
-		/// </summary>
-		/// <typeparam name="T"></typeparam>
-		/// <param name="readerWriterLockObservable">The reader writer lock observable.</param>
-		/// <param name="work">The work.</param>
-		/// <param name="scheduler">The scheduler.</param>
-		/// <returns></returns>
-		private static IObservable<T> PerformReaderWriterLockedWorkOnScheduler<T>(this IObservable<ReaderWriterLock> readerWriterLockObservable, IObservable<T> work, IScheduler scheduler = null)
+        /// <summary>
+        /// Schedules the actual work on the scheduler.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="readerWriterLockObservable">The reader writer lock observable.</param>
+        /// <param name="work">The work.</param>
+        /// <param name="scheduler">The scheduler. If none is provided, <see cref="Scheduler.CurrentThread"/> will be used.</param>
+        /// <returns></returns>
+        private static IObservable<T> PerformReaderWriterLockedWorkOnScheduler<T>(this IObservable<ReaderWriterLock> readerWriterLockObservable, IObservable<T> work, IScheduler scheduler = null)
 		{
-			return readerWriterLockObservable.SelectMany(readerWriterLock => work.SubscribeOn(scheduler ?? Scheduler.Default));
+			return readerWriterLockObservable.SelectMany(readerWriterLock => work.SubscribeOn(scheduler ?? Scheduler.CurrentThread));
 		}
 
-		/// <summary>
-		/// Schedules the actual work on the synchronizationcontext.
-		/// </summary>
-		/// <typeparam name="T"></typeparam>
-		/// <param name="readerWriterLockObservable">The reader writer lock observable.</param>
-		/// <param name="work">The work.</param>
-		/// <param name="synchronizationContext">The synchronization context.</param>
-		/// <returns></returns>
-		private static IObservable<T> PerformReaderWriterLockedWorkOnSynchronizationContext<T>(this IObservable<ReaderWriterLock> readerWriterLockObservable, IObservable<T> work, SynchronizationContext synchronizationContext = null)
+        /// <summary>
+        /// Schedules the actual work on the synchronizationcontext.
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="readerWriterLockObservable">The reader writer lock observable.</param>
+        /// <param name="work">The work.</param>
+        /// <param name="synchronizationContext">The synchronization context. If none is provided, <see cref="SynchronizationContext.Current"/> will be used.</param>
+        /// <returns></returns>
+        private static IObservable<T> PerformReaderWriterLockedWorkOnSynchronizationContext<T>(this IObservable<ReaderWriterLock> readerWriterLockObservable, IObservable<T> work, SynchronizationContext synchronizationContext = null)
 		{
 			return readerWriterLockObservable.SelectMany(readerWriterLock => work.SubscribeOn(synchronizationContext ?? SynchronizationContext.Current));
 		}

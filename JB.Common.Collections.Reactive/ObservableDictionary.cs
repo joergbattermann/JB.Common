@@ -15,6 +15,7 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using JB.Collections.Reactive.ExtensionMethods;
 using JB.Reactive;
+using JB.Reactive.ExtensionMethods;
 using JB.Reactive.Linq;
 
 namespace JB.Collections.Reactive

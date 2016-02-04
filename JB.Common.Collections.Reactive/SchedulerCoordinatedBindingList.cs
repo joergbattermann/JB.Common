@@ -38,7 +38,7 @@ namespace JB.Collections.Reactive
 		public SchedulerCoordinatedBindingList(IList<T> list = null, IScheduler scheduler = null)
 			: base(list)
 		{
-			Scheduler = scheduler ?? System.Reactive.Concurrency.Scheduler.Default;
+			Scheduler = scheduler ?? System.Reactive.Concurrency.Scheduler.CurrentThread;
 		}
 		
 		#region Overrides of BindingList<T>

@@ -7,9 +7,8 @@
 // -----------------------------------------------------------------------
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
+using System.Reactive.Concurrency;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
 
@@ -25,13 +24,16 @@ namespace JB.Reactive.ExtensionMethods
         /// </summary>
         /// <typeparam name="TResult">The type of the result.</typeparam>
         /// <param name="instance">The instance.</param>
+        /// <param name="scheduler">The scheduler to perform conversion on.</param>
+        /// <returns>
+        /// An observable sequence of <typeparamref name="TResult" /> instances.
+        /// </returns>
         /// <remarks>
-        /// If <paramref name="instance"/> is an <see cref="IObservable{TResult}"/>, it is returned as is.
-        /// If <paramref name="instance"/> is an <see cref="IEnumerable{TResult}"/>, it will be iterated and its values piped into the observable stream.
-        /// Otherwise, the <paramref name="instance"/> will be returned as-is.
+        /// If <paramref name="instance" /> is an <see cref="IObservable{TResult}" />, it is returned as is.
+        /// If <paramref name="instance" /> is an <see cref="IEnumerable{TResult}" />, it will be iterated and its values piped into the observable stream.
+        /// Otherwise, the <paramref name="instance" /> will be returned as-is.
         /// </remarks>
-        /// <returns>An observable sequence of <typeparamref name="TResult"/> instances.</returns>
-        public static IObservable<TResult> AsObservable<TResult>(this TResult instance)
+        public static IObservable<TResult> AsObservable<TResult>(this TResult instance, IScheduler scheduler = null)
         {
             if (instance == null)
                 return Observable.Empty<TResult>();
@@ -62,11 +64,13 @@ namespace JB.Reactive.ExtensionMethods
                     }
 
                     return Disposable.Empty;
-                });
+                }).ObserveOn(scheduler ?? Scheduler.CurrentThread);
             }
 
             // none of the above matched, oh well - return the item as is as an observable
-            return Observable.Return(instance);
+            return scheduler != null
+                ? Observable.Return(instance, scheduler)
+                : Observable.Return(instance);
         }
     }
 }

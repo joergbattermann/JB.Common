@@ -7,6 +7,7 @@
 // -----------------------------------------------------------------------
 
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Reactive.Concurrency;
 using System.Runtime.CompilerServices;
@@ -607,5 +608,18 @@ namespace JB.Reactive.Cache
         }
 
         #endregion
+
+        /// <summary>
+        ///     Performs an implicit conversion from <see><cref>JB.Reactive.Cache.ObservableCachedElement{TKey, TValue}</cref></see>
+        ///     to <see cref="System.Collections.Generic.KeyValuePair{TKey, TValue}" />.
+        /// </summary>
+        /// <param name="observableCachedElement">The observable cached element.</param>
+        /// <returns>
+        /// The result of the conversion.
+        /// </returns>
+        public static implicit operator KeyValuePair<TKey, TValue>(ObservableCachedElement<TKey, TValue> observableCachedElement)
+        {
+            return new KeyValuePair<TKey, TValue>(observableCachedElement.Key, observableCachedElement.Value);
+        }
     }
 }

@@ -23,14 +23,6 @@ namespace JB.Reactive.Cache
         INotifyObserverExceptions
     {
         /// <summary>
-        /// Gets the count of keys in this instance.
-        /// </summary>
-        /// <value>
-        /// The count of keys in this instance.
-        /// </value>
-        int Count { get; }
-
-        /// <summary>
         /// Gets an <see cref="T:IObservable{TKey}"/> containing the current and future added keys of the <see cref="IObservableCache{TKey,TValue}"/>.
         /// </summary>
         /// 
@@ -67,30 +59,37 @@ namespace JB.Reactive.Cache
         ICollection<TValue> CurrentValues { get; }
 
         /// <summary>
-        /// Adds the specified <paramref name="key"/> with the given <paramref name="value"/> to the <see cref="IObservableCache{TKey,TValue}"/>.
+        /// Gets the current count.
         /// </summary>
-        /// <param name="key">The key of the element to add.</param>
-        /// <param name="value">The value of the element to add.</param>
-        /// <param name="expiry">The expiry of the <paramref name="key"/>.</param>
-        /// <param name="expirationType">Defines how the <paramref name="key" /> shall expire.</param>
-        /// <param name="scheduler">Scheduler to perform the add action on.</param>
-        /// <returns>
-        /// An observable stream that, when done, returns an <see cref="Unit" />.
-        /// </returns>
-        IObservable<Unit> Add(TKey key, TValue value, TimeSpan expiry, ObservableCacheExpirationType expirationType = ObservableCacheExpirationType.Remove, IScheduler scheduler = null);
+        /// <value>
+        /// The current count.
+        /// </value>
+        int CurrentCount { get; }
 
         /// <summary>
-        /// Adds the specified <paramref name="keyValuePairs"/> to the <see cref="IObservableCache{TKey,TValue}"/>.
+        /// Subscribes to the <paramref name="source"/> and adds its provided key/value pairs to the <see cref="IObservableCache{TKey,TValue}"/>.
         /// </summary>
-        /// <param name="keyValuePairs">The key/value pairs to add.</param>
-        /// <param name="expiry">The expiry of the <paramref name="keyValuePairs"/>.</param>
-        /// <param name="expirationType">Defines how the <paramref name="keyValuePairs" /> shall expire.</param>
-        /// <param name="scheduler">Scheduler to perform the addrange action on.</param>
+        /// <param name="source">The observable sequence of key/value pairs to add.</param>
+        /// <param name="expiry">The expiry of the <paramref name="source"/> key/value pairs.</param>
+        /// <param name="expirationType">Defines how the <paramref name="source" /> key/value pairs shall expire.</param>
+        /// <param name="scheduler">Scheduler to perform the add action on.</param>
         /// <returns>
-        /// An observable stream that, when done, returns an <see cref="Unit" />.
+        /// An observable stream of added element from the <paramref name="source"/>.
         /// </returns>
-        IObservable<Unit> AddRange(IEnumerable<KeyValuePair<TKey, TValue>> keyValuePairs, TimeSpan expiry, ObservableCacheExpirationType expirationType = ObservableCacheExpirationType.Remove, IScheduler scheduler = null);
+        IObservable<KeyValuePair<TKey, TValue>> Add(IObservable<KeyValuePair<TKey, TValue>> source, TimeSpan expiry, ObservableCacheExpirationType expirationType = ObservableCacheExpirationType.DoNothing, IScheduler scheduler = null);
 
+        /// <summary>
+        /// Subscribes to the <paramref name="source"/> and adds its provided range of key/value pairs to the <see cref="IObservableCache{TKey,TValue}"/>.
+        /// </summary>
+        /// <param name="source">The observable sequence of range of key/value pairs to add.</param>
+        /// <param name="expiry">The expiry of the <paramref name="source"/> key/value pairs.</param>
+        /// <param name="expirationType">Defines how the <paramref name="source" /> key/value pairs shall expire.</param>
+        /// <param name="scheduler">Scheduler to perform the add action on.</param>
+        /// <returns>
+        /// An observable stream of added element from the <paramref name="source"/>.
+        /// </returns>
+        IObservable<KeyValuePair<TKey, TValue>> AddRange(IObservable<IList<KeyValuePair<TKey, TValue>>> source, TimeSpan expiry, ObservableCacheExpirationType expirationType = ObservableCacheExpirationType.DoNothing, IScheduler scheduler = null);
+        
         /// <summary>
         /// Clears this instance.
         /// </summary>

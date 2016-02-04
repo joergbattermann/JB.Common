@@ -21,7 +21,7 @@ namespace JB.Reactive.Cache.Tests
             using (var cache = new ObservableInMemoryCache<int, string>())
             {
                 // then
-                cache.Count.Should().Be(0);
+                cache.CurrentCount.Should().Be(0);
                 cache.ThresholdAmountWhenChangesAreNotifiedAsReset.Should().Be(Int32.MaxValue);
             }
         }

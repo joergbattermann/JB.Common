@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using FluentAssertions;
 using System.Reactive.Linq;
 using JB.Collections;
+using JB.Reactive.Cache.ExtensionMethods;
 using Microsoft.Reactive.Testing;
 using Xunit;
 
@@ -25,7 +26,26 @@ namespace JB.Reactive.Cache.Tests
                 await cache.Add(2, "Two");
 
                 // then
-                cache.Count.Should().Be(2);
+                cache.CurrentCount.Should().Be(2);
+            }
+        }
+
+        [Fact]
+        public async Task ShouldAddRangeOfNewItems()
+        {
+            // given
+            using (var cache = new ObservableInMemoryCache<int, string>())
+            {
+                // when
+                var keyValuePairs = new Dictionary<int, string>()
+                {
+                    {1, "One"},
+                    {2, "Two"}
+                };
+                await cache.AddRange(keyValuePairs);
+
+                // then
+                cache.CurrentCount.Should().Be(2);
             }
         }
 
@@ -42,7 +62,7 @@ namespace JB.Reactive.Cache.Tests
                 var updatedValue = await cache.Get(1);
 
                 // then
-                cache.Count.Should().Be(1);
+                cache.CurrentCount.Should().Be(1);
                 updatedValue.Should().Be("ONE");
             }
         }
@@ -60,7 +80,7 @@ namespace JB.Reactive.Cache.Tests
                 await cache.Remove(2);
 
                 // then
-                cache.Count.Should().Be(1);
+                cache.CurrentCount.Should().Be(1);
             }
         }
 
@@ -154,7 +174,7 @@ namespace JB.Reactive.Cache.Tests
                 await cache.Clear();
 
                 // then
-                cache.Count.Should().Be(0);
+                cache.CurrentCount.Should().Be(0);
             }
         }
 
@@ -242,11 +262,13 @@ namespace JB.Reactive.Cache.Tests
 
             using (var cache = new ObservableInMemoryCache<int, string>(expirationScheduler: expirationScheduler))
             {
-                var workerObserver = workerScheduler.CreateObserver<Unit>();
+                var addObserver = workerScheduler.CreateObserver<KeyValuePair<int, string>>();
+                var workerUnitObserver = workerScheduler.CreateObserver<Unit>();
+
                 expirationScheduler.Schedule(
                     TimeSpan.Zero, _ =>
                     {
-                        cache.Add(1, "One", TimeSpan.FromTicks(expiresAtTicks), ObservableCacheExpirationType.DoNothing, workerScheduler).Subscribe(workerObserver);
+                        cache.Add(1, "One", TimeSpan.FromTicks(expiresAtTicks), ObservableCacheExpirationType.DoNothing, workerScheduler).Subscribe(addObserver);
                         workerScheduler.AdvanceBy(2);
                     });
 
@@ -256,7 +278,7 @@ namespace JB.Reactive.Cache.Tests
                     TimeSpan.FromTicks(5),
                     _ =>
                     { 
-                        cache.UpdateExpiration(1, TimeSpan.FromTicks(2 * expiresAtTicks), scheduler: workerScheduler).Subscribe(workerObserver);
+                        cache.UpdateExpiration(1, TimeSpan.FromTicks(2 * expiresAtTicks), scheduler: workerScheduler).Subscribe(workerUnitObserver);
                         workerScheduler.AdvanceBy(2);
                     });
 
@@ -355,18 +377,19 @@ namespace JB.Reactive.Cache.Tests
         public void ShouldExpireAndKeepSingleElementForDoNothingExpiryType()
         {
             // given
-            var testScheduler = new TestScheduler();
+            var scheduler = new TestScheduler();
             var expirationTimeoutInTicks = 10;
 
             using (var cache = new ObservableInMemoryCache<int, string>(expiredElementsHandlingChillPeriod: TimeSpan.FromTicks(expirationTimeoutInTicks)))
             {
-                cache.Add(1, "One", TimeSpan.Zero, ObservableCacheExpirationType.DoNothing).Subscribe();
+                cache.Add(1, "One", TimeSpan.Zero, ObservableCacheExpirationType.DoNothing, scheduler).Subscribe();
+                scheduler.AdvanceBy(2);
 
                 // when
-                testScheduler.AdvanceBy(expirationTimeoutInTicks * 10);
+                scheduler.AdvanceBy(expirationTimeoutInTicks * 10);
 
                 // then
-                cache.Count.Should().Be(1);
+                cache.CurrentCount.Should().Be(1);
             }
         }
 
@@ -478,7 +501,7 @@ namespace JB.Reactive.Cache.Tests
                 testScheduler.AdvanceBy(expirationTimeoutInTicks);
 
                 // then
-                cache.Count.Should().Be(0);
+                cache.CurrentCount.Should().Be(0);
             }
         }
 
@@ -504,7 +527,7 @@ namespace JB.Reactive.Cache.Tests
                 cache.Get(1, true, workerScheduler).Subscribe(updatedValueGetObserver);
                 workerScheduler.AdvanceBy(2);
 
-                cache.Count.Should().Be(1);
+                cache.CurrentCount.Should().Be(1);
 
                 updatedValueGetObserver.Messages.Count.Should().Be(2);
                 updatedValueGetObserver.Messages.First().Value.Value.Should().Be("1");
@@ -536,7 +559,7 @@ namespace JB.Reactive.Cache.Tests
                 cache.Get(2, true, workerScheduler).Subscribe(updatedValueGetObserver);
                 workerScheduler.AdvanceBy(4);
 
-                cache.Count.Should().Be(2);
+                cache.CurrentCount.Should().Be(2);
 
                 updatedValueGetObserver.Messages.Count.Should().Be(4);
                 updatedValueGetObserver.Messages[0].Value.Value.Should().Be("1");
@@ -567,7 +590,7 @@ namespace JB.Reactive.Cache.Tests
                 cache.Get(1, true, workerScheduler).Subscribe(getObserver);
                 workerScheduler.AdvanceBy(2);
 
-                cache.Count.Should().Be(1);
+                cache.CurrentCount.Should().Be(1);
                 getObserver.Messages.Count.Should().Be(2);
                 getObserver.Messages.First().Value.Value.Should().Be("1");
             }
@@ -599,7 +622,7 @@ namespace JB.Reactive.Cache.Tests
                 cache.Get(2, true, workerScheduler).Subscribe(getObserver);
                 workerScheduler.AdvanceBy(4);
 
-                cache.Count.Should().Be(2);
+                cache.CurrentCount.Should().Be(2);
                 getObserver.Messages.Count.Should().Be(4);
                 getObserver.Messages[0].Value.Value.Should().Be("1");
                 getObserver.Messages[2].Value.Value.Should().Be("2");
@@ -690,7 +713,7 @@ namespace JB.Reactive.Cache.Tests
                 expirationScheduler.AdvanceBy(expirationTimeoutInTicks);
 
                 // then
-                cache.Count.Should().Be(1);
+                cache.CurrentCount.Should().Be(1);
             }
         }
 
@@ -711,13 +734,13 @@ namespace JB.Reactive.Cache.Tests
                 expirationScheduler.AdvanceBy(expirationTimeoutInTicks);
 
                 // then
-                cache.Count.Should().Be(1);
+                cache.CurrentCount.Should().Be(1);
 
                 // but when
                 expirationScheduler.AdvanceBy(expirationTimeoutInTicks);
 
                 // then
-                cache.Count.Should().Be(0);
+                cache.CurrentCount.Should().Be(0);
             }
         }
 
@@ -739,7 +762,7 @@ namespace JB.Reactive.Cache.Tests
                 expirationScheduler.AdvanceBy(expirationTimeoutInTicks);
 
                 // then
-                cache.Count.Should().Be(0);
+                cache.CurrentCount.Should().Be(0);
             }
         }
 
@@ -754,7 +777,7 @@ namespace JB.Reactive.Cache.Tests
                 workerScheduler.AdvanceBy(2);
 
                 // when
-                var observer = workerScheduler.CreateObserver<Unit>();
+                var observer = workerScheduler.CreateObserver<KeyValuePair<int, string>>();
                 cache.Add(1, "ReallyOne", TimeSpan.MaxValue, scheduler: workerScheduler).Subscribe(observer);
                 workerScheduler.AdvanceBy(2);
 
@@ -763,6 +786,75 @@ namespace JB.Reactive.Cache.Tests
                 observer.Messages.First().Value.Kind.Should().Be(NotificationKind.OnError);
                 observer.Messages.First().Value.Exception.Should().BeOfType<ArgumentException>();
                 observer.Messages.First().Value.Exception.Message.Should().Be("The key already existed in the dictionary.");
+            }
+        }
+
+        [Fact]
+        public void ShouldThrowOnAddingOfRangeOfItemsWithExistingKey()
+        {
+            // given
+            var workerScheduler = new TestScheduler();
+            using (var cache = new ObservableInMemoryCache<int, string>())
+            {
+                cache.Add(1, "One", TimeSpan.MaxValue, scheduler: workerScheduler).Subscribe();
+                workerScheduler.AdvanceBy(2);
+
+                // when
+                var observer = workerScheduler.CreateObserver<KeyValuePair<int, string>>();
+
+                var keyValuePairs = new Dictionary<int, string>()
+                {
+                    {1, "One"},
+                    {2, "Two"}
+                };
+                cache.AddRange(keyValuePairs, TimeSpan.MaxValue, scheduler: workerScheduler).Subscribe(observer);
+                workerScheduler.AdvanceBy(4);
+
+                // then
+                observer.Messages.Count.Should().Be(2);
+
+                observer.Messages.First().Value.Kind.Should().Be(NotificationKind.OnNext);
+                observer.Messages.First().Value.Value.Key.Should().Be(2);
+                observer.Messages.First().Value.Value.Value.Should().Be("Two");
+
+                observer.Messages.Last().Value.Kind.Should().Be(NotificationKind.OnError);
+                observer.Messages.Last().Value.Exception.Should().BeOfType<KeyAlreadyExistsException<int>>();
+                observer.Messages.Last().Value.Exception.Message.Should().Be("An element with the same key already exists.");
+                observer.Messages.Last().Value.Exception.As<KeyAlreadyExistsException<int>>().Key.Should().Be(1);
+            }
+        }
+
+        [Fact]
+        public void ShouldThrowOnAddingOfRangeOfItemsWithExistingKeys()
+        {
+            // given
+            var workerScheduler = new TestScheduler();
+            using (var cache = new ObservableInMemoryCache<int, string>())
+            {
+                cache.Add(1, "One", TimeSpan.MaxValue, scheduler: workerScheduler).Subscribe();
+                cache.Add(2, "Two", TimeSpan.MaxValue, scheduler: workerScheduler).Subscribe();
+                workerScheduler.AdvanceBy(4);
+
+                // when
+                var observer = workerScheduler.CreateObserver<KeyValuePair<int, string>>();
+
+                var keyValuePairs = new Dictionary<int, string>()
+                {
+                    {1, "One"},
+                    {2, "Two"}
+                };
+                cache.AddRange(keyValuePairs, TimeSpan.MaxValue, scheduler: workerScheduler).Subscribe(observer);
+                workerScheduler.AdvanceBy(4);
+
+                // then
+                observer.Messages.Count.Should().Be(1);
+
+                observer.Messages.First().Value.Kind.Should().Be(NotificationKind.OnError);
+                observer.Messages.First().Value.Exception.Should().BeOfType<AggregateException>();
+                observer.Messages.First().Value.Exception.As<AggregateException>().InnerExceptions.Count.Should().Be(2);
+                observer.Messages.First().Value.Exception.As<AggregateException>().InnerExceptions.First().Should().BeOfType<KeyAlreadyExistsException<int>>();
+                observer.Messages.First().Value.Exception.As<AggregateException>().InnerExceptions.First().As<KeyAlreadyExistsException<int>>().Key.Should().Be(1);
+                observer.Messages.First().Value.Exception.As<AggregateException>().InnerExceptions.Last().As<KeyAlreadyExistsException<int>>().Key.Should().Be(2);
             }
         }
 
@@ -852,7 +944,7 @@ namespace JB.Reactive.Cache.Tests
             //    expirationScheduler.AdvanceBy(2);
 
             //    // then
-            //    observer.Messages.Count.Should().Be(1);
+            //    observer.Messages.CurrentCount.Should().Be(1);
             //    observer.Messages.First().Value.Kind.Should().Be(NotificationKind.OnError);
             //    observer.Messages.First().Value.Exception.Should().BeOfType<KeyNotFoundException>();
             //}

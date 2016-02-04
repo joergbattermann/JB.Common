@@ -27,7 +27,7 @@ using Observable = System.Reactive.Linq.Observable;
 
 namespace JB.Reactive.Cache
 {
-    [DebuggerDisplay("Count={Count}")]
+    [DebuggerDisplay("Count={CurrentCount}")]
     public class ObservableInMemoryCache<TKey, TValue> : IObservableCache<TKey, TValue>, IDisposable
     {
         protected static readonly Lazy<bool> KeyTypeImplementsINotifyPropertyChanged = new Lazy<bool>(() => typeof(TKey).ImplementsInterface<INotifyPropertyChanged>());
@@ -999,7 +999,7 @@ namespace JB.Reactive.Cache
         /// <value>
         /// The count of keys in this instance.
         /// </value>
-        public virtual int Count
+        public virtual int CurrentCount
         {
             get
             {
@@ -1086,121 +1086,122 @@ namespace JB.Reactive.Cache
         }
 
         /// <summary>
-        /// Adds the specified <paramref name="key" /> with the given <paramref name="value" /> to the <see cref="IObservableCache{TKey,TValue}" />
-        /// with its expiry set to <see cref="TimeSpan.MaxValue"/> and <see cref="ObservableCacheExpirationType"/> to <see cref="ObservableCacheExpirationType.DoNothing"/>.
+        /// Subscribes to the <paramref name="source"/> and adds its provided key/value pairs to the <see cref="IObservableCache{TKey,TValue}"/>.
         /// </summary>
-        /// <param name="key">The key of the element to add.</param>
-        /// <param name="value">The value of the element to add.</param>
+        /// <param name="source">The observable sequence of key/value pairs to add.</param>
+        /// <param name="expiry">The expiry of the <paramref name="source"/> key/value pairs.</param>
+        /// <param name="expirationType">Defines how the <paramref name="source" /> key/value pairs shall expire.</param>
         /// <param name="scheduler">Scheduler to perform the add action on.</param>
         /// <returns>
-        /// An observable stream that, when done, returns an <see cref="Unit" />.
+        /// An observable stream of added element from the <paramref name="source"/>.
         /// </returns>
-        public virtual IObservable<Unit> Add(TKey key, TValue value, IScheduler scheduler = null)
+        public IObservable<KeyValuePair<TKey, TValue>> Add(IObservable<KeyValuePair<TKey, TValue>> source, TimeSpan expiry, ObservableCacheExpirationType expirationType = ObservableCacheExpirationType.DoNothing, IScheduler scheduler = null)
         {
-            return Add(key, value, TimeSpan.MaxValue, ObservableCacheExpirationType.DoNothing, scheduler);
-        }
-
-        /// <summary>
-        /// Adds the specified <paramref name="key"/> with the given <paramref name="value"/> to the <see cref="IObservableCache{TKey,TValue}"/>.
-        /// </summary>
-        /// <param name="key">The key of the element to add.</param>
-        /// <param name="value">The value of the element to add.</param>
-        /// <param name="expiry">The expiry of the <paramref name="key"/>.</param>
-        /// <param name="expirationType">Defines how the <paramref name="key" /> shall expire.</param>
-        /// <param name="scheduler">Scheduler to perform the add action on.</param>
-        /// <returns>
-        /// An observable stream that, when done, returns an <see cref="Unit" />.
-        /// </returns>
-        public virtual IObservable<Unit> Add(TKey key, TValue value, TimeSpan expiry, ObservableCacheExpirationType expirationType = ObservableCacheExpirationType.Remove, IScheduler scheduler = null)
-        {
-            if (key == null)
-                throw new ArgumentNullException(nameof(key));
+            if (source == null)
+                throw new ArgumentNullException(nameof(source));
             if (expirationType == ObservableCacheExpirationType.Update && (SingleKeyRetrievalFunction == null && MultipleKeysRetrievalFunction == null))
                 throw new ArgumentOutOfRangeException(nameof(expirationType), $"{nameof(expirationType)} cannot be set to {nameof(ObservableCacheExpirationType.Update)} if no {nameof(SingleKeyRetrievalFunction)} or {nameof(MultipleKeysRetrievalFunction)} had been specified at construction of this instance.");
 
             CheckForAndThrowIfDisposed();
 
-            return Linq.Observable.Run(() =>
+            return Observable.Create<KeyValuePair<TKey, TValue>>(observer =>
             {
-                var observableCachedElement = new ObservableCachedElement<TKey, TValue>(key, value, expirationType);
+                return source
+                    .ObserveOn(scheduler ?? Scheduler.CurrentThread)
+                    .Subscribe(keyValuePair =>
+                    {
+                        try
+                        {
+                            var observableCachedElement = new ObservableCachedElement<TKey, TValue>(keyValuePair.Key, keyValuePair.Value, expirationType);
 
-                InnerDictionary.Add(key, observableCachedElement);
+                            InnerDictionary.Add(keyValuePair.Key, observableCachedElement);
 
-                AddToEventAndNotificationsHandlingAndStartExpiration(observableCachedElement, expiry);
-            }, scheduler);
+                            AddToEventAndNotificationsHandlingAndStartExpiration(observableCachedElement, expiry);
+
+                            observer.OnNext(keyValuePair);
+                            observer.OnCompleted();
+                        }
+                        catch (Exception exception)
+                        {
+                            observer.OnError(exception);
+                        }
+                    },
+                    observer.OnError,
+                    observer.OnCompleted);
+            });
         }
 
         /// <summary>
-        /// Adds the specified <paramref name="keyValuePairs" /> to the <see cref="IObservableCache{TKey,TValue}" />
-        /// with their expiry set to <see cref="TimeSpan.MaxValue" /> and <see cref="ObservableCacheExpirationType" /> to <see cref="ObservableCacheExpirationType.DoNothing" />.
+        /// Subscribes to the <paramref name="source"/> and adds its provided range of key/value pairs to the <see cref="IObservableCache{TKey,TValue}"/>.
         /// </summary>
-        /// <param name="keyValuePairs">The key/value pairs to add.</param>
-        /// <param name="scheduler">Scheduler to perform the addrange action on.</param>
+        /// <param name="source">The observable sequence of range of key/value pairs to add.</param>
+        /// <param name="expiry">The expiry of the <paramref name="source"/> key/value pairs.</param>
+        /// <param name="expirationType">Defines how the <paramref name="source" /> key/value pairs shall expire.</param>
+        /// <param name="scheduler">Scheduler to perform the add action on.</param>
         /// <returns>
-        /// An observable stream that, when done, returns an <see cref="Unit" />.
+        /// An observable stream of added element from the <paramref name="source"/>.
         /// </returns>
-        public virtual IObservable<Unit> AddRange(IEnumerable<KeyValuePair<TKey, TValue>> keyValuePairs, IScheduler scheduler = null)
+        public IObservable<KeyValuePair<TKey, TValue>> AddRange(IObservable<IList<KeyValuePair<TKey, TValue>>> source, TimeSpan expiry, ObservableCacheExpirationType expirationType = ObservableCacheExpirationType.DoNothing, IScheduler scheduler = null)
         {
-            if (keyValuePairs == null)
-                throw new ArgumentNullException(nameof(keyValuePairs));
-
-            return AddRange(keyValuePairs, TimeSpan.MaxValue, ObservableCacheExpirationType.DoNothing, scheduler);
-        }
-
-        /// <summary>
-        /// Adds the specified <paramref name="keyValuePairs" /> to the <see cref="IObservableCache{TKey,TValue}" />.
-        /// </summary>
-        /// <param name="keyValuePairs">The key/value pairs to add.</param>
-        /// <param name="expiry">The expiry of the <paramref name="keyValuePairs" />.</param>
-        /// <param name="expirationType">Defines how the <paramref name="keyValuePairs" /> shall expire.</param>
-        /// <param name="scheduler">Scheduler to perform the addrange action on.</param>
-        /// <returns>
-        /// An observable stream that, when done, returns an <see cref="Unit" />.
-        /// </returns>
-        public virtual IObservable<Unit> AddRange(IEnumerable<KeyValuePair<TKey, TValue>> keyValuePairs, TimeSpan expiry, ObservableCacheExpirationType expirationType = ObservableCacheExpirationType.Remove, IScheduler scheduler = null)
-        {
-            // ToDo: this needs to be decomposed into way, way smaller functional units.. quite a lot
-
-            if (keyValuePairs == null)
-                throw new ArgumentNullException(nameof(keyValuePairs));
+            if (source == null)
+                throw new ArgumentNullException(nameof(source));
             if (expirationType == ObservableCacheExpirationType.Update && (SingleKeyRetrievalFunction == null && MultipleKeysRetrievalFunction == null))
                 throw new ArgumentOutOfRangeException(nameof(expirationType), $"{nameof(expirationType)} cannot be set to {nameof(ObservableCacheExpirationType.Update)} if no {nameof(SingleKeyRetrievalFunction)} or {nameof(MultipleKeysRetrievalFunction)} had been specified at construction of this instance.");
 
             CheckForAndThrowIfDisposed();
 
-            return Linq.Observable.Run(() =>
+            return Observable.Create<KeyValuePair<TKey, TValue>>(observer =>
             {
-                // first check which keys / elements ARE in the innerdictionary
-                var cachedElementsForKeyValuePairs = keyValuePairs
-                    .ToDictionary(kvp => kvp.Key, kvp => new ObservableCachedElement<TKey, TValue>(kvp.Key, kvp.Value, expirationType));
-
-                if (cachedElementsForKeyValuePairs.Count > 0)
-                {
-                    IDictionary<TKey, ObservableCachedElement<TKey, TValue>> elementsThatCouldNotBeAdded;
-                    InnerDictionary.TryAddRange(cachedElementsForKeyValuePairs, out elementsThatCouldNotBeAdded);
-
-                    // and finally add to expiration / value changed notification etc
-                    var keysForNonAddedElements = elementsThatCouldNotBeAdded.Keys;
-                    foreach (var observableCachedElement in cachedElementsForKeyValuePairs.Where(element => !keysForNonAddedElements.Contains(element.Key, KeyComparer)))
+                return source
+                    .ObserveOn(scheduler ?? Scheduler.CurrentThread)
+                    .Subscribe(keyValuePairs =>
                     {
-                        AddToEventAndNotificationsHandlingAndStartExpiration(observableCachedElement.Value, expiry);
-                    }
+                        try
+                        {
+                            // first check which keys / elements ARE in the innerdictionary
+                            var cachedElementsForKeyValuePairs = keyValuePairs
+                                .ToDictionary(kvp => kvp.Key, kvp => new ObservableCachedElement<TKey, TValue>(kvp.Key, kvp.Value, expirationType));
 
-                    if (elementsThatCouldNotBeAdded.Count > 0)
-                    {
-                        var keyAlreadyExistsExceptions =
-                            elementsThatCouldNotBeAdded
-                            .Select(keyValuePair => new KeyAlreadyExistsException<TKey>(keyValuePair.Key))
-                            .ToList();
+                            if (cachedElementsForKeyValuePairs.Count > 0)
+                            {
+                                IDictionary<TKey, ObservableCachedElement<TKey, TValue>> elementsThatCouldNotBeAdded;
+                                InnerDictionary.TryAddRange(cachedElementsForKeyValuePairs, out elementsThatCouldNotBeAdded);
 
-                        if (keyAlreadyExistsExceptions.Count == 1)
-                            throw keyAlreadyExistsExceptions.First();
-                        if (keyAlreadyExistsExceptions.Count > 1)
-                            throw new AggregateException($"{keyAlreadyExistsExceptions.Count} elements of the provided '{nameof(keyValuePairs)}' could not be added because a corresponding key already existed in this {this.GetType().Name}", keyAlreadyExistsExceptions);
+                                // and finally add to expiration / value changed notification etc
+                                var keysForNonAddedElements = elementsThatCouldNotBeAdded.Keys;
+                                foreach (var observableCachedElement in cachedElementsForKeyValuePairs.Where(element => !keysForNonAddedElements.Contains(element.Key, KeyComparer)))
+                                {
+                                    observer.OnNext(observableCachedElement.Value);
 
-                    }
-                }
-            }, scheduler);
+                                    AddToEventAndNotificationsHandlingAndStartExpiration(observableCachedElement.Value, expiry);
+                                }
+
+                                var keyAlreadyExistsExceptions =
+                                    elementsThatCouldNotBeAdded
+                                        .Select(keyValuePair => new KeyAlreadyExistsException<TKey>(keyValuePair.Key))
+                                        .ToList();
+
+                                if (keyAlreadyExistsExceptions.Count > 0)
+                                {
+                                    if (keyAlreadyExistsExceptions.Count == 1)
+                                        throw keyAlreadyExistsExceptions.First();
+                                    if (keyAlreadyExistsExceptions.Count > 1)
+                                        throw new AggregateException($"{keyAlreadyExistsExceptions.Count} elements of the provided '{nameof(keyValuePairs)}' could not be added because a corresponding key already existed in this {this.GetType().Name}", keyAlreadyExistsExceptions);
+                                }
+                                else
+                                {
+                                    observer.OnCompleted();
+                                }
+                            }
+                        }
+                        catch (Exception exception)
+                        {
+                            observer.OnError(exception);
+                        }
+                    },
+                    observer.OnError,
+                    observer.OnCompleted);
+            });
         }
 
         /// <summary>
