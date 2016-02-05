@@ -174,24 +174,24 @@ namespace JB.Reactive.Cache
         IObservable<TValue> Get(IEnumerable<TKey> keys, bool throwIfExpired = true, int maxConcurrent = 1, IScheduler scheduler = null);
 
         /// <summary>
-        /// Removes the specified <paramref name="key"/> from this instance.
+        /// Subscribes to the observable <paramref name="source"/> stream of keys and removes them from the <see cref="IObservableCache{TKey,TValue}"/>.
         /// </summary>
-        /// <param name="key">The key to remove.</param>
+        /// <param name="source">The observable stream of key(s) to remove.</param>
         /// <param name="scheduler">Scheduler to perform the removal on.</param>
         /// <returns>
-        /// An observable stream that, when done, returns an <see cref="Unit" />.
+        /// An observable stream of removed <typeparamref name="TKey"/> instances.
         /// </returns>
-        IObservable<Unit> Remove(TKey key, IScheduler scheduler = null);
+        IObservable<TKey> Remove(IObservable<TKey> source, IScheduler scheduler = null);
 
         /// <summary>
-        /// Removes the specified <paramref name="keys"/> from this instance.
+        /// Subscribes to the observable <paramref name="source"/> stream of range of keys and removes them from the <see cref="IObservableCache{TKey,TValue}"/>.
         /// </summary>
-        /// <param name="keys">The keys to remove.</param>
+        /// <param name="source">The observable stream of range of key(s) to remove.</param>
         /// <param name="scheduler">Scheduler to perform the removal on.</param>
         /// <returns>
-        /// An observable stream that, when done, returns an <see cref="Unit" />.
+        /// An observable stream of removed <typeparamref name="TKey"/> instances.
         /// </returns>
-        IObservable<Unit> RemoveRange(IEnumerable<TKey> keys, IScheduler scheduler = null);
+        IObservable<TKey> RemoveRange(IObservable<IList<TKey>> source, IScheduler scheduler = null);
 
         /// <summary>
         /// Updates the specified <paramref name="key"/> with the given <paramref name="value"/>.

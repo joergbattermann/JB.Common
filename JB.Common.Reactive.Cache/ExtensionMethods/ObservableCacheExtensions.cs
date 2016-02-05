@@ -38,6 +38,8 @@ namespace JB.Reactive.Cache.ExtensionMethods
         {
             if (cache == null)
                 throw new ArgumentNullException(nameof(cache));
+            if (key == null)
+                throw new ArgumentNullException(nameof(key));
 
             return cache.Add(new KeyValuePair<TKey, TValue>(key, value), scheduler ?? Scheduler.CurrentThread);
         }
@@ -513,6 +515,50 @@ namespace JB.Reactive.Cache.ExtensionMethods
         public static IObservable<TValue> GetOrAdd<TKey, TValue>(this IObservableCache<TKey, TValue> cache, IEnumerable<TKey> keys, Func<IEnumerable<TKey>, IEnumerable<KeyValuePair<TKey, TValue>>> producer, TimeSpan? expiry = null, ObservableCacheExpirationType expirationType = ObservableCacheExpirationType.DoNothing, IScheduler scheduler = null)
         {
             throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// Removes the specified <paramref name="key"/> from the <paramref name="cache" />.
+        /// </summary>
+        /// <param name="cache">The cache to use.</param>
+        /// <param name="key">The key to remove.</param>
+        /// <param name="scheduler">Scheduler to perform the remove action on.</param>
+        /// <returns>
+        /// An observable stream that provides, if successful, the deleted key(s).
+        /// </returns>
+        public static IObservable<TKey> Remove<TKey, TValue>(this IObservableCache<TKey, TValue> cache, TKey key, IScheduler scheduler = null)
+        {
+            if (cache == null)
+                throw new ArgumentNullException(nameof(cache));
+            if (key == null)
+                throw new ArgumentNullException(nameof(key));
+            
+            return cache.Remove(
+                Observable.Return(key, scheduler ?? Scheduler.CurrentThread),
+                scheduler ?? Scheduler.CurrentThread);
+        }
+
+        /// <summary>
+        /// Removes the range of <paramref name="keys"/> from the <paramref name="cache" />.
+        /// </summary>
+        /// <param name="cache">The cache to use.</param>
+        /// <param name="keys">The keys to remove.</param>
+        /// <param name="scheduler">Scheduler to perform the remove action on.</param>
+        /// <returns>
+        /// An observable stream that provides, if successful, the deleted key(s).
+        /// </returns>
+        public static IObservable<TKey> RemoveRange<TKey, TValue>(this IObservableCache<TKey, TValue> cache, IEnumerable<TKey> keys, IScheduler scheduler = null)
+        {
+            if (cache == null)
+                throw new ArgumentNullException(nameof(cache));
+            if (keys == null)
+                throw new ArgumentNullException(nameof(keys));
+
+            var keysAsList = keys.ToList();
+            if (keysAsList.Count == 0)
+                return Observable.Empty<TKey>(scheduler ?? Scheduler.CurrentThread);
+
+            return cache.RemoveRange(keysAsList.AsObservable(scheduler ?? Scheduler.CurrentThread), scheduler ?? Scheduler.CurrentThread);
         }
 
         /// <summary>

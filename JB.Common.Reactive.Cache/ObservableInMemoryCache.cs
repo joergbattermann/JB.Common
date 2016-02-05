@@ -1114,12 +1114,16 @@ namespace JB.Reactive.Cache
                         {
                             var observableCachedElement = new ObservableCachedElement<TKey, TValue>(keyValuePair.Key, keyValuePair.Value, expirationType);
 
-                            InnerDictionary.Add(keyValuePair.Key, observableCachedElement);
+                            if (InnerDictionary.TryAdd(keyValuePair.Key, observableCachedElement) == true)
+                            {
+                                AddToEventAndNotificationsHandlingAndStartExpiration(observableCachedElement, expiry);
 
-                            AddToEventAndNotificationsHandlingAndStartExpiration(observableCachedElement, expiry);
-
-                            observer.OnNext(keyValuePair);
-                            observer.OnCompleted();
+                                observer.OnNext(keyValuePair);
+                            }
+                            else
+                            {
+                                throw new KeyAlreadyExistsException<TKey>(keyValuePair.Key);
+                            }
                         }
                         catch (Exception exception)
                         {
@@ -1169,11 +1173,11 @@ namespace JB.Reactive.Cache
 
                                 // and finally add to expiration / value changed notification etc
                                 var keysForNonAddedElements = elementsThatCouldNotBeAdded.Keys;
-                                foreach (var observableCachedElement in cachedElementsForKeyValuePairs.Where(element => !keysForNonAddedElements.Contains(element.Key, KeyComparer)))
+                                foreach (var addedObservableCachedElement in cachedElementsForKeyValuePairs.Where(element => !keysForNonAddedElements.Contains(element.Key, KeyComparer)))
                                 {
-                                    observer.OnNext(observableCachedElement.Value);
+                                    AddToEventAndNotificationsHandlingAndStartExpiration(addedObservableCachedElement.Value, expiry);
 
-                                    AddToEventAndNotificationsHandlingAndStartExpiration(observableCachedElement.Value, expiry);
+                                    observer.OnNext(addedObservableCachedElement.Value);
                                 }
 
                                 var keyAlreadyExistsExceptions =
@@ -1187,10 +1191,6 @@ namespace JB.Reactive.Cache
                                         throw keyAlreadyExistsExceptions.First();
                                     if (keyAlreadyExistsExceptions.Count > 1)
                                         throw new AggregateException($"{keyAlreadyExistsExceptions.Count} elements of the provided '{nameof(keyValuePairs)}' could not be added because a corresponding key already existed in this {this.GetType().Name}", keyAlreadyExistsExceptions);
-                                }
-                                else
-                                {
-                                    observer.OnCompleted();
                                 }
                             }
                         }
@@ -1411,7 +1411,7 @@ namespace JB.Reactive.Cache
         /// <returns>
         /// An observable stream that returns <see cref="ObservableCachedElement{TKey,TValue}" /> instances for the provided <paramref name="keys" />.
         /// </returns>
-        public virtual IObservable<ObservableCachedElement<TKey, TValue>> GetCachedElements(IEnumerable<TKey> keys, bool throwIfExpired = true, int maxConcurrent = 1, IScheduler scheduler = null)
+        protected virtual IObservable<ObservableCachedElement<TKey, TValue>> GetCachedElements(IEnumerable<TKey> keys, bool throwIfExpired = true, int maxConcurrent = 1, IScheduler scheduler = null)
         {
             if (keys == null)
                 throw new ArgumentNullException(nameof(keys));
@@ -1426,72 +1426,113 @@ namespace JB.Reactive.Cache
         }
 
         /// <summary>
-        /// Removes the specified <paramref name="key"/> from this instance.
+        /// Subscribes to the observable <paramref name="source"/> stream of keys and removes them from the <see cref="IObservableCache{TKey,TValue}"/>.
         /// </summary>
-        /// <param name="key">The key to remove.</param>
-        /// <param name="scheduler">Scheduler to perform the remove action on.</param>
+        /// <param name="source">The observable stream of key(s) to remove.</param>
+        /// <param name="scheduler">Scheduler to perform the removal on.</param>
         /// <returns>
-        /// An observable stream that, when done, returns an <see cref="Unit" />.
+        /// An observable stream of removed <typeparamref name="TKey"/> instances.
         /// </returns>
-        public virtual IObservable<Unit> Remove(TKey key, IScheduler scheduler = null)
+        public virtual IObservable<TKey> Remove(IObservable<TKey> source, IScheduler scheduler = null)
         {
-            if (key == null)
-                throw new ArgumentNullException(nameof(key));
+            if (source == null)
+                throw new ArgumentNullException(nameof(source));
 
             CheckForAndThrowIfDisposed();
 
-            return Linq.Observable.Run(() =>
+            return Observable.Create<TKey>(observer =>
             {
-                ObservableCachedElement<TKey, TValue> observableCachedElement;
-                if (InnerDictionary.TryRemove(key, out observableCachedElement) == false)
-                    throw new KeyNotFoundException();
+                return source
+                    .ObserveOn(scheduler ?? Scheduler.CurrentThread)
+                    .Subscribe(key =>
+                    {
+                        try
+                        {
+                            ObservableCachedElement<TKey, TValue> observableCachedElement;
+                            if (InnerDictionary.TryRemove(key, out observableCachedElement) == false)
+                                throw new KeyNotFoundException<TKey>(key);
 
-                RemoveFromEventAndNotificationsHandlingAndStopExpiration(observableCachedElement);
-            }, scheduler);
+                            RemoveFromEventAndNotificationsHandlingAndStopExpiration(observableCachedElement);
+
+                            observer.OnNext(key);
+                        }
+                        catch (Exception exception)
+                        {
+                            observer.OnError(exception);
+                        }
+                    },
+                    observer.OnError,
+                    observer.OnCompleted);
+            });
         }
 
         /// <summary>
-        /// Removes the specified <paramref name="keys"/> from this instance.
+        /// Subscribes to the observable <paramref name="source"/> stream of range of keys and removes them from the <see cref="IObservableCache{TKey,TValue}"/>.
         /// </summary>
-        /// <param name="keys">The keys to remove.</param>
-        /// <param name="scheduler">Scheduler to perform the remove action on.</param>
+        /// <param name="source">The observable stream of range of key(s) to remove.</param>
+        /// <param name="scheduler">Scheduler to perform the removal on.</param>
         /// <returns>
-        /// An observable stream that, when done, returns an <see cref="Unit" />.
+        /// An observable stream of removed <typeparamref name="TKey"/> instances.
         /// </returns>
-        public virtual IObservable<Unit> RemoveRange(IEnumerable<TKey> keys, IScheduler scheduler = null)
+        public virtual IObservable<TKey> RemoveRange(IObservable<IList<TKey>> source, IScheduler scheduler = null)
         {
-            if (keys == null)
-                throw new ArgumentNullException(nameof(keys));
+            if (source == null)
+                throw new ArgumentNullException(nameof(source));
 
             CheckForAndThrowIfDisposed();
-            
-            return Linq.Observable.Run(() =>
+
+            return Observable.Create<TKey>(observer =>
             {
-                // first check which keys / elements ARE in the innerdictionary
-                var cachedElementsInInnerDictionaryForKeys = new Dictionary<TKey, ObservableCachedElement<TKey, TValue>>();
-                foreach (var key in keys)
-                {
-                    ObservableCachedElement<TKey, TValue> observableCachedElementForCurrentKey;
-                    if (InnerDictionary.TryGetValue(key, out observableCachedElementForCurrentKey) == true)
+                return source
+                    .ObserveOn(scheduler ?? Scheduler.CurrentThread)
+                    .Subscribe(currentRangeOfKeys =>
                     {
-                        cachedElementsInInnerDictionaryForKeys.Add(key, observableCachedElementForCurrentKey);
-                    }
-                }
+                        try
+                        {
+                            // first check which keys / elements ARE in the innerdictionary
+                            var cachedElementsInInnerDictionaryForKeys = new Dictionary<TKey, ObservableCachedElement<TKey, TValue>>();
+                            foreach (var key in currentRangeOfKeys)
+                            {
+                                ObservableCachedElement<TKey, TValue> observableCachedElementForCurrentKey;
+                                if (InnerDictionary.TryGetValue(key, out observableCachedElementForCurrentKey) == true)
+                                {
+                                    cachedElementsInInnerDictionaryForKeys.Add(key, observableCachedElementForCurrentKey);
+                                }
+                            }
 
-                // then go ahead and remove them
-                if (cachedElementsInInnerDictionaryForKeys.Count > 0)
-                {
-                    IDictionary<TKey, ObservableCachedElement<TKey, TValue>> elementsThatCouldNotBeRemoved;
-                    InnerDictionary.TryRemoveRange(cachedElementsInInnerDictionaryForKeys, out elementsThatCouldNotBeRemoved);
+                            // then go ahead and remove them
+                            IList<TKey> keysThatCouldNotBeRemoved;
+                            InnerDictionary.TryRemoveRange(currentRangeOfKeys, out keysThatCouldNotBeRemoved);
 
-                    // and finally remove expiration / value changed notification etc
-                    var keysForNonRemovedElements = elementsThatCouldNotBeRemoved.Keys;
-                    foreach (var observableCachedElement in cachedElementsInInnerDictionaryForKeys.Where(element => !keysForNonRemovedElements.Contains(element.Key, KeyComparer)))
-                    {
-                        RemoveFromEventAndNotificationsHandlingAndStopExpiration(observableCachedElement.Value);
-                    }
-                }
-            }, scheduler);
+                            // and finally remove expiration / value changed notification etc
+                            foreach (var removedObservableCachedElement in cachedElementsInInnerDictionaryForKeys.Where(element => !keysThatCouldNotBeRemoved.Contains(element.Key, KeyComparer)))
+                            {
+                                RemoveFromEventAndNotificationsHandlingAndStopExpiration(removedObservableCachedElement.Value);
+
+                                observer.OnNext(removedObservableCachedElement.Key);
+                            }
+
+                            var keyNotFoundExceptions =
+                                keysThatCouldNotBeRemoved
+                                    .Select(key => new KeyNotFoundException<TKey>(key))
+                                    .ToList();
+
+                            if (keyNotFoundExceptions.Count > 0)
+                            {
+                                if (keyNotFoundExceptions.Count == 1)
+                                    throw keyNotFoundExceptions.First();
+                                if (keyNotFoundExceptions.Count > 1)
+                                    throw new AggregateException($"{keyNotFoundExceptions.Count} elements could not be removed because no corresponding entry existed in this {this.GetType().Name}", keyNotFoundExceptions);
+                            }
+                        }
+                        catch (Exception exception)
+                        {
+                            observer.OnError(exception);
+                        }
+                    },
+                    observer.OnError,
+                    observer.OnCompleted);
+            });
         }
 
         /// <summary>

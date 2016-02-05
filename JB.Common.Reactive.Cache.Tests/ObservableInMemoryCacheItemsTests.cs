@@ -6,6 +6,7 @@ using System.Reactive.Concurrency;
 using System.Threading.Tasks;
 using FluentAssertions;
 using System.Reactive.Linq;
+using FluentAssertions.Common;
 using JB.Collections;
 using JB.Reactive.Cache.ExtensionMethods;
 using Microsoft.Reactive.Testing;
@@ -81,6 +82,32 @@ namespace JB.Reactive.Cache.Tests
 
                 // then
                 cache.CurrentCount.Should().Be(1);
+            }
+        }
+
+        [Fact]
+        public async Task ShouldRemoveRangeOfExistingItem()
+        {
+            // given
+            var testScheduler = new TestScheduler();
+            var removalObserver = testScheduler.CreateObserver<int>();
+
+            using (var cache = new ObservableInMemoryCache<int, string>())
+            {
+                await cache.Add(1, "One", TimeSpan.MaxValue);
+                await cache.Add(2, "Two", TimeSpan.MaxValue);
+                await cache.Add(3, "Three", TimeSpan.MaxValue);
+
+                // when
+                cache.RemoveRange(new List<int>() { 1, 2 }, testScheduler).Subscribe(removalObserver);
+                testScheduler.AdvanceBy(3);
+
+                // then
+                cache.CurrentCount.Should().Be(1);
+                removalObserver.Messages.Count.Should().Be(3);
+                removalObserver.Messages[0].Value.Value.Should().Be(1);
+                removalObserver.Messages[1].Value.Value.Should().Be(2);
+                removalObserver.Messages[2].Value.Kind.Should().Be(NotificationKind.OnCompleted);
             }
         }
 
@@ -784,8 +811,8 @@ namespace JB.Reactive.Cache.Tests
                 // then
                 observer.Messages.Count.Should().Be(1);
                 observer.Messages.First().Value.Kind.Should().Be(NotificationKind.OnError);
-                observer.Messages.First().Value.Exception.Should().BeOfType<ArgumentException>();
-                observer.Messages.First().Value.Exception.Message.Should().Be("The key already existed in the dictionary.");
+                observer.Messages.First().Value.Exception.Should().BeOfType<KeyAlreadyExistsException<int>>();
+                observer.Messages.First().Value.Exception.As<KeyAlreadyExistsException<int>>().Key.Should().Be(1);
             }
         }
 
@@ -866,14 +893,58 @@ namespace JB.Reactive.Cache.Tests
             using (var cache = new ObservableInMemoryCache<int, string>())
             {
                 // when
-                var observer = workerScheduler.CreateObserver<Unit>();
+                var observer = workerScheduler.CreateObserver<int>();
                 cache.Remove(1, workerScheduler).Subscribe(observer);
                 workerScheduler.AdvanceBy(2);
 
                 // then
                 observer.Messages.Count.Should().Be(1);
                 observer.Messages.First().Value.Kind.Should().Be(NotificationKind.OnError);
-                observer.Messages.First().Value.Exception.Should().BeOfType<KeyNotFoundException>();
+                observer.Messages.First().Value.Exception.Should().BeOfType<KeyNotFoundException<int>>();
+                observer.Messages.First().Value.Exception.As<KeyNotFoundException<int>>().Key.Should().Be(1);
+            }
+        }
+
+        [Fact]
+        public void ShouldThrowOnRemoveRangeOfNonExistingKey()
+        {
+            // given
+            var workerScheduler = new TestScheduler();
+            using (var cache = new ObservableInMemoryCache<int, string>())
+            {
+                // when
+                var observer = workerScheduler.CreateObserver<int>();
+                cache.RemoveRange(new List<int>() { 1 }, workerScheduler).Subscribe(observer);
+                workerScheduler.AdvanceBy(3);
+
+                // then
+                observer.Messages.Count.Should().Be(1);
+                observer.Messages.First().Value.Kind.Should().Be(NotificationKind.OnError);
+                observer.Messages.First().Value.Exception.Should().BeOfType<KeyNotFoundException<int>>();
+                observer.Messages.First().Value.Exception.As<KeyNotFoundException<int>>().Key.Should().Be(1);
+            }
+        }
+
+        [Fact]
+        public void ShouldThrowOnRemoveRangeOfNonExistingKeys()
+        {
+            // given
+            var workerScheduler = new TestScheduler();
+            using (var cache = new ObservableInMemoryCache<int, string>())
+            {
+                // when
+                var observer = workerScheduler.CreateObserver<int>();
+                cache.RemoveRange(new List<int>() { 1, 2 }, workerScheduler).Subscribe(observer);
+                workerScheduler.AdvanceBy(3);
+
+                // then
+                observer.Messages.Count.Should().Be(1);
+                observer.Messages.First().Value.Kind.Should().Be(NotificationKind.OnError);
+                observer.Messages.First().Value.Exception.Should().BeOfType<AggregateException>();
+                observer.Messages.First().Value.Exception.As<AggregateException>().InnerExceptions.Count.Should().Be(2);
+                observer.Messages.First().Value.Exception.As<AggregateException>().InnerExceptions.First().Should().BeOfType<KeyNotFoundException<int>>();
+                observer.Messages.First().Value.Exception.As<AggregateException>().InnerExceptions.First().As<KeyNotFoundException<int>>().Key.Should().Be(1);
+                observer.Messages.First().Value.Exception.As<AggregateException>().InnerExceptions.Last().As<KeyNotFoundException<int>>().Key.Should().Be(2);
             }
         }
 
