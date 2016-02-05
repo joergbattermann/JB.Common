@@ -1431,16 +1431,20 @@ namespace JB.Reactive.Cache
         /// <param name="source">The observable stream of key(s) to remove.</param>
         /// <param name="scheduler">Scheduler to perform the removal on.</param>
         /// <returns>
-        /// An observable stream of removed <typeparamref name="TKey"/> instances.
+        /// An observable stream that returns an observable stream of either [true] or [false] for every element provided by the <paramref name="source"/> observable
+        /// and whether it was successfully found and removed.. or not.
         /// </returns>
-        public virtual IObservable<TKey> Remove(IObservable<TKey> source, IScheduler scheduler = null)
+        /// <remarks>
+        /// The returned observable stream of [true] or [false] has the same order as the <paramref name="source"/> observable.
+        /// </remarks>
+        public virtual IObservable<bool> Remove(IObservable<TKey> source, IScheduler scheduler = null)
         {
             if (source == null)
                 throw new ArgumentNullException(nameof(source));
 
             CheckForAndThrowIfDisposed();
 
-            return Observable.Create<TKey>(observer =>
+            return Observable.Create<bool>(observer =>
             {
                 return source
                     .ObserveOn(scheduler ?? Scheduler.CurrentThread)
@@ -1449,12 +1453,16 @@ namespace JB.Reactive.Cache
                         try
                         {
                             ObservableCachedElement<TKey, TValue> observableCachedElement;
-                            if (InnerDictionary.TryRemove(key, out observableCachedElement) == false)
-                                throw new KeyNotFoundException<TKey>(key);
+                            if (InnerDictionary.TryRemove(key, out observableCachedElement) == true)
+                            {
+                                RemoveFromEventAndNotificationsHandlingAndStopExpiration(observableCachedElement);
 
-                            RemoveFromEventAndNotificationsHandlingAndStopExpiration(observableCachedElement);
-
-                            observer.OnNext(key);
+                                observer.OnNext(true);
+                            }
+                            else
+                            {
+                                observer.OnNext(false);
+                            }
                         }
                         catch (Exception exception)
                         {
@@ -1472,26 +1480,30 @@ namespace JB.Reactive.Cache
         /// <param name="source">The observable stream of range of key(s) to remove.</param>
         /// <param name="scheduler">Scheduler to perform the removal on.</param>
         /// <returns>
-        /// An observable stream of removed <typeparamref name="TKey"/> instances.
+        /// An observable stream that returns an observable stream of either [true] or [false] for every element provided by the <paramref name="source"/> observable
+        /// and whether it was successfully found and removed.. or not.
         /// </returns>
-        public virtual IObservable<TKey> RemoveRange(IObservable<IList<TKey>> source, IScheduler scheduler = null)
+        /// <remarks>
+        /// The returned observable stream of [true] or [false] has the same order as the <paramref name="source"/> observable.
+        /// </remarks>
+        public virtual IObservable<bool> RemoveRange(IObservable<IList<TKey>> source, IScheduler scheduler = null)
         {
             if (source == null)
                 throw new ArgumentNullException(nameof(source));
 
             CheckForAndThrowIfDisposed();
 
-            return Observable.Create<TKey>(observer =>
+            return Observable.Create<bool>(observer =>
             {
                 return source
                     .ObserveOn(scheduler ?? Scheduler.CurrentThread)
-                    .Subscribe(currentRangeOfKeys =>
+                    .Subscribe(keysToRemove =>
                     {
                         try
                         {
-                            // first check which keys / elements ARE in the innerdictionary
+                            // first check & collect which keys / elements that ARE in the innerdictionary
                             var cachedElementsInInnerDictionaryForKeys = new Dictionary<TKey, ObservableCachedElement<TKey, TValue>>();
-                            foreach (var key in currentRangeOfKeys)
+                            foreach (var key in keysToRemove)
                             {
                                 ObservableCachedElement<TKey, TValue> observableCachedElementForCurrentKey;
                                 if (InnerDictionary.TryGetValue(key, out observableCachedElementForCurrentKey) == true)
@@ -1500,29 +1512,30 @@ namespace JB.Reactive.Cache
                                 }
                             }
 
-                            // then go ahead and remove them
+                            // then go ahead and remove them + collecting which ones were not / no longer in the inner dictionary
                             IList<TKey> keysThatCouldNotBeRemoved;
-                            InnerDictionary.TryRemoveRange(currentRangeOfKeys, out keysThatCouldNotBeRemoved);
+                            InnerDictionary.TryRemoveRange(keysToRemove, out keysThatCouldNotBeRemoved);
 
-                            // and finally remove expiration / value changed notification etc
-                            foreach (var removedObservableCachedElement in cachedElementsInInnerDictionaryForKeys.Where(element => !keysThatCouldNotBeRemoved.Contains(element.Key, KeyComparer)))
+                            // and finally notify observer about
+                            foreach (var keyToRemove in keysToRemove)
                             {
-                                RemoveFromEventAndNotificationsHandlingAndStopExpiration(removedObservableCachedElement.Value);
-
-                                observer.OnNext(removedObservableCachedElement.Key);
-                            }
-
-                            var keyNotFoundExceptions =
-                                keysThatCouldNotBeRemoved
-                                    .Select(key => new KeyNotFoundException<TKey>(key))
-                                    .ToList();
-
-                            if (keyNotFoundExceptions.Count > 0)
-                            {
-                                if (keyNotFoundExceptions.Count == 1)
-                                    throw keyNotFoundExceptions.First();
-                                if (keyNotFoundExceptions.Count > 1)
-                                    throw new AggregateException($"{keyNotFoundExceptions.Count} elements could not be removed because no corresponding entry existed in this {this.GetType().Name}", keyNotFoundExceptions);
+                                if (keysThatCouldNotBeRemoved.Contains(keyToRemove, KeyComparer))
+                                {
+                                    observer.OnNext(false);
+                                }
+                                else
+                                {
+                                    ObservableCachedElement<TKey, TValue> removedObservableCachedElementForKeyToRemove;
+                                    if (cachedElementsInInnerDictionaryForKeys.TryGetValue(keyToRemove, out removedObservableCachedElementForKeyToRemove) == false)
+                                    {
+                                        observer.OnNext(false);
+                                    }
+                                    else
+                                    {
+                                        RemoveFromEventAndNotificationsHandlingAndStopExpiration(removedObservableCachedElementForKeyToRemove);
+                                        observer.OnNext(true);
+                                    }
+                                }
                             }
                         }
                         catch (Exception exception)

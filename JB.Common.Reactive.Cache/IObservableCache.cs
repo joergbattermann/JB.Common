@@ -179,9 +179,13 @@ namespace JB.Reactive.Cache
         /// <param name="source">The observable stream of key(s) to remove.</param>
         /// <param name="scheduler">Scheduler to perform the removal on.</param>
         /// <returns>
-        /// An observable stream of removed <typeparamref name="TKey"/> instances.
+        /// An observable stream that returns an observable stream of either [true] or [false] for every element provided by the <paramref name="source"/> observable
+        /// and whether it was successfully found and removed.. or not.
         /// </returns>
-        IObservable<TKey> Remove(IObservable<TKey> source, IScheduler scheduler = null);
+        /// <remarks>
+        /// The returned observable stream of [true] or [false] has the same order as the <paramref name="source"/> observable.
+        /// </remarks>
+        IObservable<bool> Remove(IObservable<TKey> source, IScheduler scheduler = null);
 
         /// <summary>
         /// Subscribes to the observable <paramref name="source"/> stream of range of keys and removes them from the <see cref="IObservableCache{TKey,TValue}"/>.
@@ -189,9 +193,13 @@ namespace JB.Reactive.Cache
         /// <param name="source">The observable stream of range of key(s) to remove.</param>
         /// <param name="scheduler">Scheduler to perform the removal on.</param>
         /// <returns>
-        /// An observable stream of removed <typeparamref name="TKey"/> instances.
+        /// An observable stream that returns an observable stream of either [true] or [false] for every element provided by the <paramref name="source"/> observable
+        /// and whether it was successfully found and removed.. or not.
         /// </returns>
-        IObservable<TKey> RemoveRange(IObservable<IList<TKey>> source, IScheduler scheduler = null);
+        /// <remarks>
+        /// The returned observable stream of [true] or [false] has the same order as the <paramref name="source"/> observable.
+        /// </remarks>
+        IObservable<bool> RemoveRange(IObservable<IList<TKey>> source, IScheduler scheduler = null);
 
         /// <summary>
         /// Updates the specified <paramref name="key"/> with the given <paramref name="value"/>.

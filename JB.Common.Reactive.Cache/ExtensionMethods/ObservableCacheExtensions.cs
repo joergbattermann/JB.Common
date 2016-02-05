@@ -524,9 +524,13 @@ namespace JB.Reactive.Cache.ExtensionMethods
         /// <param name="key">The key to remove.</param>
         /// <param name="scheduler">Scheduler to perform the remove action on.</param>
         /// <returns>
-        /// An observable stream that provides, if successful, the deleted key(s).
+        /// An observable stream that returns an observable stream of either [true] or [false] for every element provided by the <paramref name="source"/> observable
+        /// and whether it was successfully found and removed.. or not.
         /// </returns>
-        public static IObservable<TKey> Remove<TKey, TValue>(this IObservableCache<TKey, TValue> cache, TKey key, IScheduler scheduler = null)
+        /// <remarks>
+        /// The returned observable stream of [true] or [false] has the same order as the <paramref name="source"/> observable.
+        /// </remarks>
+        public static IObservable<bool> Remove<TKey, TValue>(this IObservableCache<TKey, TValue> cache, TKey key, IScheduler scheduler = null)
         {
             if (cache == null)
                 throw new ArgumentNullException(nameof(cache));
@@ -545,9 +549,13 @@ namespace JB.Reactive.Cache.ExtensionMethods
         /// <param name="keys">The keys to remove.</param>
         /// <param name="scheduler">Scheduler to perform the remove action on.</param>
         /// <returns>
-        /// An observable stream that provides, if successful, the deleted key(s).
+        /// An observable stream that returns an observable stream of either [true] or [false] for every element provided by the <paramref name="source"/> observable
+        /// and whether it was successfully found and removed.. or not.
         /// </returns>
-        public static IObservable<TKey> RemoveRange<TKey, TValue>(this IObservableCache<TKey, TValue> cache, IEnumerable<TKey> keys, IScheduler scheduler = null)
+        /// <remarks>
+        /// The returned observable stream of [true] or [false] has the same order as the <paramref name="source"/> observable.
+        /// </remarks>
+        public static IObservable<bool> RemoveRange<TKey, TValue>(this IObservableCache<TKey, TValue> cache, IEnumerable<TKey> keys, IScheduler scheduler = null)
         {
             if (cache == null)
                 throw new ArgumentNullException(nameof(cache));
@@ -556,7 +564,7 @@ namespace JB.Reactive.Cache.ExtensionMethods
 
             var keysAsList = keys.ToList();
             if (keysAsList.Count == 0)
-                return Observable.Empty<TKey>(scheduler ?? Scheduler.CurrentThread);
+                return Observable.Empty<bool>(scheduler ?? Scheduler.CurrentThread);
 
             return cache.RemoveRange(keysAsList.AsObservable(scheduler ?? Scheduler.CurrentThread), scheduler ?? Scheduler.CurrentThread);
         }

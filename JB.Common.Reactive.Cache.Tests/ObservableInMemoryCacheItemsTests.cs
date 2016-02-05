@@ -90,7 +90,7 @@ namespace JB.Reactive.Cache.Tests
         {
             // given
             var testScheduler = new TestScheduler();
-            var removalObserver = testScheduler.CreateObserver<int>();
+            var removalObserver = testScheduler.CreateObserver<bool>();
 
             using (var cache = new ObservableInMemoryCache<int, string>())
             {
@@ -105,8 +105,8 @@ namespace JB.Reactive.Cache.Tests
                 // then
                 cache.CurrentCount.Should().Be(1);
                 removalObserver.Messages.Count.Should().Be(3);
-                removalObserver.Messages[0].Value.Value.Should().Be(1);
-                removalObserver.Messages[1].Value.Value.Should().Be(2);
+                removalObserver.Messages[0].Value.Value.Should().Be(true);
+                removalObserver.Messages[1].Value.Value.Should().Be(true);
                 removalObserver.Messages[2].Value.Kind.Should().Be(NotificationKind.OnCompleted);
             }
         }
@@ -886,65 +886,68 @@ namespace JB.Reactive.Cache.Tests
         }
 
         [Fact]
-        public void ShouldThrowOnRemovalOfNonExistingKey()
+        public void ShouldNotifyNonRemovalOfNonExistingKey()
         {
             // given
             var workerScheduler = new TestScheduler();
             using (var cache = new ObservableInMemoryCache<int, string>())
             {
                 // when
-                var observer = workerScheduler.CreateObserver<int>();
+                var observer = workerScheduler.CreateObserver<bool>();
                 cache.Remove(1, workerScheduler).Subscribe(observer);
-                workerScheduler.AdvanceBy(2);
+                workerScheduler.AdvanceBy(3);
 
                 // then
-                observer.Messages.Count.Should().Be(1);
-                observer.Messages.First().Value.Kind.Should().Be(NotificationKind.OnError);
-                observer.Messages.First().Value.Exception.Should().BeOfType<KeyNotFoundException<int>>();
-                observer.Messages.First().Value.Exception.As<KeyNotFoundException<int>>().Key.Should().Be(1);
+                observer.Messages.Count.Should().Be(2);
+                observer.Messages.First().Value.Kind.Should().Be(NotificationKind.OnNext);
+                observer.Messages.First().Value.Value.Should().Be(false);
+
+                observer.Messages.Last().Value.Kind.Should().Be(NotificationKind.OnCompleted);
             }
         }
 
         [Fact]
-        public void ShouldThrowOnRemoveRangeOfNonExistingKey()
+        public void ShouldNotifyNonRemovalOfRangeOfNonExistingKey()
         {
             // given
             var workerScheduler = new TestScheduler();
             using (var cache = new ObservableInMemoryCache<int, string>())
             {
                 // when
-                var observer = workerScheduler.CreateObserver<int>();
+                var observer = workerScheduler.CreateObserver<bool>();
                 cache.RemoveRange(new List<int>() { 1 }, workerScheduler).Subscribe(observer);
                 workerScheduler.AdvanceBy(3);
 
                 // then
-                observer.Messages.Count.Should().Be(1);
-                observer.Messages.First().Value.Kind.Should().Be(NotificationKind.OnError);
-                observer.Messages.First().Value.Exception.Should().BeOfType<KeyNotFoundException<int>>();
-                observer.Messages.First().Value.Exception.As<KeyNotFoundException<int>>().Key.Should().Be(1);
+                observer.Messages.Count.Should().Be(2);
+                observer.Messages.First().Value.Kind.Should().Be(NotificationKind.OnNext);
+                observer.Messages.First().Value.Value.Should().Be(false);
+
+                observer.Messages.Last().Value.Kind.Should().Be(NotificationKind.OnCompleted);
             }
         }
 
         [Fact]
-        public void ShouldThrowOnRemoveRangeOfNonExistingKeys()
+        public async Task ShouldNotifyNonRemovalOfRangeOfNonExistingKeys()
         {
             // given
             var workerScheduler = new TestScheduler();
             using (var cache = new ObservableInMemoryCache<int, string>())
             {
+                await cache.Add(1, "One");
+
                 // when
-                var observer = workerScheduler.CreateObserver<int>();
+                var observer = workerScheduler.CreateObserver<bool>();
+                
                 cache.RemoveRange(new List<int>() { 1, 2 }, workerScheduler).Subscribe(observer);
                 workerScheduler.AdvanceBy(3);
 
                 // then
-                observer.Messages.Count.Should().Be(1);
-                observer.Messages.First().Value.Kind.Should().Be(NotificationKind.OnError);
-                observer.Messages.First().Value.Exception.Should().BeOfType<AggregateException>();
-                observer.Messages.First().Value.Exception.As<AggregateException>().InnerExceptions.Count.Should().Be(2);
-                observer.Messages.First().Value.Exception.As<AggregateException>().InnerExceptions.First().Should().BeOfType<KeyNotFoundException<int>>();
-                observer.Messages.First().Value.Exception.As<AggregateException>().InnerExceptions.First().As<KeyNotFoundException<int>>().Key.Should().Be(1);
-                observer.Messages.First().Value.Exception.As<AggregateException>().InnerExceptions.Last().As<KeyNotFoundException<int>>().Key.Should().Be(2);
+                observer.Messages.Count.Should().Be(3);
+                observer.Messages[0].Value.Value.Should().Be(true);
+                observer.Messages[1].Value.Value.Should().Be(false);
+
+                observer.Messages[2].Value.Kind.Should().Be(NotificationKind.OnCompleted);
             }
         }
 
