@@ -206,6 +206,33 @@ namespace JB.Reactive.Cache.Tests
         }
 
         [Fact]
+        public async Task ShouldClearCacheOnEveryClearRequest()
+        {
+            // given
+            var workerScheduler = new TestScheduler();
+            var clearObserver = workerScheduler.CreateObserver<Unit>();
+
+            using (var cache = new ObservableInMemoryCache<int, string>())
+            {
+                await cache.Add(1, "One");
+                await cache.Add(2, "Two");
+                await cache.Add(3, "Three");
+
+                // when
+                cache.Clear(Observable.Range(0, 2).Select(_ => Unit.Default), workerScheduler).Subscribe(clearObserver);
+                workerScheduler.AdvanceBy(3);
+
+                // then
+                cache.CurrentCount.Should().Be(0);
+
+                clearObserver.Messages.Count.Should().Be(3);
+                clearObserver.Messages[0].Value.Kind.Should().Be(NotificationKind.OnNext);
+                clearObserver.Messages[1].Value.Kind.Should().Be(NotificationKind.OnNext);
+                clearObserver.Messages[2].Value.Kind.Should().Be(NotificationKind.OnCompleted);
+            }
+        }
+
+        [Fact]
         public async Task ShouldContainAllCurrentKeys()
         {
             // given

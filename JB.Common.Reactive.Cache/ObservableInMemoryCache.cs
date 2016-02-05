@@ -1093,7 +1093,7 @@ namespace JB.Reactive.Cache
         /// <param name="expirationType">Defines how the <paramref name="source" /> key/value pairs shall expire.</param>
         /// <param name="scheduler">Scheduler to perform the add action on.</param>
         /// <returns>
-        /// An observable stream of added element from the <paramref name="source"/>.
+        /// An observable stream of added elements from the <paramref name="source"/>.
         /// </returns>
         public IObservable<KeyValuePair<TKey, TValue>> Add(IObservable<KeyValuePair<TKey, TValue>> source, TimeSpan expiry, ObservableCacheExpirationType expirationType = ObservableCacheExpirationType.DoNothing, IScheduler scheduler = null)
         {
@@ -1203,29 +1203,48 @@ namespace JB.Reactive.Cache
                     observer.OnCompleted);
             });
         }
-
+        
         /// <summary>
-        /// Clears this instance.
+        /// Clears this instance for every <see cref="Unit"/> signaled via the <paramref name="source"/> observable.
         /// </summary>
+        /// <param name="source">The source triggers.</param>
         /// <param name="scheduler">Scheduler to perform the clear action on.</param>
         /// <returns>
-        /// An observable stream that, when done, returns an <see cref="Unit" />.
+        /// An observable stream that signals each clear with an <see cref="Unit" />.
         /// </returns>
-        public virtual IObservable<Unit> Clear(IScheduler scheduler = null)
+        public virtual IObservable<Unit> Clear(IObservable<Unit> source, IScheduler scheduler = null)
         {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+
             CheckForAndThrowIfDisposed();
 
-            return Linq.Observable.Run(() =>
+            return Observable.Create<Unit>(observer =>
             {
-                var valuesBeforeClearing = InnerDictionary.Values;
+                return source
+                    .ObserveOn(scheduler ?? Scheduler.CurrentThread)
+                    .Subscribe(_ =>
+                    {
+                        try
+                        {
+                            var valuesBeforeClearing = InnerDictionary.Values;
 
-                InnerDictionary.Clear();
+                            InnerDictionary.Clear();
 
-                foreach (var value in valuesBeforeClearing)
-                {
-                    RemoveFromEventAndNotificationsHandlingAndStopExpiration(value);
-                }
-            }, scheduler);
+                            foreach (var value in valuesBeforeClearing)
+                            {
+                                RemoveFromEventAndNotificationsHandlingAndStopExpiration(value);
+                            }
+
+                            observer.OnNext(Unit.Default);
+                        }
+                        catch (Exception exception)
+                        {
+                            observer.OnError(exception);
+                        }
+                    },
+                    observer.OnError,
+                    observer.OnCompleted);
+            });
         }
 
         /// <summary>

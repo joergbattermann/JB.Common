@@ -89,15 +89,16 @@ namespace JB.Reactive.Cache
         /// An observable stream of added element from the <paramref name="source"/>.
         /// </returns>
         IObservable<KeyValuePair<TKey, TValue>> AddRange(IObservable<IList<KeyValuePair<TKey, TValue>>> source, TimeSpan expiry, ObservableCacheExpirationType expirationType = ObservableCacheExpirationType.DoNothing, IScheduler scheduler = null);
-        
+
         /// <summary>
-        /// Clears this instance.
+        /// Clears this instance for every <see cref="Unit"/> signaled via the <paramref name="source"/> observable.
         /// </summary>
+        /// <param name="source">The source triggers.</param>
         /// <param name="scheduler">Scheduler to perform the clear action on.</param>
         /// <returns>
-        /// An observable stream that, when done, returns an <see cref="Unit" />.
+        /// An observable stream that signals each clear with an <see cref="Unit" />.
         /// </returns>
-        IObservable<Unit> Clear(IScheduler scheduler = null);
+        IObservable<Unit> Clear(IObservable<Unit> source, IScheduler scheduler = null);
 
         /// <summary>
         /// Determines whether this instance contains the specified <paramref name="key"/>.

@@ -296,6 +296,24 @@ namespace JB.Reactive.Cache.ExtensionMethods
         }
 
         /// <summary>
+        /// Removes all keys and values from the <paramref name="cache"/>.
+        /// </summary>
+        /// <param name="cache">The cache to clear.</param>
+        /// <param name="scheduler">Scheduler to perform the clear action on.</param>
+        /// <returns>
+        /// An observable stream that signals when finished clear with an <see cref="Unit" />.
+        /// </returns>
+        public static IObservable<Unit> Clear<TKey, TValue>(this IObservableCache<TKey, TValue> cache, IScheduler scheduler = null)
+        {
+            if (cache == null)
+                throw new ArgumentNullException(nameof(cache));
+
+            return cache.Clear(
+                Observable.Return(Unit.Default, scheduler ?? Scheduler.CurrentThread),
+                scheduler ?? Scheduler.CurrentThread);
+        }
+
+        /// <summary>
         ///     Determines whether which ones of the specified <paramref name="keys" /> are not contained in the
         ///     <paramref name="cache" />.
         /// </summary>
