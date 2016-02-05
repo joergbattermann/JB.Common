@@ -1203,24 +1203,24 @@ namespace JB.Reactive.Cache
                     observer.OnCompleted);
             });
         }
-        
+
         /// <summary>
-        /// Clears this instance for every <see cref="Unit"/> signaled via the <paramref name="source"/> observable.
+        /// Clears this instance for every <see cref="Unit"/> signaled via the <paramref name="clearTriggers"/> observable.
         /// </summary>
-        /// <param name="source">The source triggers.</param>
+        /// <param name="clearTriggers">The clear triggers.</param>
         /// <param name="scheduler">Scheduler to perform the clear action on.</param>
         /// <returns>
         /// An observable stream that signals each clear with an <see cref="Unit" />.
         /// </returns>
-        public virtual IObservable<Unit> Clear(IObservable<Unit> source, IScheduler scheduler = null)
+        public virtual IObservable<Unit> Clear(IObservable<Unit> clearTriggers, IScheduler scheduler = null)
         {
-            if (source == null) throw new ArgumentNullException(nameof(source));
+            if (clearTriggers == null) throw new ArgumentNullException(nameof(clearTriggers));
 
             CheckForAndThrowIfDisposed();
 
             return Observable.Create<Unit>(observer =>
             {
-                return source
+                return clearTriggers
                     .ObserveOn(scheduler ?? Scheduler.CurrentThread)
                     .Subscribe(_ =>
                     {
@@ -1248,66 +1248,40 @@ namespace JB.Reactive.Cache
         }
 
         /// <summary>
-        /// Determines whether this instance contains the specified <paramref name="key"/>.
+        /// Determines whether this instance contains the keys provided by the observable <paramref name="keys"/> sequence.
         /// </summary>
-        /// <param name="key">The key to check.</param>
-        /// <param name="scheduler">Scheduler to perform the check on.</param>
+        /// <param name="keys">The observable sequence of keys to check.</param>
+        /// <param name="scheduler">Scheduler to perform the check(s) on.</param>
         /// <returns>
-        /// An observable stream that returns [true] if the <paramref name="key"/> is is contained in this instance, [false] if not.
+        /// An observable stream that returns [true] for each provided key that is is contained in this instance, [false] if not.
         /// </returns>
-        public virtual IObservable<bool> Contains(TKey key, IScheduler scheduler = null)
-        {
-            if (key == null)
-                throw new ArgumentNullException(nameof(key));
-
-            CheckForAndThrowIfDisposed();
-
-            return Linq.Observable.Run(() => InnerDictionary.ContainsKey(key), scheduler);
-        }
-
-        /// <summary>
-        /// Determines whether this instance contains the specified <paramref name="keys"/>.
-        /// </summary>
-        /// <param name="keys">The keys to check.</param>
-        /// <param name="maxConcurrent">Maximum number of concurrent <see cref="Contains"/> checks.</param>
-        /// <param name="scheduler">Scheduler to run the concurrent <see cref="Contains"/> checks on.</param>
-        /// <returns>
-        /// An observable stream that returns [true] if all <paramref name="keys"/> are contained in this instance, [false] if not.
-        /// </returns>
-        public virtual IObservable<bool> ContainsAll(ICollection<TKey> keys, int maxConcurrent = 1, IScheduler scheduler = null)
-        {
-            if (keys == null)
-                throw new ArgumentNullException(nameof(keys));
-            if (maxConcurrent <= 0)
-                throw new ArgumentOutOfRangeException(nameof(maxConcurrent), "Must be 1 or higher");
-
-            CheckForAndThrowIfDisposed();
-
-            return scheduler != null
-                ? keys.Select(key => Contains(key, scheduler)).Merge(maxConcurrent, scheduler).All(result => result)
-                : keys.Select(key => Contains(key)).Merge(maxConcurrent).All(result => result);
-        }
-
-        /// <summary>
-        /// Determines whether which ones of the specified <paramref name="keys"/> are contained in this instance.
-        /// </summary>
-        /// <param name="keys">The keys to check.</param>
-        /// <param name="scheduler">Scheduler to run the checks on.</param>
-        /// <returns>
-        /// An observable stream that returns the subset of keys of the provided <paramref name="keys"/> that are contained in this instance.
-        /// </returns>
-        public virtual IObservable<TKey> ContainsWhich(IEnumerable<TKey> keys, IScheduler scheduler = null)
+        public virtual IObservable<bool> Contains(IObservable<TKey> keys, IScheduler scheduler = null)
         {
             if (keys == null)
                 throw new ArgumentNullException(nameof(keys));
 
             CheckForAndThrowIfDisposed();
 
-            return scheduler != null
-                ? keys.ToObservable().ObserveOn(scheduler).Where(key => InnerDictionary.ContainsKey(key))
-                : keys.ToObservable().Where(key => InnerDictionary.ContainsKey(key));
+            return Observable.Create<bool>(observer =>
+            {
+                return keys
+                    .ObserveOn(scheduler ?? Scheduler.CurrentThread)
+                    .Subscribe(key =>
+                    {
+                        try
+                        {
+                            observer.OnNext(InnerDictionary.ContainsKey(key));
+                        }
+                        catch (Exception exception)
+                        {
+                            observer.OnError(exception);
+                        }
+                    },
+                    observer.OnError,
+                    observer.OnCompleted);
+            });
         }
-
+        
         /// <summary>
         /// Determines the <see cref="DateTime"/> (UTC) the <paramref name="key"/> expires.
         /// </summary>

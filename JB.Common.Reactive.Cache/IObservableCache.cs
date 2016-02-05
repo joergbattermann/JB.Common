@@ -91,46 +91,25 @@ namespace JB.Reactive.Cache
         IObservable<KeyValuePair<TKey, TValue>> AddRange(IObservable<IList<KeyValuePair<TKey, TValue>>> source, TimeSpan expiry, ObservableCacheExpirationType expirationType = ObservableCacheExpirationType.DoNothing, IScheduler scheduler = null);
 
         /// <summary>
-        /// Clears this instance for every <see cref="Unit"/> signaled via the <paramref name="source"/> observable.
+        /// Clears this instance for every <see cref="Unit"/> signaled via the <paramref name="clearTriggers"/> observable.
         /// </summary>
-        /// <param name="source">The source triggers.</param>
+        /// <param name="clearTriggers">The clear triggers.</param>
         /// <param name="scheduler">Scheduler to perform the clear action on.</param>
         /// <returns>
         /// An observable stream that signals each clear with an <see cref="Unit" />.
         /// </returns>
-        IObservable<Unit> Clear(IObservable<Unit> source, IScheduler scheduler = null);
+        IObservable<Unit> Clear(IObservable<Unit> clearTriggers, IScheduler scheduler = null);
 
         /// <summary>
-        /// Determines whether this instance contains the specified <paramref name="key"/>.
+        /// Determines whether this instance contains the keys provided by the observable <paramref name="keys"/> sequence.
         /// </summary>
-        /// <param name="key">The key to check.</param>
-        /// <param name="scheduler">Scheduler to perform the check on.</param>
+        /// <param name="keys">The observable sequence of keys to check.</param>
+        /// <param name="scheduler">Scheduler to perform the check(s) on.</param>
         /// <returns>
-        /// An observable stream that returns [true] if the <paramref name="key"/> is is contained in this instance, [false] if not.
+        /// An observable stream that returns [true] for each provided key that is is contained in this instance, [false] if not.
         /// </returns>
-        IObservable<bool> Contains(TKey key, IScheduler scheduler = null);
-
-        /// <summary>
-        /// Determines whether this instance contains the specified <paramref name="keys"/>.
-        /// </summary>
-        /// <param name="keys">The keys to check.</param>
-        /// <param name="maxConcurrent">Maximum number of concurrent <see cref="Contains"/> checks.</param>
-        /// <param name="scheduler">Scheduler to run the concurrent <see cref="Contains"/> checks on.</param>
-        /// <returns>
-        /// An observable stream that returns [true] if all <paramref name="keys"/> are contained in this instance, [false] if not.
-        /// </returns>
-        IObservable<bool> ContainsAll(ICollection<TKey> keys, int maxConcurrent = 1, IScheduler scheduler = null);
-
-        /// <summary>
-        /// Determines whether which ones of the specified <paramref name="keys"/> are contained in this instance.
-        /// </summary>
-        /// <param name="keys">The keys to check.</param>
-        /// <param name="scheduler">Scheduler to run the checks on.</param>
-        /// <returns>
-        /// An observable stream that returns the subset of keys of the provided <paramref name="keys"/> that are contained in this instance.
-        /// </returns>
-        IObservable<TKey> ContainsWhich(IEnumerable<TKey> keys, IScheduler scheduler = null);
-
+        IObservable<bool> Contains(IObservable<TKey> keys, IScheduler scheduler = null);
+        
         /// <summary>
         /// Determines the <see cref="DateTime"/> (UTC) the <paramref name="key"/> expires.
         /// </summary>

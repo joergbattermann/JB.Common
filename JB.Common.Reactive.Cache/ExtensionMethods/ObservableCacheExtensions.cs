@@ -314,23 +314,27 @@ namespace JB.Reactive.Cache.ExtensionMethods
         }
 
         /// <summary>
-        ///     Determines whether which ones of the specified <paramref name="keys" /> are not contained in the
-        ///     <paramref name="cache" />.
+        /// Determines whether the specified <paramref name="key"/> is an element of the <paramref name="cache"/>.
         /// </summary>
         /// <typeparam name="TKey">The type of the key.</typeparam>
         /// <typeparam name="TValue">The type of the value.</typeparam>
         /// <param name="cache">The cache to use.</param>
-        /// <param name="keys">The keys to check.</param>
-        /// <param name="scheduler">The scheduler to run the check on. If none is provided, <see cref="Scheduler.CurrentThread"/> will be used.</param>
-        /// <returns>
-        ///     An observable stream that returns the subset of keys of the provided <paramref name="keys" /> that are not
-        ///     contained in the <paramref name="cache" />.
-        /// </returns>
-        public static IObservable<TKey> ContainsWhichNot<TKey, TValue>(this IObservableCache<TKey, TValue> cache, IEnumerable<TKey> keys, IScheduler scheduler = null)
+        /// <param name="key">The key to check.</param>
+        /// <param name="scheduler">The scheduler to run check on.</param>
+        /// <returns></returns>
+        /// <exception cref="System.ArgumentNullException"></exception>
+        public static IObservable<bool> Contains<TKey, TValue>(this IObservableCache<TKey, TValue> cache, TKey key, IScheduler scheduler = null)
         {
-            throw new NotImplementedException();
-        }
+            if (cache == null)
+                throw new ArgumentNullException(nameof(cache));
+            if (key == null)
+                throw new ArgumentNullException(nameof(key));
 
+            return cache.Contains(
+                Observable.Return(key, scheduler ?? Scheduler.CurrentThread),
+                scheduler ?? Scheduler.CurrentThread);
+        }
+        
         /// <summary>
         ///     Gets the <paramref name="cache" />'s current count concatenated with future count changes as an observable stream.
         /// </summary>

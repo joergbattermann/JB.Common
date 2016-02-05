@@ -144,49 +144,7 @@ namespace JB.Reactive.Cache.Tests
                 reRetrievedValue.Should().Be("One");
             }
         }
-
-        [Fact]
-        public async Task ContainsWhichShouldReturnCorrespondingly()
-        {
-            // given
-            using (var cache = new ObservableInMemoryCache<int, string>())
-            {
-                await cache.Add(1, "One");
-                await cache.Add(2, "Two");
-
-                // when
-                var resultForNonEmptyList = await cache.ContainsWhich(new List<int>() { 1, 2, 3, 4 }).ToList();
-                var resultForEmptyList = await cache.ContainsWhich(new List<int>()).ToList();
-
-                // then
-                resultForNonEmptyList.Should().HaveCount(2);
-                resultForNonEmptyList.Should().Contain(1);
-                resultForNonEmptyList.Should().Contain(2);
-                resultForEmptyList.Should().BeEmpty();
-            }
-        }
-
-        [Fact]
-        public async Task ContainsAllShouldReturnCorrespondingly()
-        {
-            // given
-            using (var cache = new ObservableInMemoryCache<int, string>())
-            {
-                await cache.Add(1, "One");
-                await cache.Add(2, "Two");
-
-                // when
-                var containsAllAddedKey = await cache.ContainsAll(new[] { 1, 2 });
-                var doesNotContainOneOftheAddedKeysAndOneUnAddedOne = await cache.ContainsAll(new[] { 2, 3 });
-                var resultForEmptyContainsAllKeys = await cache.ContainsAll(new List<int>());
-
-                // then
-                containsAllAddedKey.Should().BeTrue();
-                doesNotContainOneOftheAddedKeysAndOneUnAddedOne.Should().BeFalse();
-                resultForEmptyContainsAllKeys.Should().BeTrue();
-            }
-        }
-
+        
         [Fact]
         public async Task ShouldClearCache()
         {
