@@ -286,9 +286,6 @@ namespace JB.Reactive.Cache
                 if (HasExpired)
                     throw new InvalidOperationException($"Once {nameof(HasExpired)} has been set, expiration behavior cannot be changed anymore.");
 
-                if (Equals(_expirationType, value))
-                    return;
-
                 _expirationType = value;
             }
         }
@@ -312,9 +309,6 @@ namespace JB.Reactive.Cache
             {
                 CheckForAndThrowIfDisposed();
 
-                if (Equals(_originalExpiry, value))
-                    return;
-
                 _originalExpiry = value;
             }
         }
@@ -337,9 +331,6 @@ namespace JB.Reactive.Cache
             {
                 CheckForAndThrowIfDisposed();
                 
-                if (Equals(_expiryDateTime, value))
-                    return;
-
                 _expiryDateTime = value;
             }
         }
@@ -372,13 +363,17 @@ namespace JB.Reactive.Cache
         /// <param name="key">The key.</param>
         /// <param name="value">The cached value.</param>
         /// <param name="expirationType">Type of the expiration.</param>
-        public ObservableCachedElement(TKey key, TValue value, ObservableCacheExpirationType expirationType)
+        public ObservableCachedElement(TKey key, TValue value, TimeSpan expiry, ObservableCacheExpirationType expirationType)
         {
             if (key == null) throw new ArgumentNullException(nameof(key));
+            if (expiry < TimeSpan.Zero)
+                throw new ArgumentOutOfRangeException(nameof(expiry), $"{nameof(expiry)} cannot be negative");
 
             Key = key;
             Value = value;
 
+            // ToDo: usage of OriginalExpiry / expiry is a dirty hack - this needs to be done more properly sometimes down the road
+            OriginalExpiry = expiry;
             ExpirationType = expirationType;
         }
 

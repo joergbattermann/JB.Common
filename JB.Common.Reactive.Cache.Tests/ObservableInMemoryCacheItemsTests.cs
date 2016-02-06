@@ -213,27 +213,28 @@ namespace JB.Reactive.Cache.Tests
         }
 
         [Fact]
-        public void ShouldProvideExistingAndAddedKeys()
+        public void KeysShouldProvideExistingAndAddedKeys()
         {
             // given
-            var testScheduler = new TestScheduler();
-            var expiresAtTicks = 10;
-            var keysObserver = testScheduler.CreateObserver<int>();
+            var workerScheduler = new TestScheduler();
 
-            using (var cache = new ObservableInMemoryCache<int, string>(notificationScheduler: testScheduler))
+            var keysObserver = workerScheduler.CreateObserver<int>();
+
+            using (var cache = new ObservableInMemoryCache<int, string>())
             {
-                cache.Add(1, "One", testScheduler).Subscribe();
-                cache.Add(2, "Two", testScheduler).Subscribe();
-                cache.Add(3, "Three", testScheduler).Subscribe();
-                testScheduler.AdvanceBy(3);
+                cache.Add(1, "One", workerScheduler).Subscribe();
+                cache.Add(2, "Two", workerScheduler).Subscribe();
+                cache.Add(3, "Three", workerScheduler).Subscribe();
+
+                workerScheduler.AdvanceBy(3);
 
                 // when
                 using (cache.Keys.Subscribe(keysObserver))
                 {
-                    cache.Add(4, "Four").Subscribe();
-                    cache.Add(5, "Five").Subscribe();
+                    cache.Add(4, "Four", workerScheduler).Subscribe();
+                    cache.Add(5, "Five", workerScheduler).Subscribe();
 
-                    testScheduler.AdvanceBy(2);
+                    workerScheduler.AdvanceBy(4);
                 }
 
                 // then
@@ -1057,6 +1058,7 @@ namespace JB.Reactive.Cache.Tests
                     cache.Add(key, testInpcImplementationInstance, workerScheduler).Subscribe();
                     workerScheduler.AdvanceBy(2);
                     notificationScheduler.AdvanceBy(2);
+                    notificationScheduler.AdvanceBy(5);
 
                     // then
                     changesObserver.Messages.Count.Should().Be(1);
@@ -1069,7 +1071,7 @@ namespace JB.Reactive.Cache.Tests
                     // and when
                     testInpcImplementationInstance.FirstProperty = Guid.NewGuid().ToString();
 
-                    notificationScheduler.AdvanceBy(2);
+                    notificationScheduler.AdvanceBy(1);
 
                     // then
                     changesObserver.Messages.Count.Should().Be(2);
@@ -1093,7 +1095,58 @@ namespace JB.Reactive.Cache.Tests
                     valueChangesSubscription?.Dispose();
                 }
             }
+        }
 
+        [Fact]
+        public void ShouldNotNotifySubscribersAboutValueChangesAfterItemsAreRemovedFromCache()
+        {
+            // given
+            var notificationScheduler = new TestScheduler();
+            var workerScheduler = new TestScheduler();
+
+            int key = 1;
+            var testInpcImplementationInstance = new MyNotifyPropertyChanged<int, string>(key);
+
+            var changesObserver = notificationScheduler.CreateObserver<IObservableCacheChange<int, MyNotifyPropertyChanged<int, string>>>();
+            var valueChangesObserver = notificationScheduler.CreateObserver<IObservableCacheChange<int, MyNotifyPropertyChanged<int, string>>>();
+
+            using (var cache = new ObservableInMemoryCache<int, MyNotifyPropertyChanged<int, string>>(notificationScheduler: notificationScheduler))
+            {
+                cache.ThresholdAmountWhenChangesAreNotifiedAsReset = int.MaxValue;
+
+                IDisposable cacheChangesSubscription = null;
+                IDisposable valueChangesSubscription = null;
+
+                try
+                {
+                    cache.Add(key, testInpcImplementationInstance, workerScheduler).Subscribe();
+                    workerScheduler.AdvanceBy(2);
+                    notificationScheduler.AdvanceBy(2);
+                    notificationScheduler.AdvanceBy(5);
+
+                    // when
+                    cache.Remove(key, workerScheduler).Subscribe();
+                    workerScheduler.AdvanceBy(2);
+                    notificationScheduler.AdvanceBy(2);
+                    notificationScheduler.AdvanceBy(5);
+
+                    cacheChangesSubscription = cache.Changes.Subscribe(changesObserver);
+                    valueChangesSubscription = cache.ValueChanges.Subscribe(valueChangesObserver);
+
+                    // .. and
+                    testInpcImplementationInstance.FirstProperty = Guid.NewGuid().ToString();
+                    notificationScheduler.AdvanceBy(1);
+
+                    // then
+                    changesObserver.Messages.Count.Should().Be(0);
+                    valueChangesObserver.Messages.Count.Should().Be(0);
+                }
+                finally
+                {
+                    cacheChangesSubscription?.Dispose();
+                    valueChangesSubscription?.Dispose();
+                }
+            }
         }
 
         [Fact]
@@ -1125,6 +1178,7 @@ namespace JB.Reactive.Cache.Tests
                     cache.Add(key, value, workerScheduler).Subscribe();
                     workerScheduler.AdvanceBy(2);
                     notificationScheduler.AdvanceBy(2);
+                    notificationScheduler.AdvanceBy(5);
 
                     // then
                     changesObserver.Messages.Count.Should().Be(1);
@@ -1137,7 +1191,7 @@ namespace JB.Reactive.Cache.Tests
                     // and when
                     key.FirstProperty = Guid.NewGuid().ToString();
 
-                    notificationScheduler.AdvanceBy(2);
+                    notificationScheduler.AdvanceBy(1);
 
                     // then
                     changesObserver.Messages.Count.Should().Be(2);
@@ -1154,6 +1208,58 @@ namespace JB.Reactive.Cache.Tests
                     keyChangesObserver.Messages.First().Value.Value.Value.Should().Be(1);
                     keyChangesObserver.Messages.First().Value.Value.OldValue.Should().Be(default(int));
                     keyChangesObserver.Messages.Last().Value.Value.ChangedPropertyName.Should().Be(nameof(MyNotifyPropertyChanged<int, string>.FirstProperty));
+                }
+                finally
+                {
+                    cacheChangesSubscription?.Dispose();
+                    keyChangesSubscription?.Dispose();
+                }
+            }
+        }
+
+        [Fact]
+        public async Task ShouldNotNotifySubscribersAboutKeyChangesAfterItemsAreRemovedFromCache()
+        {
+            // given
+            var notificationScheduler = new TestScheduler();
+            var workerScheduler = new TestScheduler();
+
+            int value = 1;
+            var key = new MyNotifyPropertyChanged<int, string>(value);
+
+            var changesObserver = notificationScheduler.CreateObserver<IObservableCacheChange<MyNotifyPropertyChanged<int, string>, int>>();
+            var keyChangesObserver = notificationScheduler.CreateObserver<IObservableCacheChange<MyNotifyPropertyChanged<int, string>, int>>();
+
+            using (var cache = new ObservableInMemoryCache<MyNotifyPropertyChanged<int, string>, int>(notificationScheduler: notificationScheduler))
+            {
+                cache.ThresholdAmountWhenChangesAreNotifiedAsReset = int.MaxValue;
+
+                IDisposable cacheChangesSubscription = null;
+                IDisposable keyChangesSubscription = null;
+
+                try
+                {
+                    cache.Add(key, value, workerScheduler).Subscribe();
+                    workerScheduler.AdvanceBy(2);
+                    notificationScheduler.AdvanceBy(2);
+                    notificationScheduler.AdvanceBy(5);
+
+                    // when
+                    cache.Remove(key, workerScheduler).Subscribe();
+                    workerScheduler.AdvanceBy(2);
+                    notificationScheduler.AdvanceBy(2);
+                    notificationScheduler.AdvanceBy(5);
+
+                    cacheChangesSubscription = cache.Changes.Subscribe(changesObserver);
+                    keyChangesSubscription = cache.KeyChanges.Subscribe(keyChangesObserver);
+
+                    // .. and
+                    key.FirstProperty = Guid.NewGuid().ToString();
+                    notificationScheduler.AdvanceBy(1);
+
+                    // then
+                    changesObserver.Messages.Count.Should().Be(0);
+                    keyChangesObserver.Messages.Count.Should().Be(0);
                 }
                 finally
                 {

@@ -37,7 +37,9 @@ namespace JB.Reactive.Cache
         private Subject<ObserverException> _unhandledObserverExceptionsSubject = new Subject<ObserverException>();
         private Subject<ObservableCachedElement<TKey, TValue>> _expiredElementsSubject = new Subject<ObservableCachedElement<TKey, TValue>>();
 
+        private IDisposable _addedElementsSubscription = null;
         private IDisposable _expiredElementsSubscription = null;
+        private IDisposable _removedElementsSubscription = null;
 
         /// <summary>
         /// Gets the cache changes observer.
@@ -113,6 +115,14 @@ namespace JB.Reactive.Cache
         protected IScheduler ExpirationScheduler { get; }
 
         /// <summary>
+        /// Gets the worker scheduler.
+        /// </summary>
+        /// <value>
+        /// The worker scheduler.
+        /// </value>
+        protected IScheduler WorkerScheduler { get; }
+
+        /// <summary>
         /// Gets the <see cref="IEqualityComparer{T}" /> implementation to use when comparing keys.
         /// </summary>
         /// <value>
@@ -161,16 +171,23 @@ namespace JB.Reactive.Cache
         ///     This value allows to specify the time window inbetween each expiration handling process.</param>
         /// <param name="throwOnExpirationHandlingExceptions"></param>
         /// <param name="expirationScheduler">
-        ///     The <see cref="IScheduler"/> to to schedule and run elements' expiration handling on.
+        ///     The <see cref="IScheduler"/> used to schedule and run elements' expiration handling on.
         ///     If none is provided <see>
         ///         <cref>System.Reactive.Concurrency.Scheduler.Default</cref>
         ///     </see>
         ///     will be used.
         /// </param>
         /// <param name="notificationScheduler">
-        ///     The <see cref="IScheduler"/> to to send out observer messages and raise events on.
+        ///     The <see cref="IScheduler"/> used to send out observer messages and raise events on.
         ///     If none is provided <see>
         ///         <cref>System.Reactive.Concurrency.Scheduler.CurrentThread</cref>
+        ///     </see>
+        ///     will be used.
+        /// </param>
+        /// <param name="workerScheduler">
+        ///     The <see cref="IScheduler"/> used to schedule work on.
+        ///     If none is provided <see>
+        ///         <cref>System.Reactive.Concurrency.Scheduler.Immediate</cref>
         ///     </see>
         ///     will be used.
         /// </param>
@@ -182,13 +199,15 @@ namespace JB.Reactive.Cache
             TimeSpan? expiredElementsHandlingChillPeriod = null,
             bool throwOnExpirationHandlingExceptions = true,
             IScheduler expirationScheduler = null,
-            IScheduler notificationScheduler = null)
+            IScheduler notificationScheduler = null,
+            IScheduler workerScheduler = null)
         {
             if(expiredElementsHandlingChillPeriod.HasValue && expiredElementsHandlingChillPeriod.Value < TimeSpan.Zero)
                 throw new ArgumentOutOfRangeException(nameof(expiredElementsHandlingChillPeriod), "Must be 0 Ticks or more");
 
             NotificationScheduler = notificationScheduler ?? Scheduler.CurrentThread;
             ExpirationScheduler = expirationScheduler ?? Scheduler.Default;
+            WorkerScheduler = workerScheduler ?? Scheduler.Immediate;
 
             KeyComparer = keyComparer ?? EqualityComparer<TKey>.Default;
             ValueComparer = valueComparer ?? EqualityComparer<TValue>.Default;
@@ -219,16 +238,129 @@ namespace JB.Reactive.Cache
             // prepare subjects for RX
             ObserverExceptionsObserver = _unhandledObserverExceptionsSubject.NotifyOn(NotificationScheduler);
             CacheChangesObserver = _cacheChangesSubject.NotifyOn(NotificationScheduler);
-            
+
+            _addedElementsSubscription = InnerDictionary.DictionaryChanges
+                .ObserveOn(NotificationScheduler)
+                .TakeWhile(_ => !IsDisposing && !IsDisposed)
+                .Where(change => change.ChangeType == ObservableDictionaryChangeType.ItemAdded)
+                .Do(HandleAndNotifyObserversAboutAddedElements)
+                .CatchAndForward(ObserverExceptionsObserver, ThrowOnExpirationHandlingExceptions)
+                .Subscribe();
+
+            _removedElementsSubscription = InnerDictionary.DictionaryChanges
+                .ObserveOn(NotificationScheduler)
+                .TakeWhile(_ => !IsDisposing && !IsDisposed)
+                .Where(change => change.ChangeType == ObservableDictionaryChangeType.ItemRemoved)
+                .Do(HandleAndNotifyObserversAboutRemovedElements)
+                .CatchAndForward(ObserverExceptionsObserver, ThrowOnExpirationHandlingExceptions)
+                .Subscribe();
+
             _expiredElementsSubscription = ExpiredElements
                 .ObserveOn(ExpirationScheduler)
+                .TakeWhile(_ => !IsDisposing && !IsDisposed)
                 .Buffer(ExpiredElementsHandlingChillPeriod, ExpirationScheduler)
                 .Where(bufferedElements => bufferedElements != null && bufferedElements.Count > 0)
                 .Do(HandleAndNotifyObserversAboutExpiredElements)
                 .CatchAndForward(ObserverExceptionsObserver, ThrowOnExpirationHandlingExceptions)
                 .Subscribe();
         }
-        
+
+        /// <summary>
+        /// Handles and notifies observers about an added element.
+        /// </summary>
+        /// <param name="addedElement">The added element.</param>
+        protected virtual void HandleAndNotifyObserversAboutAddedElements(IObservableDictionaryChange<TKey, ObservableCachedElement<TKey, TValue>> addedElement)
+        {
+            CheckForAndThrowIfDisposed();
+
+            if (addedElement == null)
+                return;
+
+            try
+            {
+                AddToEventAndNotificationsHandlingAndStartExpiration(addedElement.Value, addedElement.Value.OriginalExpiry);
+            }
+            catch (Exception exception)
+            {
+                var observerException = new ObserverException(
+                    "An error occured wiring up an added item to the internal event and notification handling.",
+                    exception);
+
+                ObserverExceptionsObserver.OnNext(observerException);
+
+                if (observerException.Handled == false)
+                    throw;
+            }
+
+            try
+            {
+                CacheChangesObserver.OnNext(ObservableCacheChange<TKey, TValue>.ItemAdded(
+                    addedElement.Value.Key,
+                    addedElement.Value.Value,
+                    addedElement.Value.ExpiresAt(),
+                    addedElement.Value.ExpirationType));
+            }
+            catch (Exception exception)
+            {
+                var observerException = new ObserverException(
+                    $"An error occured notifying {nameof(Changes)} Observers of this {this.GetType().Name} about an added item.",
+                    exception);
+
+                ObserverExceptionsObserver.OnNext(observerException);
+
+                if (observerException.Handled == false)
+                    throw;
+            }
+        }
+
+        /// <summary>
+        /// Handles and notifies observers about an removed element.
+        /// </summary>
+        /// <param name="removedElement">The removed element.</param>
+        protected virtual void HandleAndNotifyObserversAboutRemovedElements(IObservableDictionaryChange<TKey, ObservableCachedElement<TKey, TValue>> removedElement)
+        {
+            CheckForAndThrowIfDisposed();
+
+            if (removedElement == null)
+                return;
+
+            try
+            {
+                RemoveFromEventAndNotificationsHandlingAndStopExpiration(removedElement.Value);
+            }
+            catch (Exception exception)
+            {
+                var observerException = new ObserverException(
+                    "An error occured unwiring a removed item from the internal event and notification handling.",
+                    exception);
+
+                ObserverExceptionsObserver.OnNext(observerException);
+
+                if (observerException.Handled == false)
+                    throw;
+            }
+
+            try
+            {
+                CacheChangesObserver.OnNext(ObservableCacheChange<TKey, TValue>.ItemRemoved(
+                    removedElement.Value.Key,
+                    removedElement.Value.Value,
+                    removedElement.Value.ExpiresAt(),
+                    removedElement.Value.ExpirationType));
+            }
+            catch (Exception exception)
+            {
+                var observerException = new ObserverException(
+                    $"An error occured notifying {nameof(Changes)} Observers of this {this.GetType().Name} about a removed item.",
+                    exception);
+
+                ObserverExceptionsObserver.OnNext(observerException);
+
+                if (observerException.Handled == false)
+                    throw;
+            }
+        }
+
         /// <summary>
         /// Handles and notifies observers about expired elements.
         /// </summary>
@@ -475,6 +607,7 @@ namespace JB.Reactive.Cache
                         var newObservableCachedElement = new ObservableCachedElement<TKey, TValue>(
                             existingObservableCachedElement.Key,
                             newValue,
+                            newOrUpdatedExpiry,
                             existingObservableCachedElement.ExpirationType);
 
                         // and attempt to update it in the inner dictionary
@@ -485,7 +618,7 @@ namespace JB.Reactive.Cache
                         if (updateResult == false)
                         {
                             // if the update failed it means the key has 'vanished' in the meantime
-                            throw new KeyNotFoundException();
+                            throw new KeyNotFoundException<TKey>(existingObservableCachedElement.Key);
                         }
                         else
                         {
@@ -787,18 +920,24 @@ namespace JB.Reactive.Cache
                     InnerDictionary.Clear();
                     notificationSuppression?.Dispose();
 
-                    var cacheChangesObserverAsDisposable = CacheChangesObserver as IDisposable;
-                    cacheChangesObserverAsDisposable?.Dispose();
-                    CacheChangesObserver = null;
+                    _addedElementsSubscription?.Dispose();
+                    _addedElementsSubscription = null;
 
-                    _cacheChangesSubject?.Dispose();
-                    _cacheChangesSubject = null;
+                    _removedElementsSubscription?.Dispose();
+                    _removedElementsSubscription = null;
 
                     _expiredElementsSubscription?.Dispose();
                     _expiredElementsSubscription = null;
 
                     _expiredElementsSubject?.Dispose();
                     _expiredElementsSubject = null;
+
+                    var cacheChangesObserverAsDisposable = CacheChangesObserver as IDisposable;
+                    cacheChangesObserverAsDisposable?.Dispose();
+                    CacheChangesObserver = null;
+
+                    _cacheChangesSubject?.Dispose();
+                    _cacheChangesSubject = null;
 
                     var thrownExceptionsObserverAsDisposable = ObserverExceptionsObserver as IDisposable;
                     thrownExceptionsObserverAsDisposable?.Dispose();
@@ -977,13 +1116,15 @@ namespace JB.Reactive.Cache
                 return InnerDictionary
                     .DictionaryChanges
                     .TakeWhile(_ => !IsDisposing && !IsDisposed)
-                    .Where(change => change.ChangeType != ObservableDictionaryChangeType.ItemKeyChanged && change.ChangeType != ObservableDictionaryChangeType.ItemValueChanged) // this must be handled here separately from the underlying dictionary
+                    .Where(change =>
+                        change.ChangeType != ObservableDictionaryChangeType.ItemAdded &&
+                        change.ChangeType != ObservableDictionaryChangeType.ItemKeyChanged &&
+                        change.ChangeType != ObservableDictionaryChangeType.ItemValueChanged &&
+                        change.ChangeType != ObservableDictionaryChangeType.ItemRemoved) // this must be handled here separately from the underlying dictionary
                     .Select(dictionaryChange => dictionaryChange.ToObservableCacheChange())
                     .Merge(_cacheChangesSubject)
                     .TakeWhile(_ => !IsDisposing && !IsDisposed)
                     .SkipContinuouslyWhile(change => !IsTrackingChanges)
-                    .SkipContinuouslyWhile(change => change.ChangeType == ObservableCacheChangeType.ItemKeyChanged && !IsTrackingItemChanges)
-                    .SkipContinuouslyWhile(change => change.ChangeType == ObservableCacheChangeType.ItemValueChanged && !IsTrackingItemChanges)
                     .SkipContinuouslyWhile(change => change.ChangeType == ObservableCacheChangeType.ItemValueReplaced && !IsTrackingItemChanges)
                     .SkipContinuouslyWhile(change => change.ChangeType == ObservableCacheChangeType.Reset && !IsTrackingResets);
             }
@@ -1022,7 +1163,8 @@ namespace JB.Reactive.Cache
             {
                 CheckForAndThrowIfDisposed();
 
-                return CurrentKeys.ToObservable()
+                return CurrentKeys
+                    .ToObservable(WorkerScheduler)
                     .Concat(Changes
                         .TakeWhile(_ => !IsDisposing && !IsDisposed)
                         .Where(change => change.ChangeType == ObservableCacheChangeType.ItemAdded)
@@ -1043,7 +1185,8 @@ namespace JB.Reactive.Cache
             {
                 CheckForAndThrowIfDisposed();
 
-                return CurrentValues.ToObservable()
+                return CurrentValues
+                    .ToObservable(WorkerScheduler)
                     .Concat(Changes
                         .TakeWhile(_ => !IsDisposing && !IsDisposed)
                         .Where(change => change.ChangeType == ObservableCacheChangeType.ItemAdded || change.ChangeType == ObservableCacheChangeType.ItemValueReplaced)
@@ -1104,20 +1247,20 @@ namespace JB.Reactive.Cache
 
             CheckForAndThrowIfDisposed();
 
+            if (scheduler == null)
+                scheduler = WorkerScheduler;
+
             return Observable.Create<KeyValuePair<TKey, TValue>>(observer =>
             {
                 return source
-                    .ObserveOn(scheduler ?? Scheduler.CurrentThread)
+                    .ObserveOn(scheduler)
                     .Subscribe(keyValuePair =>
                     {
                         try
                         {
-                            var observableCachedElement = new ObservableCachedElement<TKey, TValue>(keyValuePair.Key, keyValuePair.Value, expirationType);
-
+                            var observableCachedElement = new ObservableCachedElement<TKey, TValue>(keyValuePair.Key, keyValuePair.Value, expiry, expirationType);
                             if (InnerDictionary.TryAdd(keyValuePair.Key, observableCachedElement) == true)
                             {
-                                AddToEventAndNotificationsHandlingAndStartExpiration(observableCachedElement, expiry);
-
                                 observer.OnNext(keyValuePair);
                             }
                             else
@@ -1154,17 +1297,20 @@ namespace JB.Reactive.Cache
 
             CheckForAndThrowIfDisposed();
 
+            if (scheduler == null)
+                scheduler = WorkerScheduler;
+
             return Observable.Create<KeyValuePair<TKey, TValue>>(observer =>
             {
                 return source
-                    .ObserveOn(scheduler ?? Scheduler.CurrentThread)
+                    .ObserveOn(scheduler)
                     .Subscribe(keyValuePairs =>
                     {
                         try
                         {
                             // first check which keys / elements ARE in the innerdictionary
                             var cachedElementsForKeyValuePairs = keyValuePairs
-                                .ToDictionary(kvp => kvp.Key, kvp => new ObservableCachedElement<TKey, TValue>(kvp.Key, kvp.Value, expirationType));
+                                .ToDictionary(kvp => kvp.Key, kvp => new ObservableCachedElement<TKey, TValue>(kvp.Key, kvp.Value, expiry, expirationType));
 
                             if (cachedElementsForKeyValuePairs.Count > 0)
                             {
@@ -1174,9 +1320,7 @@ namespace JB.Reactive.Cache
                                 // and finally add to expiration / value changed notification etc
                                 var keysForNonAddedElements = elementsThatCouldNotBeAdded.Keys;
                                 foreach (var addedObservableCachedElement in cachedElementsForKeyValuePairs.Where(element => !keysForNonAddedElements.Contains(element.Key, KeyComparer)))
-                                {
-                                    AddToEventAndNotificationsHandlingAndStartExpiration(addedObservableCachedElement.Value, expiry);
-
+                                {                                   
                                     observer.OnNext(addedObservableCachedElement.Value);
                                 }
 
@@ -1218,10 +1362,13 @@ namespace JB.Reactive.Cache
 
             CheckForAndThrowIfDisposed();
 
+            if (scheduler == null)
+                scheduler = WorkerScheduler;
+
             return Observable.Create<Unit>(observer =>
             {
                 return clearTriggers
-                    .ObserveOn(scheduler ?? Scheduler.CurrentThread)
+                    .ObserveOn(scheduler)
                     .Subscribe(_ =>
                     {
                         try
@@ -1262,10 +1409,13 @@ namespace JB.Reactive.Cache
 
             CheckForAndThrowIfDisposed();
 
+            if (scheduler == null)
+                scheduler = WorkerScheduler;
+
             return Observable.Create<bool>(observer =>
             {
                 return keys
-                    .ObserveOn(scheduler ?? Scheduler.CurrentThread)
+                    .ObserveOn(scheduler)
                     .Subscribe(key =>
                     {
                         try
@@ -1297,8 +1447,10 @@ namespace JB.Reactive.Cache
 
             CheckForAndThrowIfDisposed();
 
-            return GetCachedElement(key, false, scheduler)
-                .Select(element => element.ExpiresAt(), scheduler);
+            if (scheduler == null)
+                scheduler = WorkerScheduler;
+
+            return GetCachedElement(key, false, scheduler).Select(element => element.ExpiresAt());
         }
 
         /// <summary>
@@ -1316,28 +1468,35 @@ namespace JB.Reactive.Cache
 
             CheckForAndThrowIfDisposed();
 
-            return GetCachedElement(key, false, scheduler)
-                .Select(element => element.ExpiresIn(), scheduler);
+            if (scheduler == null)
+                scheduler = WorkerScheduler;
+
+            return GetCachedElement(key, false, scheduler).Select(element => element.ExpiresIn());
         }
 
         /// <summary>
-        /// Gets the <typeparamref name="TValue" /> for the specified <paramref name="key" />.
+        /// Gets the <typeparamref name="TValue"/> for the specified <paramref name="keys"/>.
         /// </summary>
-        /// <param name="key">The key to retrieve the <typeparamref name="TValue" /> for.</param>
-        /// <param name="throwIfExpired">If set to <c>true</c>, a <see cref="KeyHasExpiredException{TKey}"/> will be thrown if it has expired before retrieval.</param>
+        /// <param name="keys">The keys to retrieve the <typeparamref name="TValue"/> for.</param>
+        /// <param name="throwIfExpired">
+        ///     If set to <c>true</c>, a <see cref="KeyHasExpiredException{TKey}"/> will be thrown if the <paramref name="keys"/> have expired before retrieval.</param>
         /// <param name="scheduler">Scheduler to perform the retrieval on.</param>
         /// <returns>
-        /// An observable stream that returns the <typeparamref name="TValue"/> for the provided <paramref name="key" />.
+        /// An observable stream that returns the <typeparamref name="TValue"/> for the provided <paramref name="keys"/> in the same order they were provided.
         /// </returns>
-        public virtual IObservable<TValue> Get(TKey key, bool throwIfExpired = true, IScheduler scheduler = null)
+        public virtual IObservable<TValue> Get(IObservable<TKey> keys, bool throwIfExpired = true, IScheduler scheduler = null)
         {
-            if (key == null)
-                throw new ArgumentNullException(nameof(key));
+            if (keys == null)
+                throw new ArgumentNullException(nameof(keys));
 
             CheckForAndThrowIfDisposed();
 
-            return GetCachedElement(key, throwIfExpired, scheduler)
-                .Take(1)
+            if (scheduler == null)
+                scheduler = WorkerScheduler;
+
+            return keys
+                .ObserveOn(scheduler)
+                .SelectMany(key => GetCachedElement(key, throwIfExpired, scheduler))
                 .Select(cachedElement => cachedElement.Value);
         }
 
@@ -1357,6 +1516,9 @@ namespace JB.Reactive.Cache
 
             CheckForAndThrowIfDisposed();
 
+            if (scheduler == null)
+                scheduler = WorkerScheduler;
+
             Func<ObservableCachedElement<TKey, TValue>> retrievalFunc = () =>
             {
                 var cachedElement = InnerDictionary[key];
@@ -1366,34 +1528,12 @@ namespace JB.Reactive.Cache
                 return cachedElement;
             };
             
+            // ToDo: revisit the .Start() usage here
             return scheduler != null
-                ? Observable.Start(retrievalFunc, scheduler)
-                : Observable.Start(retrievalFunc);
+                ? Linq.Observable.Run(retrievalFunc, scheduler)
+                : Linq.Observable.Run(retrievalFunc);
         }
-
-        /// <summary>
-        /// Gets the values for the specified <paramref name="keys"/>.
-        /// </summary>
-        /// <param name="keys">The keys to retrieve the values for.</param>
-        /// <param name="throwIfExpired">If set to <c>true</c>, a <see cref="KeyHasExpiredException{TKey}"/> will be thrown if one of the elements has expired before retrieval.</param>
-        /// <param name="maxConcurrent">Maximum number of concurrent retrievals.</param>
-        /// <param name="scheduler">Scheduler to run the concurrent retrievals on.</param>
-        /// <returns>
-        /// An observable stream that returns the values for the provided <paramref name="keys"/>.
-        /// </returns>
-        public virtual IObservable<TValue> Get(IEnumerable<TKey> keys, bool throwIfExpired = true, int maxConcurrent = 1, IScheduler scheduler = null)
-        {
-            if (keys == null)
-                throw new ArgumentNullException(nameof(keys));
-            if (maxConcurrent <= 0)
-                throw new ArgumentOutOfRangeException(nameof(maxConcurrent), "Must be 1 or higher");
-
-            CheckForAndThrowIfDisposed();
-
-            return GetCachedElements(keys, throwIfExpired, maxConcurrent, scheduler)
-                .Select(cachedElement => cachedElement.Value);
-        }
-
+        
         /// <summary>
         /// Gets the <see cref="ObservableCachedElement{TKey,TValue}" /> for the specified <paramref name="keys" />.
         /// </summary>
@@ -1413,9 +1553,12 @@ namespace JB.Reactive.Cache
 
             CheckForAndThrowIfDisposed();
 
-            return scheduler != null
-                ? keys.Select(key => GetCachedElement(key, throwIfExpired, scheduler)).Merge(maxConcurrent, scheduler)
-                : keys.Select(key => GetCachedElement(key, throwIfExpired)).Merge(maxConcurrent);
+            if (scheduler == null)
+                scheduler = WorkerScheduler;
+
+            return keys
+                .Select(key => GetCachedElement(key, throwIfExpired, scheduler))
+                .Merge(maxConcurrent, scheduler);
         }
 
         /// <summary>
@@ -1437,10 +1580,13 @@ namespace JB.Reactive.Cache
 
             CheckForAndThrowIfDisposed();
 
+            if (scheduler == null)
+                scheduler = WorkerScheduler;
+
             return Observable.Create<bool>(observer =>
             {
                 return source
-                    .ObserveOn(scheduler ?? Scheduler.CurrentThread)
+                    .ObserveOn(scheduler)
                     .Subscribe(key =>
                     {
                         try
@@ -1486,10 +1632,13 @@ namespace JB.Reactive.Cache
 
             CheckForAndThrowIfDisposed();
 
+            if (scheduler == null)
+                scheduler = WorkerScheduler;
+
             return Observable.Create<bool>(observer =>
             {
                 return source
-                    .ObserveOn(scheduler ?? Scheduler.CurrentThread)
+                    .ObserveOn(scheduler)
                     .Subscribe(keysToRemove =>
                     {
                         try
@@ -1558,6 +1707,9 @@ namespace JB.Reactive.Cache
 
             CheckForAndThrowIfDisposed();
 
+            if (scheduler == null)
+                scheduler = WorkerScheduler;
+
             return GetCachedElement(key, throwIfExpired, scheduler)
                 .Take(1)
                 .Run(existingElement => UpdateValueForCachedElement(existingElement, value, true));
@@ -1579,8 +1731,11 @@ namespace JB.Reactive.Cache
 
             CheckForAndThrowIfDisposed();
 
+            if (scheduler == null)
+                scheduler = WorkerScheduler;
+
             if (keyValuePairs.Count == 0)
-                return Observable.Return(Unit.Default);
+                return Observable.Return(Unit.Default, scheduler);
 
             return GetCachedElements(keyValuePairs.Select(kvp => kvp.Key), throwIfExpired, scheduler: scheduler)
                 .ToList()
@@ -1604,6 +1759,9 @@ namespace JB.Reactive.Cache
                 throw new ArgumentNullException(nameof(key));
 
             CheckForAndThrowIfDisposed();
+
+            if (scheduler == null)
+                scheduler = WorkerScheduler;
 
             return GetCachedElement(key, throwIfExpired, scheduler)
                 .Take(1)
@@ -1633,6 +1791,9 @@ namespace JB.Reactive.Cache
                 throw new ArgumentNullException(nameof(keys));
 
             CheckForAndThrowIfDisposed();
+
+            if (scheduler == null)
+                scheduler = WorkerScheduler;
 
             return GetCachedElements(keys, throwIfExpired, maxConcurrent, scheduler)
                 .Run(cachedElement =>
@@ -1749,8 +1910,8 @@ namespace JB.Reactive.Cache
         {
             get
             {
-                return _cacheChangesSubject.
-                    TakeWhile(_ => !IsDisposing && !IsDisposed)
+                return _cacheChangesSubject
+                    .TakeWhile(_ => !IsDisposing && !IsDisposed)
                     .Where(change => change.ChangeType == ObservableCacheChangeType.ItemExpired)
                     .SkipContinuouslyWhile(change => !IsTrackingItemChanges);
             }

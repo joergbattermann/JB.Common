@@ -41,7 +41,10 @@ namespace JB.Reactive.Cache.ExtensionMethods
             if (key == null)
                 throw new ArgumentNullException(nameof(key));
 
-            return cache.Add(new KeyValuePair<TKey, TValue>(key, value), scheduler ?? Scheduler.CurrentThread);
+            if (scheduler == null)
+                scheduler = Scheduler.CurrentThread;
+
+            return cache.Add(new KeyValuePair<TKey, TValue>(key, value), scheduler);
         }
 
         /// <summary>
@@ -63,7 +66,10 @@ namespace JB.Reactive.Cache.ExtensionMethods
             if (key == null)
                 throw new ArgumentNullException(nameof(key));
 
-            return cache.Add(new KeyValuePair<TKey, TValue>(key, value), expiry, expirationType, scheduler ?? Scheduler.CurrentThread);
+            if (scheduler == null)
+                scheduler = Scheduler.CurrentThread;
+
+            return cache.Add(new KeyValuePair<TKey, TValue>(key, value), expiry, expirationType, scheduler);
         }
 
         /// <summary>
@@ -82,6 +88,9 @@ namespace JB.Reactive.Cache.ExtensionMethods
                 throw new ArgumentNullException(nameof(cache));
             if (keyValuePairs == null)
                 throw new ArgumentNullException(nameof(keyValuePairs));
+
+            if (scheduler == null)
+                scheduler = Scheduler.CurrentThread;
 
             return cache.AddRange(keyValuePairs, TimeSpan.MaxValue, ObservableCacheExpirationType.DoNothing, scheduler);
         }
@@ -104,11 +113,14 @@ namespace JB.Reactive.Cache.ExtensionMethods
             if (keyValuePairs == null)
                 throw new ArgumentNullException(nameof(keyValuePairs));
 
+            if (scheduler == null)
+                scheduler = Scheduler.CurrentThread;
+
             var keyValuePairsAsList = keyValuePairs.ToList();
             if (keyValuePairsAsList.Count == 0)
-                return Observable.Empty<KeyValuePair<TKey, TValue>>(scheduler ?? Scheduler.CurrentThread);
+                return Observable.Empty<KeyValuePair<TKey, TValue>>(scheduler);
 
-            return cache.AddRange(keyValuePairsAsList.AsObservable(scheduler ?? Scheduler.CurrentThread), expiry, expirationType, scheduler ?? Scheduler.CurrentThread);
+            return cache.AddRange(keyValuePairsAsList.AsObservable(scheduler), expiry, expirationType, scheduler);
         }
 
         /// <summary>
@@ -128,10 +140,10 @@ namespace JB.Reactive.Cache.ExtensionMethods
             if (cache == null)
                 throw new ArgumentNullException(nameof(cache));
 
-            return cache.Add(keyValuePair,
-                TimeSpan.MaxValue,
-                ObservableCacheExpirationType.DoNothing,
-                scheduler ?? Scheduler.CurrentThread);
+            if (scheduler == null)
+                scheduler = Scheduler.CurrentThread;
+
+            return cache.Add(keyValuePair, TimeSpan.MaxValue, ObservableCacheExpirationType.DoNothing, scheduler);
         }
 
         /// <summary>
@@ -155,11 +167,10 @@ namespace JB.Reactive.Cache.ExtensionMethods
             if (cache == null)
                 throw new ArgumentNullException(nameof(cache));
 
-            return cache.Add(
-                Observable.Return(keyValuePair, scheduler ?? Scheduler.CurrentThread),
-                expiry,
-                expirationType,
-                scheduler ?? Scheduler.CurrentThread);
+            if (scheduler == null)
+                scheduler = Scheduler.CurrentThread;
+
+            return cache.Add(Observable.Return(keyValuePair), expiry, expirationType, scheduler);
         }
 
         /// <summary>
@@ -308,9 +319,10 @@ namespace JB.Reactive.Cache.ExtensionMethods
             if (cache == null)
                 throw new ArgumentNullException(nameof(cache));
 
-            return cache.Clear(
-                Observable.Return(Unit.Default, scheduler ?? Scheduler.CurrentThread),
-                scheduler ?? Scheduler.CurrentThread);
+            if (scheduler == null)
+                scheduler = Scheduler.CurrentThread;
+
+            return cache.Clear(Observable.Return(Unit.Default), scheduler);
         }
 
         /// <summary>
@@ -330,9 +342,10 @@ namespace JB.Reactive.Cache.ExtensionMethods
             if (key == null)
                 throw new ArgumentNullException(nameof(key));
 
-            return cache.Contains(
-                Observable.Return(key, scheduler ?? Scheduler.CurrentThread),
-                scheduler ?? Scheduler.CurrentThread);
+            if (scheduler == null)
+                scheduler = Scheduler.CurrentThread;
+
+            return cache.Contains(Observable.Return(key), scheduler);
         }
         
         /// <summary>
@@ -352,9 +365,12 @@ namespace JB.Reactive.Cache.ExtensionMethods
             if (cache == null)
                 throw new ArgumentNullException(nameof(cache));
 
+            if (scheduler == null)
+                scheduler = Scheduler.CurrentThread;
+
             return cache.CurrentCount.AsObservable(scheduler)
                 .Concat(cache.CountChanges)
-                .ObserveOn(scheduler ?? Scheduler.Default);
+                .ObserveOn(scheduler);
         }
 
         /// <summary>
@@ -373,10 +389,11 @@ namespace JB.Reactive.Cache.ExtensionMethods
         ///     An <see cref="IDisposable" /> which will forward the changes to the <paramref name="target" /> as long as
         ///     <see cref="IDisposable.Dispose" /> hasn't been called.
         /// </returns>
-        public static IDisposable ForwardDictionaryChangesTo<TKey, TValue>(this IObservableCache<TKey, TValue> source,
-                                                                           IEnhancedBindingList<TValue> target,
-                                                                           bool includeItemChanges = false,
-                                                                           IScheduler scheduler = null)
+        public static IDisposable ForwardDictionaryChangesTo<TKey, TValue>(
+            this IObservableCache<TKey, TValue> source,
+            IEnhancedBindingList<TValue> target,
+            bool includeItemChanges = false,
+            IScheduler scheduler = null)
         {
             if (source == null)
                 throw new ArgumentNullException(nameof(source));
@@ -465,6 +482,29 @@ namespace JB.Reactive.Cache.ExtensionMethods
                             $"Only {ObservableDictionaryChangeType.ItemAdded}, {ObservableDictionaryChangeType.ItemKeyChanged}, {ObservableDictionaryChangeType.ItemValueChanged}, {ObservableDictionaryChangeType.ItemValueReplaced}, {ObservableDictionaryChangeType.ItemRemoved} and {ObservableDictionaryChangeType.Reset} are supported.");
                 }
             });
+        }
+
+        /// <summary>
+        /// Gets the <typeparamref name="TValue" /> for the specified <paramref name="key" />.
+        /// </summary>
+        /// <typeparam name="TKey">The type of the key.</typeparam>
+        /// <typeparam name="TValue">The type of the value.</typeparam>
+        /// <param name="cache">The cache to use.</param>
+        /// <param name="key">The key to retrieve the <typeparamref name="TValue" /> for.</param>
+        /// <param name="throwIfExpired">If set to <c>true</c>, a <see cref="KeyHasExpiredException{TKey}"/> will be thrown if it has expired before retrieval.</param>
+        /// <param name="scheduler">Scheduler to perform the retrieval on.</param>
+        /// <returns>
+        /// An observable stream that returns the <typeparamref name="TValue"/> for the provided <paramref name="key" />.
+        /// </returns>
+        public static IObservable<TValue> Get<TKey, TValue>(this IObservableCache<TKey, TValue> cache, TKey key, bool throwIfExpired = true, IScheduler scheduler = null)
+        {
+            if (key == null)
+                throw new ArgumentNullException(nameof(key));
+
+            if (scheduler == null)
+                scheduler = Scheduler.CurrentThread;
+
+            return cache.Get(Observable.Return(key), throwIfExpired, scheduler);
         }
 
         /// <summary>
@@ -558,10 +598,11 @@ namespace JB.Reactive.Cache.ExtensionMethods
                 throw new ArgumentNullException(nameof(cache));
             if (key == null)
                 throw new ArgumentNullException(nameof(key));
-            
-            return cache.Remove(
-                Observable.Return(key, scheduler ?? Scheduler.CurrentThread),
-                scheduler ?? Scheduler.CurrentThread);
+
+            if (scheduler == null)
+                scheduler = Scheduler.CurrentThread;
+
+            return cache.Remove(Observable.Return(key), scheduler);
         }
 
         /// <summary>
@@ -584,11 +625,14 @@ namespace JB.Reactive.Cache.ExtensionMethods
             if (keys == null)
                 throw new ArgumentNullException(nameof(keys));
 
+            if (scheduler == null)
+                scheduler = Scheduler.CurrentThread;
+
             var keysAsList = keys.ToList();
             if (keysAsList.Count == 0)
-                return Observable.Empty<bool>(scheduler ?? Scheduler.CurrentThread);
+                return Observable.Empty<bool>(scheduler);
 
-            return cache.RemoveRange(keysAsList.AsObservable(scheduler ?? Scheduler.CurrentThread), scheduler ?? Scheduler.CurrentThread);
+            return cache.RemoveRange(keysAsList.AsObservable(scheduler), scheduler);
         }
 
         /// <summary>

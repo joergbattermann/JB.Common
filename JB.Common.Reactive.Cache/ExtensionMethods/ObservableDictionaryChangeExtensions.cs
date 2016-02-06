@@ -17,21 +17,22 @@ namespace JB.Reactive.Cache.ExtensionMethods
         /// <returns></returns>
         /// <exception cref="System.ArgumentNullException"></exception>
         /// <exception cref="System.InvalidOperationException">$The {nameof(ObservableDictionaryChangeType)}.{observableDictionaryChange.ChangeType} is not supported.</exception>
-        public static IObservableCacheChange<TKey, TValue> ToObservableCacheChange<TKey, TValue>(
+        internal static IObservableCacheChange<TKey, TValue> ToObservableCacheChange<TKey, TValue>(
             this IObservableDictionaryChange<TKey, ObservableCachedElement<TKey, TValue>> observableDictionaryChange)
         {
             if (observableDictionaryChange == null) throw new ArgumentNullException(nameof(observableDictionaryChange));
 
+            // ToDo: revisit whether this is necessary and / or can be entirely done in the current using class(es)
             switch (observableDictionaryChange.ChangeType)
             {
                 case ObservableDictionaryChangeType.Reset:
                     return ObservableCacheChange<TKey, TValue>.Reset();
-                case ObservableDictionaryChangeType.ItemAdded:
-                    return ObservableCacheChange<TKey, TValue>.ItemAdded(
-                        observableDictionaryChange.Key,
-                        observableDictionaryChange.Value.Value,
-                        observableDictionaryChange.Value.ExpiresAt(),
-                        observableDictionaryChange.Value.ExpirationType);
+                //case ObservableDictionaryChangeType.ItemAdded:
+                //    return ObservableCacheChange<TKey, TValue>.ItemAdded(
+                //        observableDictionaryChange.Key,
+                //        observableDictionaryChange.Value.Value,
+                //        observableDictionaryChange.Value.ExpiresAt(),
+                //        observableDictionaryChange.Value.ExpirationType);
                 // key changes are not supported
                 //case ObservableDictionaryChangeType.ItemKeyChanged:
                 // break;
@@ -45,12 +46,12 @@ namespace JB.Reactive.Cache.ExtensionMethods
                         observableDictionaryChange.OldValue.Value,
                         observableDictionaryChange.Value.ExpiresAt(),
                         observableDictionaryChange.Value.ExpirationType);
-                case ObservableDictionaryChangeType.ItemRemoved:
-                    return ObservableCacheChange<TKey, TValue>.ItemRemoved(
-                        observableDictionaryChange.Key,
-                        observableDictionaryChange.Value.Value,
-                        observableDictionaryChange.Value.ExpiresAt(),
-                        observableDictionaryChange.Value.ExpirationType);
+                //case ObservableDictionaryChangeType.ItemRemoved:
+                //    return ObservableCacheChange<TKey, TValue>.ItemRemoved(
+                //        observableDictionaryChange.Key,
+                //        observableDictionaryChange.Value.Value,
+                //        observableDictionaryChange.Value.ExpiresAt(),
+                //        observableDictionaryChange.Value.ExpirationType);
                 default:
                     throw new InvalidOperationException($"The {nameof(ObservableDictionaryChangeType)}.{observableDictionaryChange.ChangeType} is not supported.");
             }
