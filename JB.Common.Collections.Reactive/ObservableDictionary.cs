@@ -795,7 +795,8 @@ namespace JB.Collections.Reactive
             {
                 try
                 {
-                    CountChangesObserver.OnNext(Count);
+                    if(IsTrackingCountChanges)
+                        CountChangesObserver.OnNext(Count);
                 }
                 catch (Exception exception)
                 {
