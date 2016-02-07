@@ -15,7 +15,6 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using JB.Collections.Reactive.ExtensionMethods;
 using JB.Reactive;
-using JB.Reactive.ExtensionMethods;
 using JB.Reactive.Linq;
 
 namespace JB.Collections.Reactive
@@ -310,20 +309,23 @@ namespace JB.Collections.Reactive
             var useResetInsteadOfIndividualChanges = IsItemsChangedAmountGreaterThanResetThreshold(itemsAsList.Count, ThresholdAmountWhenChangesAreNotifiedAsReset);
             var signalIndividualItemChanges = !useResetInsteadOfIndividualChanges;
 
-            // then perform change itself
-            foreach (var keyValuePair in itemsAsList)
+            using (IsTrackingCountChanges ? SuppressCountChangeNotifications(false) : Disposable.Empty)
             {
-                // ... and only notify observers if 'currently' desired
-                if (TryAdd(keyValuePair.Key, keyValuePair.Value, signalIndividualItemChanges && IsTrackingChanges) == false)
+                // then perform change itself
+                foreach (var keyValuePair in itemsAsList)
                 {
-                    itemsThatCouldNotBeAdded.Add(keyValuePair);
-                }
-                else
-                {
-                    itemsThatCouldBeAdded.Add(keyValuePair);
+                    // ... and only notify observers if 'currently' desired
+                    if (TryAdd(keyValuePair.Key, keyValuePair.Value, false) == false)
+                    {
+                        itemsThatCouldNotBeAdded.Add(keyValuePair);
+                    }
+                    else
+                    {
+                        itemsThatCouldBeAdded.Add(keyValuePair);
+                    }
                 }
             }
-
+            
             // if NO item at all could be added, return early (as there's nothing to notify observers about
             if (itemsThatCouldBeAdded.Count == 0)
                 return false;
