@@ -319,9 +319,6 @@ namespace JB.Reactive.Cache.ExtensionMethods
             if (cache == null)
                 throw new ArgumentNullException(nameof(cache));
 
-            if (scheduler == null)
-                scheduler = Scheduler.CurrentThread;
-
             return cache.Clear(Observable.Return(Unit.Default), scheduler);
         }
 
@@ -342,9 +339,6 @@ namespace JB.Reactive.Cache.ExtensionMethods
             if (key == null)
                 throw new ArgumentNullException(nameof(key));
 
-            if (scheduler == null)
-                scheduler = Scheduler.CurrentThread;
-
             return cache.Contains(Observable.Return(key), scheduler);
         }
         
@@ -353,7 +347,7 @@ namespace JB.Reactive.Cache.ExtensionMethods
         /// </summary>
         /// <typeparam name="TKey">The type of the key.</typeparam>
         /// <typeparam name="TValue">The type of the value.</typeparam>
-        /// <param name="cache">The cache.</param>
+        /// <param name="cache">The cache to use.</param>
         /// <param name="scheduler">The scheduler to observe count changes on. If none is provided, <see cref="Scheduler.CurrentThread"/> will be used.</param>
         /// <returns></returns>
         /// <exception cref="System.ArgumentNullException"></exception>
@@ -365,12 +359,56 @@ namespace JB.Reactive.Cache.ExtensionMethods
             if (cache == null)
                 throw new ArgumentNullException(nameof(cache));
 
-            if (scheduler == null)
-                scheduler = Scheduler.CurrentThread;
+            var observable = cache
+                .CurrentCount
+                .AsObservable(scheduler)
+                .Concat(cache.CountChanges);
 
-            return cache.CurrentCount.AsObservable(scheduler)
-                .Concat(cache.CountChanges)
-                .ObserveOn(scheduler);
+            return scheduler != null
+                ? observable.ObserveOn(scheduler)
+                : observable;
+        }
+
+        /// <summary>
+        /// Determines the <see cref="DateTime"/> (UTC) the <paramref name="key"/> expires.
+        /// </summary>
+        /// <param name="cache">The cache to use.</param>
+        /// <param name="key">The key to check.</param>
+        /// <param name="scheduler"><see cref="IScheduler"/> to perform the check on.</param>
+        /// <returns>
+        /// An observable stream that returns the <see cref="DateTime"/> (UTC) the <paramref name="key"/> expires.
+        /// </returns>
+        public static IObservable<DateTime> ExpiresAt<TKey, TValue>(
+            this IObservableCache<TKey, TValue> cache,
+            TKey key, IScheduler scheduler = null)
+        {
+            if (cache == null)
+                throw new ArgumentNullException(nameof(cache));
+            if (key == null)
+                throw new ArgumentNullException(nameof(key));
+
+            return cache.ExpiresAt(Observable.Return(key), scheduler);
+        }
+
+        /// <summary>
+        /// Determines the <see cref="TimeSpan"/> in which the <paramref name="key"/> expires.
+        /// </summary>
+        /// <param name="cache">The cache to use.</param>
+        /// <param name="key">The key to check.</param>
+        /// <param name="scheduler"><see cref="IScheduler"/> to perform the check on.</param>
+        /// <returns>
+        /// An observable stream that returns the <see cref="TimeSpan"/> in which the <paramref name="key"/> expires.
+        /// </returns>
+        public static IObservable<TimeSpan> ExpiresIn<TKey, TValue>(
+            this IObservableCache<TKey, TValue> cache,
+            TKey key, IScheduler scheduler = null)
+        {
+            if (cache == null)
+                throw new ArgumentNullException(nameof(cache));
+            if (key == null)
+                throw new ArgumentNullException(nameof(key));
+
+            return cache.ExpiresIn(Observable.Return(key), scheduler);
         }
 
         /// <summary>

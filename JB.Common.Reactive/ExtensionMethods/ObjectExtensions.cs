@@ -41,13 +41,17 @@ namespace JB.Reactive.ExtensionMethods
             // check whether the instance actually / already is an observable
             var instanceAsObservable = instance as IObservable<TResult>;
             if (instanceAsObservable != null)
-                return instanceAsObservable;
+            {
+                return scheduler != null
+                    ? instanceAsObservable.ObserveOn(scheduler)
+                    : instanceAsObservable;
+            }
 
             // or an ienumerable
             var instanceAsEnumerable = instance as IEnumerable<TResult>;
             if (instanceAsEnumerable != null)
             {
-                return Observable.Create<TResult>(observer =>
+                var observable = Observable.Create<TResult>(observer =>
                 {
                     try
                     {
@@ -64,7 +68,11 @@ namespace JB.Reactive.ExtensionMethods
                     }
 
                     return Disposable.Empty;
-                }).ObserveOn(scheduler ?? Scheduler.CurrentThread);
+                });
+
+                return scheduler != null
+                    ? observable.ObserveOn(scheduler)
+                    : observable;
             }
 
             // none of the above matched, oh well - return the item as is as an observable

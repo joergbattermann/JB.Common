@@ -109,26 +109,26 @@ namespace JB.Reactive.Cache
         /// An observable stream that returns [true] for each provided key that is is contained in this instance, [false] if not.
         /// </returns>
         IObservable<bool> Contains(IObservable<TKey> keys, IScheduler scheduler = null);
-        
-        /// <summary>
-        /// Determines the <see cref="DateTime"/> (UTC) the <paramref name="key"/> expires.
-        /// </summary>
-        /// <param name="key">The key to check.</param>
-        /// <param name="scheduler"><see cref="IScheduler"/> to perform the check on.</param>
-        /// <returns>
-        /// An observable stream that returns the <see cref="DateTime"/> (UTC) the <paramref name="key"/> expires.
-        /// </returns>
-        IObservable<DateTime> ExpiresAt(TKey key, IScheduler scheduler = null);
 
         /// <summary>
-        /// Determines the <see cref="TimeSpan"/> in which the <paramref name="key"/> expires.
+        /// Determines the <see cref="DateTime"/> (UTC) the <paramref name="keys"/> expire.
         /// </summary>
-        /// <param name="key">The key to check.</param>
+        /// <param name="keys">The expire to check.</param>
         /// <param name="scheduler"><see cref="IScheduler"/> to perform the check on.</param>
         /// <returns>
-        /// An observable stream that returns the <see cref="TimeSpan"/> in which the <paramref name="key"/> expires.
+        /// An observable stream that returns the <see cref="DateTime"/> (UTC) the <paramref name="key"/> expire in the same chronological order they were provided.
         /// </returns>
-        IObservable<TimeSpan> ExpiresIn(TKey key, IScheduler scheduler = null);
+        IObservable<DateTime> ExpiresAt(IObservable<TKey> keys, IScheduler scheduler = null);
+
+        /// <summary>
+        /// Determines the <see cref="TimeSpan"/> in which the <paramref name="keys"/> expire.
+        /// </summary>
+        /// <param name="keys">The keys to check.</param>
+        /// <param name="scheduler"><see cref="IScheduler"/> to perform the check on.</param>
+        /// <returns>
+        /// An observable stream that returns the <see cref="TimeSpan"/> in which the <paramref name="keys"/> expire in the same chronological order they were provided.
+        /// </returns>
+        IObservable<TimeSpan> ExpiresIn(IObservable<TKey> keys, IScheduler scheduler = null);
 
         /// <summary>
         /// Gets the <typeparamref name="TValue"/> for the specified <paramref name="keys"/>.

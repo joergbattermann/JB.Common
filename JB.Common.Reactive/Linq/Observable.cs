@@ -11,6 +11,7 @@ using System.Reactive;
 using System.Reactive.Concurrency;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Reflection;
 
 namespace JB.Reactive.Linq
 {
@@ -40,6 +41,13 @@ namespace JB.Reactive.Linq
 
                     observer.OnNext(Unit.Default);
                     observer.OnCompleted();
+                }
+                catch (TargetInvocationException targetInvocationException)
+                {
+                    if (targetInvocationException.InnerException != null)
+                        observer.OnError(targetInvocationException.InnerException);
+                    else
+                        observer.OnError(targetInvocationException);
                 }
                 catch (Exception exception)
                 {
@@ -74,9 +82,12 @@ namespace JB.Reactive.Linq
                     observer.OnNext(action.Invoke());
                     observer.OnCompleted();
                 }
-                catch (Exception exception)
+                catch (TargetInvocationException targetInvocationException)
                 {
-                    observer.OnError(exception);
+                    if (targetInvocationException.InnerException != null)
+                        observer.OnError(targetInvocationException.InnerException);
+                    else
+                        observer.OnError(targetInvocationException);
                 }
 
                 return Disposable.Empty;

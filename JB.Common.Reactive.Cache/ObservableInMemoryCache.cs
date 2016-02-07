@@ -1431,47 +1431,49 @@ namespace JB.Reactive.Cache
                     observer.OnCompleted);
             });
         }
-        
+
         /// <summary>
-        /// Determines the <see cref="DateTime"/> (UTC) the <paramref name="key"/> expires.
+        /// Determines the <see cref="DateTime"/> (UTC) the <paramref name="keys"/> expire.
         /// </summary>
-        /// <param name="key">The key to check.</param>
+        /// <param name="keys">The expire to check.</param>
         /// <param name="scheduler"><see cref="IScheduler"/> to perform the check on.</param>
         /// <returns>
-        /// An observable stream that returns the <see cref="DateTime"/> (UTC) the <paramref name="key"/> expires.
+        /// An observable stream that returns the <see cref="DateTime"/> (UTC) the <paramref name="key"/> expire in the same chronological order they were provided.
         /// </returns>
-        public virtual IObservable<DateTime> ExpiresAt(TKey key, IScheduler scheduler = null)
+        public virtual IObservable<DateTime> ExpiresAt(IObservable<TKey> keys, IScheduler scheduler = null)
         {
-            if (key == null)
-                throw new ArgumentNullException(nameof(key));
+            if (keys == null)
+                throw new ArgumentNullException(nameof(keys));
 
             CheckForAndThrowIfDisposed();
 
             if (scheduler == null)
                 scheduler = WorkerScheduler;
 
-            return GetCachedElement(key, false, scheduler).Select(element => element.ExpiresAt());
+            return GetCachedElement(keys, false, scheduler)
+                .Select(element => element.ExpiresAt());
         }
 
         /// <summary>
-        /// Determines the <see cref="TimeSpan"/> in which the <paramref name="key"/> expires.
+        /// Determines the <see cref="TimeSpan"/> in which the <paramref name="keys"/> expire.
         /// </summary>
-        /// <param name="key">The key to check.</param>
+        /// <param name="keys">The keys to check.</param>
         /// <param name="scheduler"><see cref="IScheduler"/> to perform the check on.</param>
         /// <returns>
-        /// An observable stream that returns the <see cref="TimeSpan"/> in which the <paramref name="key"/> expires.
+        /// An observable stream that returns the <see cref="TimeSpan"/> in which the <paramref name="keys"/> expire in the same chronological order they were provided.
         /// </returns>
-        public virtual IObservable<TimeSpan> ExpiresIn(TKey key, IScheduler scheduler = null)
+        public virtual IObservable<TimeSpan> ExpiresIn(IObservable<TKey> keys, IScheduler scheduler = null)
         {
-            if (key == null)
-                throw new ArgumentNullException(nameof(key));
+            if (keys == null)
+                throw new ArgumentNullException(nameof(keys));
 
             CheckForAndThrowIfDisposed();
 
             if (scheduler == null)
                 scheduler = WorkerScheduler;
 
-            return GetCachedElement(key, false, scheduler).Select(element => element.ExpiresIn());
+            return GetCachedElement(keys, false, scheduler)
+                .Select(element => element.ExpiresIn());
         }
 
         /// <summary>
@@ -1498,6 +1500,39 @@ namespace JB.Reactive.Cache
                 .ObserveOn(scheduler)
                 .SelectMany(key => GetCachedElement(key, throwIfExpired, scheduler))
                 .Select(cachedElement => cachedElement.Value);
+        }
+
+        /// <summary>
+        /// Gets the <see cref="ObservableCachedElement{TKey, TValue}" /> for the specified <paramref name="keys" />.
+        /// </summary>
+        /// <param name="keys">The keys to retrieve the <typeparamref name="TValue" /> for.</param>
+        /// <param name="throwIfExpired">If set to <c>true</c>, a <see cref="KeyHasExpiredException{TKey}"/> will be thrown if it has expired before retrieval.</param>
+        /// <param name="scheduler">Scheduler to run the retrieval on.</param>
+        /// <returns>
+        /// An observable stream that returns the <see cref="ObservableCachedElement{TKey, TValue}"/> for the provided <paramref name="keys" />.
+        /// </returns>
+        protected virtual IObservable<ObservableCachedElement<TKey, TValue>> GetCachedElement(IObservable<TKey> keys, bool throwIfExpired = true, IScheduler scheduler = null)
+        {
+            if (keys == null)
+                throw new ArgumentNullException(nameof(keys));
+
+            CheckForAndThrowIfDisposed();
+
+            if (scheduler == null)
+                scheduler = WorkerScheduler;
+
+            Func<TKey, ObservableCachedElement<TKey, TValue>> retrievalFunc = (key) =>
+            {
+                var cachedElement = InnerDictionary[key];
+                if (cachedElement.HasExpired && throwIfExpired)
+                    throw new KeyHasExpiredException<TKey>(key, cachedElement.ExpiresAt());
+
+                return cachedElement;
+            };
+
+            return keys
+                .ObserveOn(scheduler)
+                .SelectMany(key => Linq.Observable.Run(() => retrievalFunc(key), scheduler));
         }
 
         /// <summary>
