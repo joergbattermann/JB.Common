@@ -30,7 +30,7 @@ namespace JB.Reactive.Cache.ExtensionMethods
         /// <param name="cache">The cache to use.</param>
         /// <param name="key">The key of the element to add.</param>
         /// <param name="value">The value of the element to add.</param>
-        /// <param name="scheduler">Scheduler to perform the add action on. If none is provided, <see cref="Scheduler.CurrentThread"/> will be used.</param>
+        /// <param name="scheduler">Scheduler to perform the add action on.</param>
         /// <returns>
         /// An observable stream that, when done, returns an <see cref="Unit" />.
         /// </returns>
@@ -40,9 +40,6 @@ namespace JB.Reactive.Cache.ExtensionMethods
                 throw new ArgumentNullException(nameof(cache));
             if (key == null)
                 throw new ArgumentNullException(nameof(key));
-
-            if (scheduler == null)
-                scheduler = Scheduler.CurrentThread;
 
             return cache.Add(new KeyValuePair<TKey, TValue>(key, value), scheduler);
         }
@@ -55,7 +52,7 @@ namespace JB.Reactive.Cache.ExtensionMethods
         /// <param name="value">The value of the element to add.</param>
         /// <param name="expiry">The expiry of the <paramref name="key"/>.</param>
         /// <param name="expirationType">Defines how the <paramref name="key" /> shall expire.</param>
-        /// <param name="scheduler">Scheduler to perform the add action on. If none is provided, <see cref="Scheduler.CurrentThread"/> will be used.</param>
+        /// <param name="scheduler">Scheduler to perform the add action on.</param>
         /// <returns>
         /// An observable stream that, when done, returns an <see cref="Unit" />.
         /// </returns>
@@ -66,9 +63,6 @@ namespace JB.Reactive.Cache.ExtensionMethods
             if (key == null)
                 throw new ArgumentNullException(nameof(key));
 
-            if (scheduler == null)
-                scheduler = Scheduler.CurrentThread;
-
             return cache.Add(new KeyValuePair<TKey, TValue>(key, value), expiry, expirationType, scheduler);
         }
 
@@ -78,7 +72,7 @@ namespace JB.Reactive.Cache.ExtensionMethods
         /// </summary>
         /// <param name="cache">The cache to use.</param>
         /// <param name="keyValuePairs">The key/value pairs to add.</param>
-        /// <param name="scheduler">Scheduler to perform the addrange action on. If none is provided, <see cref="Scheduler.CurrentThread"/> will be used.</param>
+        /// <param name="scheduler">Scheduler to perform the addrange action on.</param>
         /// <returns>
         /// An observable stream that returns an <see cref="Unit" /> for every added element of the <paramref name="keyValuePairs"/>.
         /// </returns>
@@ -88,9 +82,6 @@ namespace JB.Reactive.Cache.ExtensionMethods
                 throw new ArgumentNullException(nameof(cache));
             if (keyValuePairs == null)
                 throw new ArgumentNullException(nameof(keyValuePairs));
-
-            if (scheduler == null)
-                scheduler = Scheduler.CurrentThread;
 
             return cache.AddRange(keyValuePairs, TimeSpan.MaxValue, ObservableCacheExpirationType.DoNothing, scheduler);
         }
@@ -102,7 +93,7 @@ namespace JB.Reactive.Cache.ExtensionMethods
         /// <param name="keyValuePairs">The key/value pairs to add.</param>
         /// <param name="expiry">The expiry of the <paramref name="keyValuePairs" />.</param>
         /// <param name="expirationType">Defines how the <paramref name="keyValuePairs" /> shall expire.</param>
-        /// <param name="scheduler">Scheduler to perform the addrange action on. If none is provided, <see cref="Scheduler.CurrentThread"/> will be used.</param>
+        /// <param name="scheduler">Scheduler to perform the addrange action on.</param>
         /// <returns>
         /// An observable stream that returns an <see cref="Unit" /> for every added element of the <paramref name="keyValuePairs"/>.
         /// </returns>
@@ -113,12 +104,13 @@ namespace JB.Reactive.Cache.ExtensionMethods
             if (keyValuePairs == null)
                 throw new ArgumentNullException(nameof(keyValuePairs));
 
-            if (scheduler == null)
-                scheduler = Scheduler.CurrentThread;
-
             var keyValuePairsAsList = keyValuePairs.ToList();
             if (keyValuePairsAsList.Count == 0)
-                return Observable.Empty<KeyValuePair<TKey, TValue>>(scheduler);
+            {
+                return scheduler != null
+                    ? Observable.Empty<KeyValuePair<TKey, TValue>>(scheduler)
+                    : Observable.Empty<KeyValuePair<TKey, TValue>>();
+            }
 
             return cache.AddRange(keyValuePairsAsList.AsObservable(scheduler), expiry, expirationType, scheduler);
         }
@@ -131,7 +123,7 @@ namespace JB.Reactive.Cache.ExtensionMethods
         /// <typeparam name="TValue">The type of the value.</typeparam>
         /// <param name="cache">The cache to use.</param>
         /// <param name="keyValuePair">The key/value pair to add.</param>
-        /// <param name="scheduler">The scheduler to run the addition on. If none is provided, <see cref="Scheduler.CurrentThread"/> will be used.</param>
+        /// <param name="scheduler">The scheduler to run the addition on.</param>
         /// <returns>
         ///     An observable stream that, when done, returns an <see cref="Unit" />.
         /// </returns>
@@ -139,9 +131,6 @@ namespace JB.Reactive.Cache.ExtensionMethods
         {
             if (cache == null)
                 throw new ArgumentNullException(nameof(cache));
-
-            if (scheduler == null)
-                scheduler = Scheduler.CurrentThread;
 
             return cache.Add(keyValuePair, TimeSpan.MaxValue, ObservableCacheExpirationType.DoNothing, scheduler);
         }
@@ -158,7 +147,7 @@ namespace JB.Reactive.Cache.ExtensionMethods
         ///     <paramref name="keyValuePair" /> will virtually never expire.
         /// </param>
         /// <param name="expirationType">Defines how the <paramref name="keyValuePair" /> shall expire.</param>
-        /// <param name="scheduler">The scheduler to run the addition on. If none is provided, <see cref="Scheduler.CurrentThread"/> will be used.</param>
+        /// <param name="scheduler">The scheduler to run the addition on.</param>
         /// <returns>
         ///     An observable stream that, when done, returns an <see cref="Unit" />.
         /// </returns>
@@ -166,9 +155,6 @@ namespace JB.Reactive.Cache.ExtensionMethods
         {
             if (cache == null)
                 throw new ArgumentNullException(nameof(cache));
-
-            if (scheduler == null)
-                scheduler = Scheduler.CurrentThread;
 
             return cache.Add(Observable.Return(keyValuePair), expiry, expirationType, scheduler);
         }
@@ -186,7 +172,7 @@ namespace JB.Reactive.Cache.ExtensionMethods
         ///     virtually never expire.
         /// </param>
         /// <param name="expirationType">Defines how the <paramref name="key" />/<paramref name="value" /> shall expire.</param>
-        /// <param name="scheduler">The scheduler to run the addition or update on. If none is provided, <see cref="Scheduler.CurrentThread"/> will be used.</param>
+        /// <param name="scheduler">The scheduler to run the addition or update on.</param>
         /// <returns>
         ///     An observable stream that, when done, returns an <see cref="Unit" />.
         /// </returns>
@@ -213,7 +199,7 @@ namespace JB.Reactive.Cache.ExtensionMethods
         ///     virtually never expire.
         /// </param>
         /// <param name="expirationType">Defines how the <paramref name="key" />/<paramref name="value" /> shall expire.</param>
-        /// <param name="scheduler">The scheduler to run the addition or update on. If none is provided, <see cref="Scheduler.CurrentThread"/> will be used.</param>
+        /// <param name="scheduler">The scheduler to run the addition or update on.</param>
         /// <returns>
         ///     An observable stream that, when done, returns an <see cref="Unit" />.
         /// </returns>
@@ -232,7 +218,7 @@ namespace JB.Reactive.Cache.ExtensionMethods
         /// <param name="keyValuePair">The key value pair to add.</param>
         /// <param name="expiry">The expiry. If none is provided the <paramref name="keyValuePair" /> will virtually never expire.</param>
         /// <param name="expirationType">Defines how the <paramref name="keyValuePair" /> shall expire.</param>
-        /// <param name="scheduler">The scheduler to run the addition or update on. If none is provided, <see cref="Scheduler.CurrentThread"/> will be used.</param>
+        /// <param name="scheduler">The scheduler to run the addition or update on.</param>
         /// <returns>
         ///     An observable stream that, when done, returns an <see cref="Unit" />.
         /// </returns>
@@ -255,7 +241,7 @@ namespace JB.Reactive.Cache.ExtensionMethods
         /// </param>
         /// <param name="expiry">The expiry. If none is provided the <paramref name="keyValuePair" /> will virtually never expire.</param>
         /// <param name="expirationType">Defines how the <paramref name="keyValuePair" /> shall expire.</param>
-        /// <param name="scheduler">The scheduler to run the addition or update on. If none is provided, <see cref="Scheduler.CurrentThread"/> will be used.</param>
+        /// <param name="scheduler">The scheduler to run the addition or update on.</param>
         /// <returns>
         ///     An observable stream that, when done, returns an <see cref="Unit" />.
         /// </returns>
@@ -274,7 +260,7 @@ namespace JB.Reactive.Cache.ExtensionMethods
         /// <param name="keyValuePairs">The key value pairs to add.</param>
         /// <param name="expiry">The expiry. If none is provided the <paramref name="keyValuePairs" /> will virtually never expire.</param>
         /// <param name="expirationType">Defines how the <paramref name="keyValuePairs" /> shall expire.</param>
-        /// <param name="scheduler">The scheduler to run the addition or update on. If none is provided, <see cref="Scheduler.CurrentThread"/> will be used.</param>
+        /// <param name="scheduler">The scheduler to run the addition or update on.</param>
         /// <returns>
         ///     An observable stream that, when done, returns an <see cref="Unit" />.
         /// </returns>
@@ -297,7 +283,7 @@ namespace JB.Reactive.Cache.ExtensionMethods
         /// </param>
         /// <param name="expiry">The expiry. If none is provided the <paramref name="keyValuePairs" /> will virtually never expire.</param>
         /// <param name="expirationType">Defines how the <paramref name="keyValuePairs" /> shall expire.</param>
-        /// <param name="scheduler">The scheduler to run the addition or update on. If none is provided, <see cref="Scheduler.CurrentThread"/> will be used.</param>
+        /// <param name="scheduler">The scheduler to run the addition or update on.</param>
         /// <returns>
         ///     An observable stream that, when done, returns an <see cref="Unit" />.
         /// </returns>
@@ -348,7 +334,7 @@ namespace JB.Reactive.Cache.ExtensionMethods
         /// <typeparam name="TKey">The type of the key.</typeparam>
         /// <typeparam name="TValue">The type of the value.</typeparam>
         /// <param name="cache">The cache to use.</param>
-        /// <param name="scheduler">The scheduler to observe count changes on. If none is provided, <see cref="Scheduler.CurrentThread"/> will be used.</param>
+        /// <param name="scheduler">The scheduler to observe count changes on.</param>
         /// <returns></returns>
         /// <exception cref="System.ArgumentNullException"></exception>
         /// <value>
@@ -438,7 +424,7 @@ namespace JB.Reactive.Cache.ExtensionMethods
             if (target == null)
                 throw new ArgumentNullException(nameof(target));
 
-            IObservable<IObservableCacheChange<TKey, TValue>> sourceObservable = scheduler != null
+            var sourceObservable = scheduler != null
                 ? source.Changes.ObserveOn(scheduler)
                 : source.Changes;
 
@@ -539,9 +525,6 @@ namespace JB.Reactive.Cache.ExtensionMethods
             if (key == null)
                 throw new ArgumentNullException(nameof(key));
 
-            if (scheduler == null)
-                scheduler = Scheduler.CurrentThread;
-
             return cache.Get(Observable.Return(key), throwIfExpired, scheduler);
         }
 
@@ -560,7 +543,7 @@ namespace JB.Reactive.Cache.ExtensionMethods
         /// </param>
         /// <param name="expiry">The expiry. If none is provided the <paramref name="key" /> will virtually never expire.</param>
         /// <param name="expirationType">Defines how the <paramref name="key" /> shall expire.</param>
-        /// <param name="scheduler">The scheduler to run the retrieval or addition on. If none is provided, <see cref="Scheduler.CurrentThread"/> will be used.</param>
+        /// <param name="scheduler">The scheduler to run the retrieval or addition on.</param>
         /// <returns>
         ///     An observable stream containing the corresponding <typeparamref name="TValue" /> instance(s).
         /// </returns>
@@ -584,7 +567,7 @@ namespace JB.Reactive.Cache.ExtensionMethods
         /// </param>
         /// <param name="expiry">The expiry. If none is provided the <paramref name="keys" /> will virtually never expire.</param>
         /// <param name="expirationType">Defines how the <paramref name="keys" /> shall expire.</param>
-        /// <param name="scheduler">The scheduler to run the retrieval or addition on. If none is provided, <see cref="Scheduler.CurrentThread"/> will be used.</param>
+        /// <param name="scheduler">The scheduler to run the retrieval or addition on.</param>
         /// <returns>
         ///     An observable stream containing the corresponding <typeparamref name="TValue" /> instance(s).
         /// </returns>
@@ -608,7 +591,7 @@ namespace JB.Reactive.Cache.ExtensionMethods
         /// </param>
         /// <param name="expiry">The expiry. If none is provided the <paramref name="keys" /> will virtually never expire.</param>
         /// <param name="expirationType">Defines how the <paramref name="keys" /> shall expire.</param>
-        /// <param name="scheduler">The scheduler to run the retrieval or addition on. If none is provided, <see cref="Scheduler.CurrentThread"/> will be used.</param>
+        /// <param name="scheduler">The scheduler to run the retrieval or addition on.</param>
         /// <returns>
         ///     An observable stream containing the corresponding <typeparamref name="TValue" /> instance(s).
         /// </returns>
@@ -637,9 +620,6 @@ namespace JB.Reactive.Cache.ExtensionMethods
             if (key == null)
                 throw new ArgumentNullException(nameof(key));
 
-            if (scheduler == null)
-                scheduler = Scheduler.CurrentThread;
-
             return cache.Remove(Observable.Return(key), scheduler);
         }
 
@@ -663,12 +643,13 @@ namespace JB.Reactive.Cache.ExtensionMethods
             if (keys == null)
                 throw new ArgumentNullException(nameof(keys));
 
-            if (scheduler == null)
-                scheduler = Scheduler.CurrentThread;
-
             var keysAsList = keys.ToList();
             if (keysAsList.Count == 0)
-                return Observable.Empty<bool>(scheduler);
+            {
+                return scheduler != null
+                    ? Observable.Empty<bool>(scheduler)
+                    : Observable.Empty<bool>();
+            }
 
             return cache.RemoveRange(keysAsList.AsObservable(scheduler), scheduler);
         }
@@ -687,7 +668,7 @@ namespace JB.Reactive.Cache.ExtensionMethods
         ///     virtually never expire.
         /// </param>
         /// <param name="expirationType">Defines how the <paramref name="key" />/<paramref name="value" /> shall expire.</param>
-        /// <param name="scheduler">The scheduler to run the addition on. If none is provided, <see cref="Scheduler.CurrentThread"/> will be used.</param>
+        /// <param name="scheduler">The scheduler to run the addition on.</param>
         /// <returns>
         ///     An observable stream that returns [true] if successful, [false] if not.
         /// </returns>
@@ -706,7 +687,7 @@ namespace JB.Reactive.Cache.ExtensionMethods
         /// <param name="keyValuePair">The key/value pair to add.</param>
         /// <param name="expiry">The expiry. If none is provided the <paramref name="keyValuePair" /> will virtually never expire.</param>
         /// <param name="expirationType">Defines how the <paramref name="keyValuePair" /> shall expire.</param>
-        /// <param name="scheduler">The scheduler to run the addition attempt on. If none is provided, <see cref="Scheduler.CurrentThread"/> will be used.</param>
+        /// <param name="scheduler">The scheduler to run the addition attempt on.</param>
         /// <returns>
         ///     An observable stream that returns [true] if successful, [false] if not.
         /// </returns>
@@ -722,7 +703,7 @@ namespace JB.Reactive.Cache.ExtensionMethods
         /// <typeparam name="TValue">The type of the value.</typeparam>
         /// <param name="cache">The cache to use.</param>
         /// <param name="key">The key to attempt to remove.</param>
-        /// <param name="scheduler">The scheduler to run the removal attempt on. If none is provided, <see cref="Scheduler.CurrentThread"/> will be used.</param>
+        /// <param name="scheduler">The scheduler to run the removal attempt on.</param>
         /// <returns>
         ///     An observable stream that returns [true] if the <paramref name="key" /> was in the <paramref name="cache" /> and
         ///     removed from it, [false] if not.
@@ -745,7 +726,7 @@ namespace JB.Reactive.Cache.ExtensionMethods
         ///     Defines how the <paramref name="key" /> shall expire. If none is provided the existing
         ///     type will be left as-is.
         /// </param>
-        /// <param name="scheduler">The scheduler to run the update attempt on. If none is provided, <see cref="Scheduler.CurrentThread"/> will be used.</param>
+        /// <param name="scheduler">The scheduler to run the update attempt on.</param>
         /// <returns>
         ///     An observable stream that returns [true] if the <paramref name="key" /> was in the <paramref name="cache" /> and
         ///     updated, [false] if not.
@@ -756,20 +737,65 @@ namespace JB.Reactive.Cache.ExtensionMethods
         }
 
         /// <summary>
-        ///     Updates the key for the provided <paramref name="keyValuePair" /> with its value in the specified
-        ///     <paramref name="cache" />.
+        /// Updates the specified <paramref name="key"/> with the given <paramref name="value"/>.
         /// </summary>
-        /// <typeparam name="TKey">The type of the key.</typeparam>
-        /// <typeparam name="TValue">The type of the value.</typeparam>
         /// <param name="cache">The cache to use.</param>
-        /// <param name="keyValuePair">The key/value pair that contains the key to update and the value to update it with.</param>
-        /// <param name="scheduler">The scheduler to run the update on. If none is provided, <see cref="Scheduler.CurrentThread"/> will be used.</param>
+        /// <param name="key">The key to update.</param>
+        /// <param name="value">The value to update the <paramref name="key"/> with.</param>
+        /// <param name="throwIfExpired">If set to <c>true</c>, a <see cref="KeyHasExpiredException{TKey}"/> will be thrown if the <paramref name="key"/> has expired upon subscription.</param>
+        /// <param name="scheduler">Scheduler to perform the update action on.</param>
         /// <returns>
-        ///     An observable stream that, when done, returns an <see cref="Unit" />.
+        /// An observable stream that returns the updated key-value pairs.
         /// </returns>
-        public static IObservable<Unit> Update<TKey, TValue>(this IObservableCache<TKey, TValue> cache, KeyValuePair<TKey, TValue> keyValuePair, IScheduler scheduler = null)
+        public static IObservable<KeyValuePair<TKey, TValue>> Update<TKey, TValue>(this IObservableCache<TKey, TValue> cache, TKey key, TValue value, bool throwIfExpired = true, IScheduler scheduler = null)
         {
-            throw new NotImplementedException();
+            if (cache == null)
+                throw new ArgumentNullException(nameof(cache));
+            if (key == null)
+                throw new ArgumentNullException(nameof(key));
+
+            return cache.Update(Observable.Return(new KeyValuePair<TKey, TValue>(key, value)), throwIfExpired, scheduler);
+        }
+
+        /// <summary>
+        /// Updates a range of <paramref name="keyValuePairs"/>.
+        /// </summary>
+        /// <param name="cache">The cache to use.</param>
+        /// <param name="keyValuePairs">The key/value pairs that each contain the key to update and the value to update it with.</param>
+        /// <param name="throwIfExpired">If set to <c>true</c>, a <see cref="KeyHasExpiredException{TKey}"/> will be thrown if the <paramref name="keyValuePairs"/> has at least one expired item key upon subscription.</param>
+        /// <param name="scheduler">Scheduler to perform the update action on.</param>
+        /// <returns>
+        /// An observable stream that returns the updated <paramref name="keyValuePairs"/>.
+        /// </returns>
+        public static IObservable<KeyValuePair<TKey, TValue>> UpdateRange<TKey, TValue>(this IObservableCache<TKey, TValue> cache, IDictionary<TKey, TValue> keyValuePairs, bool throwIfExpired = true, IScheduler scheduler = null)
+        {
+            if (cache == null)
+                throw new ArgumentNullException(nameof(cache));
+            if (keyValuePairs == null)
+                throw new ArgumentNullException(nameof(keyValuePairs));
+
+            return cache.UpdateRange(Observable.Return(keyValuePairs), throwIfExpired, scheduler);
+        }
+
+        /// <summary>
+        /// Updates the expiry for the specified <paramref name="key"/>.
+        /// </summary>
+        /// <param name="cache">The cache to use.</param>
+        /// <param name="key">The key to update.</param>
+        /// <param name="expiry">The expiry of the <paramref name="key"/>.</param>
+        /// <param name="throwIfExpired">If set to <c>true</c>, a <see cref="KeyHasExpiredException{TKey}"/> will be thrown if the <paramref name="key"/> has expired upon subscription.</param>
+        /// <param name="scheduler">Scheduler to perform the update on.</param>
+        /// <returns>
+        /// An observable stream that, when done, returns an <see cref="Unit" />.
+        /// </returns>
+        public static IObservable<KeyValuePair<TKey, TValue>> UpdateExpiry<TKey, TValue>(this IObservableCache<TKey, TValue> cache, TKey key, TimeSpan expiry, bool throwIfExpired = true, IScheduler scheduler = null)
+        {
+            if (cache == null)
+                throw new ArgumentNullException(nameof(cache));
+            if (key == null)
+                throw new ArgumentNullException(nameof(key));
+
+            return cache.UpdateExpiry(Observable.Return(new KeyValuePair<TKey, TimeSpan>(key, expiry)), throwIfExpired, scheduler);
         }
     }
 }

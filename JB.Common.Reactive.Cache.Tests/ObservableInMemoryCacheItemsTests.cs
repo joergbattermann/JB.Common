@@ -6,7 +6,6 @@ using System.Reactive.Concurrency;
 using System.Threading.Tasks;
 using FluentAssertions;
 using System.Reactive.Linq;
-using FluentAssertions.Common;
 using JB.Collections;
 using JB.Reactive.Cache.ExtensionMethods;
 using Microsoft.Reactive.Testing;
@@ -270,41 +269,29 @@ namespace JB.Reactive.Cache.Tests
         {
             // given
             var expirationScheduler = new TestScheduler();
-            var workerScheduler = new TestScheduler();
             var expiresAtTicks = 10;
 
             using (var cache = new ObservableInMemoryCache<int, string>(expirationScheduler: expirationScheduler))
             {
-                var addObserver = workerScheduler.CreateObserver<KeyValuePair<int, string>>();
-                var workerUnitObserver = workerScheduler.CreateObserver<Unit>();
-
-                expirationScheduler.Schedule(
-                    TimeSpan.Zero, _ =>
-                    {
-                        cache.Add(1, "One", TimeSpan.FromTicks(expiresAtTicks), ObservableCacheExpirationType.DoNothing, workerScheduler).Subscribe(addObserver);
-                        workerScheduler.AdvanceBy(2);
-                    });
+                cache.Add(1, "One", TimeSpan.FromTicks(expiresAtTicks), ObservableCacheExpirationType.DoNothing).Subscribe();
 
                 // when
-                long tickAtTimeOfUpdate = -1; // this 'remembers' the virtual time the expiration update took place
                 expirationScheduler.Schedule(
                     TimeSpan.FromTicks(5),
                     _ =>
                     { 
-                        cache.UpdateExpiration(1, TimeSpan.FromTicks(2 * expiresAtTicks), scheduler: workerScheduler).Subscribe(workerUnitObserver);
-                        workerScheduler.AdvanceBy(2);
+                        cache.UpdateExpiry(1, TimeSpan.FromTicks(2 * expiresAtTicks)).Subscribe();
                     });
 
                 // when
                 expirationScheduler.AdvanceBy(5);
 
-                var expirationUpdateObserver = workerScheduler.CreateObserver<TimeSpan>();
+                var expirationUpdateObserver = expirationScheduler.CreateObserver<TimeSpan>();
                 expirationScheduler.Schedule(
                     TimeSpan.FromTicks(5),
                     _ =>
                     {
-                        cache.ExpiresIn(1, workerScheduler).Subscribe(expirationUpdateObserver);
-                        workerScheduler.AdvanceBy(2);
+                        cache.ExpiresIn(1).Subscribe(expirationUpdateObserver);
                     });
 
                 expirationScheduler.AdvanceBy(5);
@@ -330,15 +317,15 @@ namespace JB.Reactive.Cache.Tests
             using (var cache = new ObservableInMemoryCache<int, string>(expirationScheduler: expirationScheduler))
             {
                 cache.Add(1, "One", TimeSpan.FromTicks(expiresAtTicks), ObservableCacheExpirationType.DoNothing, workerScheduler).Subscribe();
-                expirationScheduler.AdvanceBy(1);
-                workerScheduler.AdvanceBy(2);
+                expirationScheduler.AdvanceBy(2);
+                workerScheduler.AdvanceBy(1);
                 
                 // when
                 cache.ExpiresIn(1, workerScheduler).Subscribe(expiresInObserver);
-                workerScheduler.AdvanceBy(2);
+                workerScheduler.AdvanceBy(3);
 
                 cache.ExpiresAt(1, workerScheduler).Subscribe(expiresAtObserver);
-                workerScheduler.AdvanceBy(2);
+                workerScheduler.AdvanceBy(3);
 
                 // then
                 expiresInObserver.Messages.Count.Should().Be(2);
@@ -427,7 +414,7 @@ namespace JB.Reactive.Cache.Tests
                 // and
                 var valueObserver = workerScheduler.CreateObserver<string>();
                 cache.Get(1, true, workerScheduler).Subscribe(valueObserver);
-                workerScheduler.AdvanceBy(2);
+                workerScheduler.AdvanceBy(4);
 
                 // then
                 valueObserver.Messages.Count.Should().Be(1);
@@ -456,9 +443,9 @@ namespace JB.Reactive.Cache.Tests
                 expirationScheduler.AdvanceBy(expirationTimeoutInTicks * 10);
 
                 // and
-                var observer = workerScheduler.CreateObserver<Unit>();
+                var observer = workerScheduler.CreateObserver<KeyValuePair<int, string>>();
                 cache.Update(1, "ONE", true, workerScheduler).Subscribe(observer);
-                workerScheduler.AdvanceBy(2);
+                workerScheduler.AdvanceBy(3);
 
                 // then
                 observer.Messages.Count.Should().Be(1);
@@ -488,7 +475,7 @@ namespace JB.Reactive.Cache.Tests
                 // and
                 var valueObserver = workerScheduler.CreateObserver<string>();
                 cache.Get(1, false, workerScheduler).Subscribe(valueObserver);
-                workerScheduler.AdvanceBy(2);
+                workerScheduler.AdvanceBy(4);
 
                 // then
                 valueObserver.Messages.Count.Should().Be(2);
@@ -538,7 +525,7 @@ namespace JB.Reactive.Cache.Tests
                 // then
                 var updatedValueGetObserver = workerScheduler.CreateObserver<string>();
                 cache.Get(1, true, workerScheduler).Subscribe(updatedValueGetObserver);
-                workerScheduler.AdvanceBy(2);
+                workerScheduler.AdvanceBy(4);
 
                 cache.CurrentCount.Should().Be(1);
 
@@ -601,7 +588,7 @@ namespace JB.Reactive.Cache.Tests
                 // then
                 var getObserver = workerScheduler.CreateObserver<string>();
                 cache.Get(1, true, workerScheduler).Subscribe(getObserver);
-                workerScheduler.AdvanceBy(2);
+                workerScheduler.AdvanceBy(4);
 
                 cache.CurrentCount.Should().Be(1);
                 getObserver.Messages.Count.Should().Be(2);
@@ -947,7 +934,7 @@ namespace JB.Reactive.Cache.Tests
                 // when
                 var observer = workerScheduler.CreateObserver<string>();
                 cache.Get(1, true, workerScheduler).Subscribe(observer);
-                workerScheduler.AdvanceBy(2);
+                workerScheduler.AdvanceBy(4);
 
                 // then
                 observer.Messages.Count.Should().Be(1);

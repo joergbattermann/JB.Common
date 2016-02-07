@@ -89,6 +89,10 @@ namespace JB.Reactive.Linq
                     else
                         observer.OnError(targetInvocationException);
                 }
+                catch (Exception exception)
+                {
+                    observer.OnError(exception);
+                }
 
                 return Disposable.Empty;
             };

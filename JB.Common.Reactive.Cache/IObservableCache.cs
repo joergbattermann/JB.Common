@@ -171,16 +171,18 @@ namespace JB.Reactive.Cache
         IObservable<bool> RemoveRange(IObservable<IList<TKey>> source, IScheduler scheduler = null);
 
         /// <summary>
-        /// Updates the specified <paramref name="key"/> with the given <paramref name="value"/>.
+        /// Observers the source observable stream of <paramref name="keyValuePairs"/> and updates the <see cref="KeyValuePair{TKey,TValue}.Key"/>
+        /// in this instance with the provided <see cref="KeyValuePair{TKey,TValue}.Value"/>.
         /// </summary>
-        /// <param name="key">The key to update.</param>
-        /// <param name="value">The value to update the <paramref name="key"/> with.</param>
-        /// <param name="throwIfExpired">If set to <c>true</c>, a <see cref="KeyHasExpiredException{TKey}"/> will be thrown if the <paramref name="key"/> has expired upon subscription.</param>
+        /// <param name="keyValuePairs">The key value pairs to observe.</param>
+        /// <param name="throwIfExpired">
+        ///     If set to <c>true</c>, a <see cref="KeyHasExpiredException{TKey}" /> will be thrown if the <see cref="KeyValuePair{TKey,TValue}.Key"/> has expired upon updating.
+        /// </param>
         /// <param name="scheduler">Scheduler to perform the update on.</param>
         /// <returns>
-        /// An observable stream that, when done, returns an <see cref="Unit" />.
+        /// An observable stream that returns the updated <paramref name="keyValuePairs"/>.
         /// </returns>
-        IObservable<Unit> Update(TKey key, TValue value, bool throwIfExpired = true, IScheduler scheduler = null);
+        IObservable<KeyValuePair<TKey, TValue>> Update(IObservable<KeyValuePair<TKey, TValue>> keyValuePairs, bool throwIfExpired = true, IScheduler scheduler = null);
 
         /// <summary>
         /// Updates a range of <paramref name="keyValuePairs"/>.
@@ -189,33 +191,19 @@ namespace JB.Reactive.Cache
         /// <param name="throwIfExpired">If set to <c>true</c>, a <see cref="KeyHasExpiredException{TKey}"/> will be thrown if the <paramref name="keyValuePairs"/> has at least one expired item key upon subscription.</param>
         /// <param name="scheduler">Scheduler to perform the update on.</param>
         /// <returns>
-        /// An observable stream that, when done, returns an <see cref="Unit" />.
+        /// An observable stream that returns the updated <paramref name="keyValuePairs"/>.
         /// </returns>
-        IObservable<Unit> UpdateRange(IDictionary<TKey, TValue> keyValuePairs, bool throwIfExpired = true, IScheduler scheduler = null);
+        IObservable<KeyValuePair<TKey, TValue>> UpdateRange(IObservable<ICollection<KeyValuePair<TKey, TValue>>> keyValuePairs, bool throwIfExpired = true, IScheduler scheduler = null);
 
         /// <summary>
-        /// Updates the expiration behavior for the specified <paramref name="key"/>.
+        /// Updates the expiration for the specified <paramref name="keysAndNewExpiry"/>.
         /// </summary>
-        /// <param name="key">The key to update.</param>
-        /// <param name="expiry">The expiry of the <paramref name="key"/>.</param>
+        /// <param name="keysAndNewExpiry">The keys to update with the corresponding new expiry <see cref="TimeSpan"/>.</param>
         /// <param name="throwIfExpired">If set to <c>true</c>, a <see cref="KeyHasExpiredException{TKey}"/> will be thrown if the <paramref name="key"/> has expired upon subscription.</param>
         /// <param name="scheduler">Scheduler to perform the update on.</param>
         /// <returns>
-        /// An observable stream that, when done, returns an <see cref="Unit" />.
+        /// An observable stream that returns the updated key-value pairs.
         /// </returns>
-        IObservable<Unit> UpdateExpiration(TKey key, TimeSpan expiry, bool throwIfExpired = true, IScheduler scheduler = null);
-
-        /// <summary>
-        /// Updates the expiration behavior for the specified <paramref name="keys"/>.
-        /// </summary>
-        /// <param name="keys">The keys to update.</param>
-        /// <param name="expiry">The expiry of the <paramref name="keys"/>.</param>
-        /// <param name="throwIfExpired">If set to <c>true</c>, a <see cref="KeyHasExpiredException{TKey}"/> will be thrown if (one of) the <paramref name="keys"/> has expired item key upon subscription.</param>
-        /// <param name="maxConcurrent">Maximum number of concurrent updates.</param>
-        /// <param name="scheduler">Scheduler to perform the update on.</param>
-        /// <returns>
-        /// An observable stream that, when done, returns an <see cref="Unit" />.
-        /// </returns>
-        IObservable<Unit> UpdateExpiration(IEnumerable<TKey> keys, TimeSpan expiry, bool throwIfExpired = true, int maxConcurrent = 1, IScheduler scheduler = null);
+        IObservable<KeyValuePair<TKey, TValue>> UpdateExpiry(IObservable<KeyValuePair<TKey, TimeSpan>> keysAndNewExpiry, bool throwIfExpired = true, IScheduler scheduler = null);
     }
 }
