@@ -1346,8 +1346,11 @@ namespace JB.Reactive.Cache
                             if (cachedElementsForKeyValuePairs.Count > 0)
                             {
                                 IDictionary<TKey, ObservableCachedElement<TKey, TValue>> elementsThatCouldNotBeAdded;
-                                InnerDictionary.TryAddRange(cachedElementsForKeyValuePairs, out elementsThatCouldNotBeAdded);
-
+                                using ((IsTrackingCountChanges) ? SuppressCountChangeNotifications(true) : Disposable.Empty)
+                                {
+                                    InnerDictionary.TryAddRange(cachedElementsForKeyValuePairs, out elementsThatCouldNotBeAdded);
+                                }
+                                
                                 // and finally add to expiration / value changed notification etc
                                 var keysForNonAddedElements = elementsThatCouldNotBeAdded.Keys;
                                 foreach (var addedObservableCachedElement in cachedElementsForKeyValuePairs.Where(element => !keysForNonAddedElements.Contains(element.Key, KeyComparer)))
