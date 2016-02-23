@@ -2,7 +2,7 @@ using System;
 
 namespace JB.Collections.Reactive
 {
-    public interface INotifyObservableDictionaryChanges<out TKey, out TValue> : INotifyObservableChanges
+    public interface INotifyObservableDictionaryChanges<TKey, TValue> : INotifyObservableChanges
     {
         /// <summary>
         /// Gets the dictionary changes as an observable stream.

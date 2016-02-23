@@ -9,7 +9,7 @@ namespace JB.Collections.Reactive
     /// </summary>
     /// <typeparam name="TKey">The type of the key.</typeparam>
     /// <typeparam name="TValue">The type of the value.</typeparam>
-    public interface INotifyObservableDictionaryItemChanges<out TKey, out TValue> : INotifyObservableItemChanges
+    public interface INotifyObservableDictionaryItemChanges<TKey, TValue> : INotifyObservableItemChanges
     {
         /// <summary>
         /// Gets the observable streams of value changes being either a <see cref="ObservableDictionaryChangeType.ItemValueChanged" />

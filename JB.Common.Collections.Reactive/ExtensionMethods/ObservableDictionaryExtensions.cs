@@ -18,29 +18,24 @@ namespace JB.Collections.Reactive.ExtensionMethods
     public static class ObservableDictionaryExtensions
     {
         /// <summary>
-        /// Forwards the <paramref name="source" /> changes to the <paramref name="target" />.
+        /// Forwards the <paramref name="sourceObservable" /> changes to the <paramref name="target" />.
         /// </summary>
         /// <typeparam name="TKey">The type of the key.</typeparam>
         /// <typeparam name="TValue">The type of the value.</typeparam>
-        /// <param name="source">The source observable list.</param>
+        /// <param name="sourceObservable">The source observable.</param>
         /// <param name="target">The target <see cref="IEnhancedBindingList{TValue}"/>.</param>
         /// <param name="includeItemChanges">if set to <c>true</c> individual items' changes will be propagated to the <paramref name="target" />.</param>
-        /// <param name="scheduler">The scheduler to schedule notifications and changes on.</param>
         /// <returns>An <see cref="IDisposable"/> which will forward the changes to the <paramref name="target"/> as long as <see cref="IDisposable.Dispose"/> hasn't been called.</returns>
-        public static IDisposable ForwardDictionaryChangesTo<TKey, TValue>(this IObservableDictionary<TKey,TValue> source,
-                                                          IEnhancedBindingList<TValue> target,
-                                                          bool includeItemChanges = false,
-                                                          IScheduler scheduler = null)
+        private static IDisposable ForwardDictionaryChangesTo<TKey, TValue>(
+            IObservable<IObservableDictionaryChange<TKey, TValue>> sourceObservable,
+            IEnhancedBindingList<TValue> target,
+            bool includeItemChanges = false)
         {
-            if (source == null)
-                throw new ArgumentNullException(nameof(source));
+            if (sourceObservable == null)
+                throw new ArgumentNullException(nameof(sourceObservable));
             if (target == null)
                 throw new ArgumentNullException(nameof(target));
-
-            IObservable<IObservableDictionaryChange<TKey, TValue>> sourceObservable = scheduler != null
-                ? source.DictionaryChanges.ObserveOn(scheduler)
-                : source.DictionaryChanges;
-
+            
             return sourceObservable.Subscribe(dictionaryChange =>
             {
                 switch (dictionaryChange.ChangeType)
@@ -51,10 +46,10 @@ namespace JB.Collections.Reactive.ExtensionMethods
                             break;
                         }
                     case ObservableDictionaryChangeType.ItemKeyChanged:
-                    {
-                        // nothing to do here
-                        break;
-                    }
+                        {
+                            // nothing to do here
+                            break;
+                        }
                     case ObservableDictionaryChangeType.ItemValueChanged:
                         {
                             if (includeItemChanges)
@@ -102,7 +97,7 @@ namespace JB.Collections.Reactive.ExtensionMethods
                                 target.RaiseListChangedEvents = false;
 
                                 ((ICollection<TValue>)target).Clear();
-                                target.AddRange(((IDictionary<TKey, TValue>)source).Values);
+                                target.AddRange(((IDictionary<TKey, TValue>)dictionaryChange.Dictionary).Values);
                             }
                             finally
                             {
@@ -119,6 +114,69 @@ namespace JB.Collections.Reactive.ExtensionMethods
                             $"Only {ObservableDictionaryChangeType.ItemAdded}, {ObservableDictionaryChangeType.ItemKeyChanged}, {ObservableDictionaryChangeType.ItemValueChanged}, {ObservableDictionaryChangeType.ItemValueReplaced}, {ObservableDictionaryChangeType.ItemRemoved} and {ObservableDictionaryChangeType.Reset} are supported.");
                 }
             });
+        }
+
+        /// <summary>
+        /// Forwards the <paramref name="source" /> changes to the <paramref name="target" />.
+        /// </summary>
+        /// <typeparam name="TKey">The type of the key.</typeparam>
+        /// <typeparam name="TValue">The type of the value.</typeparam>
+        /// <param name="source">The source observable dictionary.</param>
+        /// <param name="target">The target <see cref="IEnhancedBindingList{TValue}"/>.</param>
+        /// <param name="includeItemChanges">if set to <c>true</c> individual items' changes will be propagated to the <paramref name="target" />.</param>
+        /// <param name="scheduler">The scheduler to schedule notifications and changes on.</param>
+        /// <returns>An <see cref="IDisposable"/> which will forward the changes to the <paramref name="target"/> as long as <see cref="IDisposable.Dispose"/> hasn't been called.</returns>
+        public static IDisposable ForwardDictionaryChangesTo<TKey, TValue>(
+            this IObservableDictionary<TKey,TValue> source,
+            IEnhancedBindingList<TValue> target,
+            bool includeItemChanges = false,
+            IScheduler scheduler = null)
+        {
+            if (source == null)
+                throw new ArgumentNullException(nameof(source));
+            if (target == null)
+                throw new ArgumentNullException(nameof(target));
+
+            var sourceObservable = scheduler != null
+                ? source.DictionaryChanges.ObserveOn(scheduler)
+                : source.DictionaryChanges;
+
+            return ForwardDictionaryChangesTo(sourceObservable, target, includeItemChanges);
+        }
+
+        /// <summary>
+        /// Forwards the <paramref name="source" /> changes to the <paramref name="target" />.
+        /// </summary>
+        /// <typeparam name="TKey">The type of the key.</typeparam>
+        /// <typeparam name="TValue">The type of the value.</typeparam>
+        /// <param name="source">The source observable dictionary.</param>
+        /// <param name="target">The target <see cref="IEnhancedBindingList{TValue}"/>.</param>
+        /// <param name="filterPredicate">A filter function to test each <paramref name="source" /> change for whether or not to forward it to the <paramref name="target" />.</param>
+        /// <param name="includeItemChanges">if set to <c>true</c> individual items' changes will be propagated to the <paramref name="target" />.</param>
+        /// <param name="scheduler">The scheduler to schedule notifications and changes on.</param>
+        /// <returns>An <see cref="IDisposable"/> which will forward the changes to the <paramref name="target"/> as long as <see cref="IDisposable.Dispose"/> hasn't been called.</returns>
+        public static IDisposable ForwardDictionaryChangesTo<TKey, TValue>(
+            this IObservableDictionary<TKey, TValue> source,
+            IEnhancedBindingList<TValue> target,
+            Func<IObservableDictionaryChange<TKey, TValue>, bool> filterPredicate, 
+            bool includeItemChanges = false,
+            IScheduler scheduler = null)
+        {
+            if (source == null)
+                throw new ArgumentNullException(nameof(source));
+            if (target == null)
+                throw new ArgumentNullException(nameof(target));
+
+            var sourceObservable = scheduler != null
+                ? source.DictionaryChanges.ObserveOn(scheduler)
+                : source.DictionaryChanges;
+
+            if (filterPredicate != null)
+            {
+                sourceObservable = sourceObservable.Where(filterPredicate);
+            }
+
+            return ForwardDictionaryChangesTo(sourceObservable, target, includeItemChanges);
         }
     }
 }

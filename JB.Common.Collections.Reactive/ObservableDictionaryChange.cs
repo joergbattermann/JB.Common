@@ -18,6 +18,14 @@ namespace JB.Collections.Reactive
         #region Implementation of IObservableCollectionChange<out T>
 
         /// <summary>
+        /// Gets the dictionary that notified about this change.
+        /// </summary>
+        /// <value>
+        /// The dictionary / sender.
+        /// </value>
+        public IObservableDictionary<TKey, TValue> Dictionary { get; }
+
+        /// <summary>
         /// Gets the type of the change.
         /// </summary>
         /// <value>
@@ -65,13 +73,26 @@ namespace JB.Collections.Reactive
         /// <summary>
         /// Initializes a new instance of the <see cref="ObservableDictionaryChange{TKey,TValue}" /> class.
         /// </summary>
+        /// <param name="dictionary">The dictionary for this change.</param>
         /// <param name="changeType">Type of the change.</param>
         /// <param name="key">The key of the changed value.</param>
         /// <param name="value">The added, removed or changed, new value.</param>
         /// <param name="oldValue">The replaced value, only applicable if <paramref name="changeType" /> is <see cref="ObservableDictionaryChangeType.ItemValueChanged" />.</param>
         /// <param name="changedPropertyName">The changed property name, only applicable if <paramref name="changeType" /> is <see cref="ObservableDictionaryChangeType.ItemValueChanged" />.</param>
-        protected ObservableDictionaryChange(ObservableDictionaryChangeType changeType, TKey key = default(TKey), TValue value = default(TValue), TValue oldValue = default(TValue), string changedPropertyName = "")
+        /// <exception cref="System.ArgumentNullException"></exception>
+        /// <exception cref="System.ArgumentOutOfRangeException">
+        /// $Item Adds, Key-/Value Changes or Removes must have a (non-default) '{nameof(key)}'
+        /// or
+        /// $Resets must not have a '{nameof(value)}'
+        /// or
+        /// $Only Changes may have a '{nameof(oldValue)}'
+        /// or
+        /// $Only '{ObservableDictionaryChangeType.ItemValueChanged}' and '{ObservableDictionaryChangeType.ItemKeyChanged}' Changes may have a '{nameof(changedPropertyName)}'
+        /// </exception>
+        protected ObservableDictionaryChange(IObservableDictionary<TKey, TValue> dictionary, ObservableDictionaryChangeType changeType, TKey key = default(TKey), TValue value = default(TValue), TValue oldValue = default(TValue), string changedPropertyName = "")
         {
+            if (dictionary == null) throw new ArgumentNullException(nameof(dictionary));
+
             if ((changeType != ObservableDictionaryChangeType.Reset)
                 && (KeyIsValueType.Value == false && Equals(key, default(TKey))))
                 throw new ArgumentOutOfRangeException(nameof(key), $"Item Adds, Key-/Value Changes or Removes must have a (non-default) '{nameof(key)}'");
@@ -86,6 +107,7 @@ namespace JB.Collections.Reactive
             if (changeType != ObservableDictionaryChangeType.ItemValueChanged && changeType != ObservableDictionaryChangeType.ItemKeyChanged && !string.IsNullOrWhiteSpace(changedPropertyName))
                 throw new ArgumentOutOfRangeException(nameof(changedPropertyName), $"Only '{ObservableDictionaryChangeType.ItemValueChanged}' and '{ObservableDictionaryChangeType.ItemKeyChanged}' Changes may have a '{nameof(changedPropertyName)}'");
 
+            Dictionary = dictionary;
             ChangeType = changeType;
 
             Key = key;
@@ -99,69 +121,75 @@ namespace JB.Collections.Reactive
         /// <summary>
         /// Gets a <see cref="IObservableDictionaryChange{TKey,TValue}" /> representing a <see cref="ObservableDictionaryChangeType.Reset" />.
         /// </summary>
+        /// <param name="dictionary">The dictionary that this change is for and notifying about.</param>
         /// <returns></returns>
         /// <value>
         /// An <see cref="IObservableDictionaryChange{TKey,TValue}">instance</see> representing a <see cref="ObservableDictionaryChangeType.Reset" />.
         /// </value>
-        public static IObservableDictionaryChange<TKey, TValue> Reset()
-            => new ObservableDictionaryChange<TKey, TValue>(ObservableDictionaryChangeType.Reset);
+        public static IObservableDictionaryChange<TKey, TValue> Reset(IObservableDictionary<TKey, TValue> dictionary)
+            => new ObservableDictionaryChange<TKey, TValue>(dictionary, ObservableDictionaryChangeType.Reset);
 
         /// <summary>
         /// Gets a <see cref="IObservableDictionaryChange{TKey,TValue}" /> representing a <see cref="ObservableDictionaryChangeType.ItemAdded" />
         /// for the given <paramref name="key" /> and <paramref name="value" />.
         /// </summary>
+        /// <param name="dictionary">The dictionary that this change is for and notifying about.</param>
         /// <param name="key">The key.</param>
         /// <param name="value">The value.</param>
         /// <returns></returns>
         /// <value>
         /// An <see cref="IObservableDictionaryChange{TKey,TValue}">instance</see> representing a <see cref="ObservableDictionaryChangeType.ItemAdded" />.
         /// </value>
-        public static IObservableDictionaryChange<TKey, TValue> ItemAdded(TKey key, TValue value)
-            => new ObservableDictionaryChange<TKey, TValue>(ObservableDictionaryChangeType.ItemAdded, key, value);
+        public static IObservableDictionaryChange<TKey, TValue> ItemAdded(IObservableDictionary<TKey, TValue> dictionary, TKey key, TValue value)
+            => new ObservableDictionaryChange<TKey, TValue>(dictionary, ObservableDictionaryChangeType.ItemAdded, key, value);
 
         /// <summary>
         /// Gets a <see cref="IObservableDictionaryChange{TKey,TValue}" /> representing a <see cref="ObservableDictionaryChangeType.ItemRemoved" />
         /// for the given <paramref name="key" /> and <paramref name="value" />.
         /// </summary>
+        /// <param name="dictionary">The dictionary that this change is for and notifying about.</param>
         /// <param name="key">The key.</param>
         /// <param name="value">The value.</param>
         /// <returns></returns>
         /// <value>
         /// An <see cref="IObservableDictionaryChange{TKey,TValue}">instance</see> representing a <see cref="ObservableDictionaryChangeType.ItemRemoved" />.
         /// </value>
-        public static IObservableDictionaryChange<TKey, TValue> ItemRemoved(TKey key, TValue value)
-            => new ObservableDictionaryChange<TKey, TValue>(ObservableDictionaryChangeType.ItemRemoved, key, value);
+        public static IObservableDictionaryChange<TKey, TValue> ItemRemoved(IObservableDictionary<TKey, TValue> dictionary, TKey key, TValue value)
+            => new ObservableDictionaryChange<TKey, TValue>(dictionary, ObservableDictionaryChangeType.ItemRemoved, key, value);
 
         /// <summary>
         /// Gets a <see cref="IObservableDictionaryChange{TKey,TValue}" /> representing a <see cref="ObservableDictionaryChangeType.ItemKeyChanged" />,
         /// meaning that a <paramref name="key" />, more precisely one of its properties, has changed.
         /// </summary>
+        /// <param name="dictionary">The dictionary that this change is for and notifying about.</param>
         /// <param name="key">The key that changed.</param>
         /// <param name="propertyName">Name of the property.</param>
         /// <returns></returns>
         /// <value>
         /// An <see cref="IObservableDictionaryChange{TKey,TValue}">instance</see> representing an item property changed <see cref="ObservableDictionaryChangeType.ItemValueChanged" />.
         /// </value>
-        public static IObservableDictionaryChange<TKey, TValue> ItemKeyChanged(TKey key, string propertyName)
-            => new ObservableDictionaryChange<TKey, TValue>(ObservableDictionaryChangeType.ItemKeyChanged, key, changedPropertyName: propertyName);
+        public static IObservableDictionaryChange<TKey, TValue> ItemKeyChanged(IObservableDictionary<TKey, TValue> dictionary, TKey key, string propertyName)
+            => new ObservableDictionaryChange<TKey, TValue>(dictionary, ObservableDictionaryChangeType.ItemKeyChanged, key, changedPropertyName: propertyName);
 
         /// <summary>
         /// Gets a <see cref="IObservableDictionaryChange{TKey,TValue}" /> representing a <see cref="ObservableDictionaryChangeType.ItemValueChanged" />,
         /// meaning that a given <paramref name="value"/>, more precisely one of its properties, for one or more key(s) has changed.
         /// </summary>
+        /// <param name="dictionary">The dictionary that this change is for and notifying about.</param>
         /// <param name="value">The value.</param>
         /// <param name="propertyName">Name of the property.</param>
         /// <returns></returns>
         /// <value>
         /// An <see cref="IObservableDictionaryChange{TKey,TValue}">instance</see> representing an item property changed <see cref="ObservableDictionaryChangeType.ItemValueChanged" />.
         /// </value>
-        public static IObservableDictionaryChange<TKey, TValue> ItemValueChanged(TValue value, string propertyName)
-            => new ObservableDictionaryChange<TKey, TValue>(ObservableDictionaryChangeType.ItemValueChanged, value: value, changedPropertyName: propertyName);
+        public static IObservableDictionaryChange<TKey, TValue> ItemValueChanged(IObservableDictionary<TKey, TValue> dictionary, TValue value, string propertyName)
+            => new ObservableDictionaryChange<TKey, TValue>(dictionary, ObservableDictionaryChangeType.ItemValueChanged, value: value, changedPropertyName: propertyName);
 
         /// <summary>
         /// Gets a <see cref="IObservableDictionaryChange{TKey,TValue}" /> representing a <see cref="ObservableDictionaryChangeType.ItemValueReplaced" />,
         /// more particularly one for an item replacement inside the <see cref="IObservableDictionary{TKey,TValue}" />.
         /// </summary>
+        /// <param name="dictionary">The dictionary that this change is for and notifying about.</param>
         /// <param name="key">The key.</param>
         /// <param name="newValue">The new value.</param>
         /// <param name="replacedOldValue">The replaced old value.</param>
@@ -169,7 +197,7 @@ namespace JB.Collections.Reactive
         /// <value>
         /// An <see cref="IObservableDictionaryChange{TKey,TValue}">instance</see> representing an item replacement <see cref="ObservableDictionaryChangeType.ItemValueReplaced" />.
         /// </value>
-        public static IObservableDictionaryChange<TKey, TValue> ItemValueReplaced(TKey key, TValue newValue, TValue replacedOldValue)
-            => new ObservableDictionaryChange<TKey, TValue>(ObservableDictionaryChangeType.ItemValueReplaced, key, newValue, replacedOldValue);
+        public static IObservableDictionaryChange<TKey, TValue> ItemValueReplaced(IObservableDictionary<TKey, TValue> dictionary, TKey key, TValue newValue, TValue replacedOldValue)
+            => new ObservableDictionaryChange<TKey, TValue>(dictionary, ObservableDictionaryChangeType.ItemValueReplaced, key, newValue, replacedOldValue);
     }
 }

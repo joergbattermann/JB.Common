@@ -2,8 +2,16 @@ using System.ComponentModel;
 
 namespace JB.Collections.Reactive
 {
-    public interface IObservableDictionaryChange<out TKey, out TValue>
+    public interface IObservableDictionaryChange<TKey, TValue>
     {
+        /// <summary>
+        /// Gets the dictionary that notified about this change.
+        /// </summary>
+        /// <value>
+        /// The dictionary / sender.
+        /// </value>
+        IObservableDictionary<TKey, TValue> Dictionary { get; }
+
         /// <summary>
         /// Gets the type of the change.
         /// </summary>
