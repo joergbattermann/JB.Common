@@ -419,7 +419,52 @@ namespace JB.Collections.Reactive.Tests
         }
 
         [Fact]
-        public void AddRangeRaisesPropertyChangeEventForItemIndexerdAndCount()
+        public void AddRangeNotifiesCountChangeOnceIfAddedItemsAreMoreThanThreshold()
+        {
+            // given
+            var testScheduler = new TestScheduler();
+            var countChangesObserver = testScheduler.CreateObserver<int>();
+
+            using (var observableDictionary = new ObservableDictionary<int, string>())
+            {
+                observableDictionary.ThresholdAmountWhenChangesAreNotifiedAsReset = 0;
+                observableDictionary.CountChanges.Subscribe(countChangesObserver);
+
+                var items = Enumerable.Range(0, 100).ToDictionary(i => i, i => i.ToString());
+
+                // when
+                observableDictionary.AddRange(items);
+
+                // then
+                countChangesObserver.Messages.Count.Should().Be(1);
+            }
+        }
+
+        [Fact]
+        public void AddRangeNotifiesCountChangeForEveryAddedItemIfAddedItemsAreLessThanThreshold()
+        {
+            // given
+            var testScheduler = new TestScheduler();
+            var countChangesObserver = testScheduler.CreateObserver<int>();
+
+            int itemsAmountToAdd = 100;
+            using (var observableDictionary = new ObservableDictionary<int, string>())
+            {
+                observableDictionary.ThresholdAmountWhenChangesAreNotifiedAsReset = itemsAmountToAdd + 1;
+                observableDictionary.CountChanges.Subscribe(countChangesObserver);
+
+                var items = Enumerable.Range(0, itemsAmountToAdd).ToDictionary(i => i, i => i.ToString());
+
+                // when
+                observableDictionary.AddRange(items);
+
+                // then
+                countChangesObserver.Messages.Count.Should().Be(itemsAmountToAdd);
+            }
+        }
+
+        [Fact]
+        public void AddRangeRaisesPropertyChangeEventForItemIndexerAndCount()
         {
             // given
             using (var observableDictionary = new ObservableDictionary<int, string>())

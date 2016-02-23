@@ -15,7 +15,6 @@ using System.Runtime.CompilerServices;
 using System.Threading;
 using JB.Collections.Reactive.ExtensionMethods;
 using JB.Reactive;
-using JB.Reactive.ExtensionMethods;
 using JB.Reactive.Linq;
 
 namespace JB.Collections.Reactive
@@ -306,41 +305,32 @@ namespace JB.Collections.Reactive
             if (itemsAsList.Count == 0)
                 return true;
 
-            // check whether change(s) shall be notified as individual changes OR as one final reset at the end
             var useResetInsteadOfIndividualChanges = IsItemsChangedAmountGreaterThanResetThreshold(itemsAsList.Count, ThresholdAmountWhenChangesAreNotifiedAsReset);
-            var signalIndividualItemChanges = !useResetInsteadOfIndividualChanges;
-
-            // then perform change itself
-            foreach (var keyValuePair in itemsAsList)
+            using ((useResetInsteadOfIndividualChanges && IsTrackingCountChanges) ? SuppressCountChangeNotifications(false) : Disposable.Empty)
             {
-                // ... and only notify observers if 'currently' desired
-                if (TryAdd(keyValuePair.Key, keyValuePair.Value, signalIndividualItemChanges && IsTrackingChanges) == false)
+                // then perform change itself
+                foreach (var keyValuePair in itemsAsList)
                 {
-                    itemsThatCouldNotBeAdded.Add(keyValuePair);
-                }
-                else
-                {
-                    itemsThatCouldBeAdded.Add(keyValuePair);
+                    // ... and only notify observers if 'currently' desired
+                    if (TryAdd(keyValuePair.Key, keyValuePair.Value, !useResetInsteadOfIndividualChanges) == false)
+                    {
+                        itemsThatCouldNotBeAdded.Add(keyValuePair);
+                    }
+                    else
+                    {
+                        itemsThatCouldBeAdded.Add(keyValuePair);
+                    }
                 }
             }
-
+            
             // if NO item at all could be added, return early (as there's nothing to notify observers about
             if (itemsThatCouldBeAdded.Count == 0)
                 return false;
 
-            // finally and if originally determined (and currently wanted), signal a reset
-            // finally and if still correct, signal a reset OR individual change(s)
-            useResetInsteadOfIndividualChanges = IsItemsChangedAmountGreaterThanResetThreshold(itemsThatCouldBeAdded.Count, ThresholdAmountWhenChangesAreNotifiedAsReset);
+            // finally and if applicable (and currently wanted), signal a reset OR individual change(s)
             if (useResetInsteadOfIndividualChanges)
             {
                 NotifyObserversAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.Reset());
-            }
-            else
-            {
-                foreach (var keyValuePair in itemsThatCouldBeAdded)
-                {
-                    NotifyObserversAboutDictionaryChanges(ObservableDictionaryChange<TKey, TValue>.ItemAdded(keyValuePair.Key, keyValuePair.Value));
-                }
             }
 
             return itemsThatCouldNotBeAdded.Count == 0; // return true if non-addable items were / is 0
