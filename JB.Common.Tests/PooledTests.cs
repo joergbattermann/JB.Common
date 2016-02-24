@@ -22,7 +22,7 @@ namespace JB.Tests
         public async Task CannotBeReturnedToPoolMultipleTimesTest()
         {
             // given
-            var pool = new Pool<string>(() => Guid.NewGuid().ToString(), 1);
+            var pool = new Pool<string>((token) => Guid.NewGuid().ToString(), 1);
             var acquiredPooledItem = await pool.AcquirePooledValueAsync();
 
             // when
@@ -40,7 +40,7 @@ namespace JB.Tests
         public async Task CannotBeDetachedFromPoolOnceReturnedTest()
         {
             // given
-            var pool = new Pool<string>(() => Guid.NewGuid().ToString(), 1);
+            var pool = new Pool<string>((token) => Guid.NewGuid().ToString(), 1);
             var acquiredPooledItem = await pool.AcquirePooledValueAsync();
 
             // when
@@ -56,7 +56,7 @@ namespace JB.Tests
         public async Task CannotBeReturnedToPoolOnceDetachedTest()
         {
             // given
-            var pool = new Pool<string>(() => Guid.NewGuid().ToString(), 1);
+            var pool = new Pool<string>((token) => Guid.NewGuid().ToString(), 1);
             var acquiredPooledItem = await pool.AcquirePooledValueAsync();
 
             // when
@@ -72,7 +72,7 @@ namespace JB.Tests
         public async Task WillBeReturnedToPoolOnDisposalTest()
         {
             // given
-            var pool = new Pool<string>(() => Guid.NewGuid().ToString(), 1);
+            var pool = new Pool<string>((token) => Guid.NewGuid().ToString(), 1);
             var acquiredPooledItem = await pool.AcquirePooledValueAsync();
 
             // then
@@ -90,7 +90,7 @@ namespace JB.Tests
         public async Task WillPreventFurtherDirectUsageAfterDisposalTest()
         {
             // given
-            var pool = new Pool<string>(() => Guid.NewGuid().ToString(), 1);
+            var pool = new Pool<string>((token) => Guid.NewGuid().ToString(), 1);
             var acquiredPooledItem = await pool.AcquirePooledValueAsync();
 
             // when

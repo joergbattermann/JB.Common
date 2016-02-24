@@ -25,7 +25,7 @@ namespace JB.Tests
             // given
 
             // when
-            var pool = new Pool<string>(() => Guid.NewGuid().ToString());
+            var pool = new Pool<string>((token) => Guid.NewGuid().ToString());
 
             // then
             pool.AvailableInstancesCount.Should().Be(0);
@@ -40,7 +40,7 @@ namespace JB.Tests
             // given
 
             // when
-            var pool = new Pool<string>(() => Guid.NewGuid().ToString(), initialCount);
+            var pool = new Pool<string>((token) => Guid.NewGuid().ToString(), initialCount);
 
             // then
             pool.AvailableInstancesCount.Should().Be(initialCount);
@@ -60,7 +60,7 @@ namespace JB.Tests
             }
 
             // when
-            var pool = new Pool<string>(() => DateTime.UtcNow.Ticks.ToString(), initialInstances);
+            var pool = new Pool<string>((token) => DateTime.UtcNow.Ticks.ToString(), initialInstances);
 
             // then
             pool.AvailableInstancesCount.Should().Be(initialCount);
@@ -72,7 +72,7 @@ namespace JB.Tests
             // given
 
             // when
-            var pool = new Pool<string>(() => Guid.NewGuid().ToString(),
+            var pool = new Pool<string>((token) => Guid.NewGuid().ToString(),
                 Guid.NewGuid().ToString(),
                 Guid.NewGuid().ToString(),
                 Guid.NewGuid().ToString());
@@ -88,7 +88,7 @@ namespace JB.Tests
         public async Task PoolCanIncreaseAvailableInstancesTest(int initialInstanceCount, int instancesToIncreaseBy)
         {
             // given
-            var pool = new Pool<string>(() => Guid.NewGuid().ToString(), initialInstanceCount);
+            var pool = new Pool<string>((token) => Guid.NewGuid().ToString(), initialInstanceCount);
 
             // when
             await pool.IncreasePoolSizeAsync(instancesToIncreaseBy);
@@ -105,7 +105,7 @@ namespace JB.Tests
         public async Task PoolCanDecreaseAvailableInstancesTest(int initialInstanceCount, int instancesToDecreaseBy)
         {
             // given
-            var pool = new Pool<string>(() => Guid.NewGuid().ToString(), initialInstanceCount);
+            var pool = new Pool<string>((token) => Guid.NewGuid().ToString(), initialInstanceCount);
 
             // when
             await pool.DecreaseAvailablePoolSizeAsync(instancesToDecreaseBy);
@@ -118,7 +118,7 @@ namespace JB.Tests
         public void PoolCannotDecreaseAvailableInstancesWithNegativeSizeTest()
         {
             // given
-            var emptyPool = new Pool<string>(() => Guid.NewGuid().ToString());
+            var emptyPool = new Pool<string>((token) => Guid.NewGuid().ToString());
 
             // when
             Func<Task> invalidDecreaseOnEmptyPool = async () => await emptyPool.DecreaseAvailablePoolSizeAsync(-1);
@@ -131,8 +131,8 @@ namespace JB.Tests
         public void PoolCannotDecreaseAvailableInstancesBelow0Test()
         {
             // given
-            var emptyPool = new Pool<string>(() => Guid.NewGuid().ToString());
-            var nonEmptyPool = new Pool<string>(() => Guid.NewGuid().ToString(), 10);
+            var emptyPool = new Pool<string>((token) => Guid.NewGuid().ToString());
+            var nonEmptyPool = new Pool<string>((token) => Guid.NewGuid().ToString(), 10);
 
             // when
             Func<Task> invalidDecreaseOnEmptyPool = async () => await emptyPool.DecreaseAvailablePoolSizeAsync(1);
@@ -147,7 +147,7 @@ namespace JB.Tests
         public async Task EmptyPoolReturnsDefaultValueOnAcquisitionWhenRequestedTest()
         {
             // given
-            var pool = new Pool<string>(() => Guid.NewGuid().ToString());
+            var pool = new Pool<string>((token) => Guid.NewGuid().ToString());
 
             // when
             var acquiredPooledItem = await pool.AcquirePooledValueAsync(PooledValueAcquisitionMode.AvailableInstanceOrDefaultValue);
@@ -161,7 +161,7 @@ namespace JB.Tests
         public async Task EmptyPoolPerformsInstanceCreationOnAcquisitionWhenRequestedTest()
         {
             // given
-            var pool = new Pool<string>(() => Guid.NewGuid().ToString());
+            var pool = new Pool<string>((token) => Guid.NewGuid().ToString());
 
             // when
             var acquiredPooledItem = await pool.AcquirePooledValueAsync(PooledValueAcquisitionMode.AvailableInstanceOrCreateNewOne);
@@ -176,7 +176,7 @@ namespace JB.Tests
         public async Task AcquiredInstancesCannotBeDetachedMultipleTimesTest()
         {
             // given
-            var pool = new Pool<string>(() => Guid.NewGuid().ToString(), 1);
+            var pool = new Pool<string>((token) => Guid.NewGuid().ToString(), 1);
             var acquiredPooledItem = await pool.AcquirePooledValueAsync();
 
             // when
@@ -194,7 +194,7 @@ namespace JB.Tests
         public async Task AcquiredInstancesCannotBeReturnedMultipleTimesTest()
         {
             // given
-            var pool = new Pool<string>(() => Guid.NewGuid().ToString(), 1);
+            var pool = new Pool<string>((token) => Guid.NewGuid().ToString(), 1);
             var acquiredPooledItem = await pool.AcquirePooledValueAsync();
 
             // when
@@ -214,7 +214,7 @@ namespace JB.Tests
         public async Task AcquiredInstancesCanBeDetachedFromOwningPoolTest(int poolSize)
         {
             // given
-            var pool = new Pool<string>(() => Guid.NewGuid().ToString(), poolSize);
+            var pool = new Pool<string>((token) => Guid.NewGuid().ToString(), poolSize);
             var acquiredPooledItem = await pool.AcquirePooledValueAsync();
             var acquiredPooledItemValue = acquiredPooledItem.Value;
 
@@ -235,7 +235,7 @@ namespace JB.Tests
         public async Task AcquiredInstancesCanBeReturnedToOwningPoolTest(int poolSize)
         {
             // given
-            var pool = new Pool<string>(() => Guid.NewGuid().ToString(), poolSize);
+            var pool = new Pool<string>((token) => Guid.NewGuid().ToString(), poolSize);
             var acquiredPooledItem = await pool.AcquirePooledValueAsync();
 
             // when
@@ -260,8 +260,8 @@ namespace JB.Tests
         public async Task AcquiredInstancesCannotBeDetachedFromDifferentPoolTest()
         {
             // given
-            var owningPool = new Pool<string>(() => Guid.NewGuid().ToString(), 1);
-            var secondPool = new Pool<string>(() => Guid.NewGuid().ToString());
+            var owningPool = new Pool<string>((token) => Guid.NewGuid().ToString(), 1);
+            var secondPool = new Pool<string>((token) => Guid.NewGuid().ToString());
 
             var acquiredPooledItem = await owningPool.AcquirePooledValueAsync();
 
@@ -280,8 +280,8 @@ namespace JB.Tests
         public async Task AcquiredInstancesCannotBeReturnedToDifferentPoolTest()
         {
             // given
-            var owningPool = new Pool<string>(() => Guid.NewGuid().ToString(), 1);
-            var secondPool = new Pool<string>(() => Guid.NewGuid().ToString());
+            var owningPool = new Pool<string>((token) => Guid.NewGuid().ToString(), 1);
+            var secondPool = new Pool<string>((token) => Guid.NewGuid().ToString());
 
             var acquiredPooledItem = await owningPool.AcquirePooledValueAsync();
 
@@ -303,7 +303,7 @@ namespace JB.Tests
         public void PoolCurrentlyEmptyWaitsForNextAvailableReturnedValueOnAcquisitionWhenRequestedTest()
         {
             // given
-            var pool = new Pool<string>(() => Guid.NewGuid().ToString(), 1);
+            var pool = new Pool<string>((token) => Guid.NewGuid().ToString(), 1);
 
             // when
             Pooled<string> waitingConsumerAcquiredPooledValue = default(Pooled<string>);
@@ -363,7 +363,7 @@ namespace JB.Tests
         public async Task NonEmptyPoolAllowsInstanceAcquisitionTest(int initialInstanceCount)
         {
             // given
-            var pool = new Pool<string>(() => Guid.NewGuid().ToString(), initialInstanceCount);
+            var pool = new Pool<string>((token) => Guid.NewGuid().ToString(), initialInstanceCount);
 
             // when
             var acquiredPooledItem = await pool.AcquirePooledValueAsync();

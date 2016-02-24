@@ -10,8 +10,10 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
+using JB.ExtensionMethods;
 
 namespace JB
 {
@@ -30,7 +32,7 @@ namespace JB
         /// <value>
         /// The instance builder.
         /// </value>
-        private Func<TValue> InstanceBuilder { get; set; }
+        private Func<CancellationToken, TValue> InstanceBuilder { get; set; }
 
         /// <summary>
         /// Gets the pooled instances.
@@ -97,7 +99,7 @@ namespace JB
         /// Initializes a new instance of the <see cref="Pool{TValue}" /> class.
         /// </summary>
         /// <param name="instanceBuilder">The instance builder.</param>
-        public Pool(Func<TValue> instanceBuilder)
+        public Pool(Func<CancellationToken, TValue> instanceBuilder)
                     : this(instanceBuilder, 0)
         {
             if (instanceBuilder == null)
@@ -109,7 +111,7 @@ namespace JB
         /// </summary>
         /// <param name="instanceBuilder">The instance builder.</param>
         /// <param name="initialInstances">The initial instances.</param>
-        public Pool(Func<TValue> instanceBuilder, params TValue[] initialInstances)
+        public Pool(Func<CancellationToken, TValue> instanceBuilder, params TValue[] initialInstances)
                             : this(instanceBuilder, initialInstances ?? Enumerable.Empty<TValue>())
         {
             if (instanceBuilder == null)
@@ -123,7 +125,7 @@ namespace JB
         /// <param name="initialPoolSize">Initial size of the pool.</param>
         /// <exception cref="System.ArgumentNullException"></exception>
         /// <exception cref="System.ArgumentOutOfRangeException"></exception>
-        public Pool(Func<TValue> instanceBuilder, int initialPoolSize)
+        public Pool(Func<CancellationToken, TValue> instanceBuilder, int initialPoolSize)
         {
             if (instanceBuilder == null)
                 throw new ArgumentNullException(nameof(instanceBuilder));
@@ -132,7 +134,7 @@ namespace JB
                 throw new ArgumentOutOfRangeException(nameof(initialPoolSize));
 
             InstanceBuilder = instanceBuilder;
-            PooledInstances = new ConcurrentQueue<TValue>(Enumerable.Range(0, initialPoolSize).Select(_ => instanceBuilder.Invoke()));
+            PooledInstances = new ConcurrentQueue<TValue>(Enumerable.Range(0, initialPoolSize).Select(_ => instanceBuilder.Invoke(CancellationToken.None)));
         }
 
         /// <summary>
@@ -141,7 +143,7 @@ namespace JB
         /// <param name="instanceBuilder">The instance builder.</param>
         /// <param name="initialInstances">The initial instances.</param>
         /// <exception cref="System.ArgumentNullException"></exception>
-        public Pool(Func<TValue> instanceBuilder, IEnumerable<TValue> initialInstances)
+        public Pool(Func<CancellationToken, TValue> instanceBuilder, IEnumerable<TValue> initialInstances)
         {
             if (instanceBuilder == null)
                 throw new ArgumentNullException(nameof(instanceBuilder));
@@ -172,7 +174,7 @@ namespace JB
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                var instance = InstanceBuilder.Invoke();
+                var instance = await Task.Run(() => InstanceBuilder.Invoke(cancellationToken), cancellationToken).ConfigureAwait(false);
                 await Task.Run(() =>
                 {
                     PooledInstances.Enqueue(instance);
@@ -245,7 +247,14 @@ namespace JB
                 }
                 else if (pooledValueAcquisitionMode == PooledValueAcquisitionMode.AvailableInstanceOrCreateNewOne)
                 {
-                    value = InstanceBuilder.Invoke();
+                    try
+                    {
+                        value = await Task.Run(() => InstanceBuilder.Invoke(cancellationToken), cancellationToken).ConfigureAwait(false);
+                    }
+                    catch (TargetInvocationException targetInvocationException)
+                    {
+                        targetInvocationException.InnerException.ThrowIfNotNull();
+                    }
                 }
                 else
                 {
@@ -268,7 +277,14 @@ namespace JB
                     }
                     else if (pooledValueAcquisitionMode == PooledValueAcquisitionMode.AvailableInstanceOrCreateNewOne) // build a new one
                     {
-                        value = InstanceBuilder.Invoke();
+                        try
+                        {
+                            value = await Task.Run(() => InstanceBuilder.Invoke(cancellationToken), cancellationToken).ConfigureAwait(false);
+                        }
+                        catch (TargetInvocationException targetInvocationException)
+                        {
+                            targetInvocationException.InnerException.ThrowIfNotNull();
+                        }
                     }
                     else
                     {
@@ -375,9 +391,6 @@ namespace JB
                         if (PooledInstances.IsEmpty)
                             break;
                     }
-
-                    var disposableValue = value as IDisposable;
-                    disposableValue?.Dispose();
                 }
             }
             finally
