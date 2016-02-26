@@ -93,7 +93,7 @@ namespace JB.Reactive.Cache
         /// <param name="changeType">Type of the change.</param>
         /// <param name="key">The key of the changed value.</param>
         /// <param name="value">The added, removed or changed, new value.</param>
-        /// <param name="oldValue">The replaced value, only applicable if <paramref name="changeType" /> is <see cref="ObservableCacheChangeType.ItemValueChanged" />.</param>
+        /// <param name="oldValue">The replaced value, only applicable if <paramref name="changeType" /> is <see cref="ObservableCacheChangeType.ItemValueReplaced" />.</param>
         /// <param name="changedPropertyName">The changed property name, only applicable if <paramref name="changeType" /> is <see cref="ObservableCacheChangeType.ItemValueChanged" />.</param>
         /// <param name="expiresAt">The expires <see cref="DateTime"/> the <paramref name="key"/> expires / expired at.</param>
         /// <param name="expirationType">Type of the expiration.</param>
@@ -114,7 +114,7 @@ namespace JB.Reactive.Cache
             if (changeType == ObservableCacheChangeType.Reset && (ValueIsValueType.Value == false && !Equals(value, default(TValue))))
                 throw new ArgumentOutOfRangeException(nameof(value), $"Resets must not have a {nameof(value)}");
 
-            if ((changeType != ObservableCacheChangeType.ItemValueReplaced && changeType != ObservableCacheChangeType.ItemRemoved)
+            if ((changeType != ObservableCacheChangeType.ItemValueReplaced)
                 && (ValueIsValueType.Value == false && !Equals(oldValue, default(TValue))))
                 throw new ArgumentOutOfRangeException(nameof(oldValue), $"Only Changes may have a {nameof(oldValue)}");
 

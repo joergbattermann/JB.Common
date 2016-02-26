@@ -42,7 +42,7 @@ namespace JB.Collections.Reactive
         public TKey Key { get; }
 
         /// <summary>
-        /// Gets the value that was added or if it was a <see cref="F:JB.Collections.Reactive.ObservableDictionaryChangeType.ItemChanged" />, this is the new value.
+        /// Gets the value that was added, removed or changed, and, if it is a <see cref="F:JB.Collections.Reactive.ObservableDictionaryChangeType.ItemValueReplaced" /> change, this will be the new value.
         /// </summary>
         /// <value>
         /// The affected value.
@@ -50,8 +50,7 @@ namespace JB.Collections.Reactive
         public TValue Value { get; }
 
         /// <summary>
-        /// If <see cref="P:JB.Collections.Reactive.IObservableDictionaryChange`2.ChangeType" /> is a <see cref="F:JB.Collections.Reactive.ObservableDictionaryChangeType.ItemChanged" /> one and the underlying change
-        /// is a full item replacement rather than a single sub-property change, this is the old, replaced value.
+        /// If <see cref="P:JB.Collections.Reactive.IObservableDictionaryChange`2.ChangeType" /> is a <see cref="F:JB.Collections.Reactive.ObservableDictionaryChangeType.ItemValueReplaced" /> this will hold the old, previous value.
         /// </summary>
         /// <value>
         /// The replaced value, if applicable
@@ -77,7 +76,7 @@ namespace JB.Collections.Reactive
         /// <param name="changeType">Type of the change.</param>
         /// <param name="key">The key of the changed value.</param>
         /// <param name="value">The added, removed or changed, new value.</param>
-        /// <param name="oldValue">The replaced value, only applicable if <paramref name="changeType" /> is <see cref="ObservableDictionaryChangeType.ItemValueChanged" />.</param>
+        /// <param name="oldValue">The replaced value, only applicable if <paramref name="changeType" /> is <see cref="ObservableDictionaryChangeType.ItemValueReplaced" />.</param>
         /// <param name="changedPropertyName">The changed property name, only applicable if <paramref name="changeType" /> is <see cref="ObservableDictionaryChangeType.ItemValueChanged" />.</param>
         /// <exception cref="System.ArgumentNullException"></exception>
         /// <exception cref="System.ArgumentOutOfRangeException">
@@ -100,7 +99,7 @@ namespace JB.Collections.Reactive
             if (changeType == ObservableDictionaryChangeType.Reset && (ValueIsValueType.Value == false && !Equals(value, default(TValue))))
                 throw new ArgumentOutOfRangeException(nameof(value), $"Resets must not have a '{nameof(value)}'");
 
-            if (changeType != ObservableDictionaryChangeType.ItemValueReplaced && changeType != ObservableDictionaryChangeType.ItemRemoved
+            if (changeType != ObservableDictionaryChangeType.ItemValueReplaced
                 && (ValueIsValueType.Value == false && !Equals(oldValue, default(TValue))))
                 throw new ArgumentOutOfRangeException(nameof(oldValue), $"Only Changes may have a '{nameof(oldValue)}'");
 

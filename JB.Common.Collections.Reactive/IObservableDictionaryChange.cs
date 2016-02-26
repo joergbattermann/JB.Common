@@ -29,7 +29,7 @@ namespace JB.Collections.Reactive
         TKey Key { get; }
 
         /// <summary>
-        /// Gets the value that was added or if it was a <see cref="ObservableDictionaryChangeType.ItemValueChanged"/>, this is the new value.
+        /// Gets the value that was added, removed or changed, and, if it is a <see cref="ObservableDictionaryChangeType.ItemValueReplaced"/> change, this will be the new value.
         /// </summary>
         /// <value>
         /// The affected value.
@@ -37,8 +37,7 @@ namespace JB.Collections.Reactive
         TValue Value { get; }
 
         /// <summary>
-        /// If <see cref="ChangeType"/> is a <see cref="ObservableDictionaryChangeType.ItemValueReplaced"/>
-        /// or <see cref="ObservableDictionaryChangeType.ItemRemoved"/> this will hold the old, previous value.
+        /// If <see cref="ChangeType"/> is a <see cref="ObservableDictionaryChangeType.ItemValueReplaced"/> this will hold the old, previous value.
         /// </summary>
         /// <value>
         /// The replaced value, if applicable
