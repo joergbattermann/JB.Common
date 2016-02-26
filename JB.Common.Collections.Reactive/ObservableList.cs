@@ -66,7 +66,7 @@ namespace JB.Collections.Reactive
                 .TakeWhile(_ => !IsDisposing && !IsDisposed)
                 .SkipContinuouslyWhile(_ => !IsTrackingChanges)
                 .Where(eventPattern => eventPattern?.EventArgs != null)
-                .Select(eventPattern => eventPattern.EventArgs.ToObservableListChange(InnerList))
+                .Select(eventPattern => eventPattern.EventArgs.ToObservableListChange(InnerList, this))
                 .ObserveOn(Scheduler)
                 .Subscribe(
                     NotifySubscribersAboutListChanges,
@@ -104,7 +104,7 @@ namespace JB.Collections.Reactive
             var actualObservableListChange =
                 (observableListChange.ChangeType == ObservableListChangeType.Reset
                  || IsItemsChangedAmountGreaterThanResetThreshold(1, ThresholdAmountWhenChangesAreNotifiedAsReset))
-                    ? ObservableListChange<T>.Reset
+                    ? ObservableListChange<T>.Reset(this)
                     : observableListChange;
 
             // raise events and notify about list changes

@@ -158,7 +158,7 @@ namespace JB.Collections.Reactive.ExtensionMethods
         public static IDisposable ForwardDictionaryChangesTo<TKey, TValue>(
             this IObservableDictionary<TKey, TValue> source,
             IEnhancedBindingList<TValue> target,
-            Func<IObservableDictionaryChange<TKey, TValue>, bool> filterPredicate, 
+            Func<IObservableDictionaryChange<TKey, TValue>, bool> filterPredicate,
             bool includeItemChanges = false,
             IScheduler scheduler = null)
         {

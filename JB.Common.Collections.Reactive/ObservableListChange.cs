@@ -12,6 +12,14 @@ namespace JB.Collections.Reactive
         #region Implementation of IObservableListChange<out T>
 
         /// <summary>
+        /// Gets the list that notified about this change.
+        /// </summary>
+        /// <value>
+        /// The list / sender.
+        /// </value>
+        public IObservableList<T> List { get; }
+
+        /// <summary>
         /// Gets the type of the change.
         /// </summary>
         /// <value>
@@ -48,12 +56,15 @@ namespace JB.Collections.Reactive
         /// <summary>
         /// Initializes a new instance of the <see cref="ObservableListChange{T}" /> class.
         /// </summary>
+        /// <param name="list">The list for this change.</param>
         /// <param name="changeType">Type of the change.</param>
         /// <param name="item">The item.</param>
         /// <param name="index">New starting index, after the add, change or move, -1 of not applicable.</param>
         /// <param name="oldIndex">Old starting index, before the add, change or move, -1 of not applicable.</param>
-        public ObservableListChange(ObservableListChangeType changeType, T item = default(T), int index = -1, int oldIndex = -1)
+        public ObservableListChange(IObservableList<T> list, ObservableListChangeType changeType, T item = default(T), int index = -1, int oldIndex = -1)
         {
+            if (list == null) throw new ArgumentNullException(nameof(list));
+
             if (index < -1) throw new ArgumentOutOfRangeException(nameof(index), "Value cannot be less than -1");
             if (oldIndex < -1) throw new ArgumentOutOfRangeException(nameof(oldIndex), "Value cannot be less than -1");
 
@@ -90,6 +101,8 @@ namespace JB.Collections.Reactive
             if (changeType == ObservableListChangeType.Reset && (TypeIsValueType.Value == false && !Equals(item, default(T))))
                 throw new ArgumentOutOfRangeException(nameof(item), $"Resets must not have an {nameof(item)}");
 
+            List = list;
+
             ChangeType = changeType;
             Item = item;
 
@@ -98,11 +111,13 @@ namespace JB.Collections.Reactive
         }
 
         /// <summary>
-        /// Gets a <see cref="IObservableListChange{T}"/> representing a <see cref="ObservableListChangeType.Reset"/>.
+        /// Gets a <see cref="IObservableListChange{T}" /> representing a <see cref="ObservableListChangeType.Reset" />.
         /// </summary>
+        /// <param name="list">The list for this reset / change.</param>
+        /// <returns></returns>
         /// <value>
         /// The reset change type.
         /// </value>
-        public static IObservableListChange<T> Reset => new ObservableListChange<T>(ObservableListChangeType.Reset);
+        public static IObservableListChange<T> Reset(IObservableList<T> list) => new ObservableListChange<T>(list, ObservableListChangeType.Reset);
     }
 }

@@ -1,7 +1,15 @@
 namespace JB.Collections.Reactive
 {
-    public interface IObservableListChange<out T>
+    public interface IObservableListChange<T>
     {
+        /// <summary>
+        /// Gets the list that notified about this change.
+        /// </summary>
+        /// <value>
+        /// The list / sender.
+        /// </value>
+        IObservableList<T> List { get; }
+
         /// <summary>
         /// Gets the type of the change.
         /// </summary>

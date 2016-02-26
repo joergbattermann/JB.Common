@@ -19,7 +19,7 @@ namespace JB.Collections.Reactive.ExtensionMethods
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <param name="listChangedEventArgs">The <see cref="ListChangedEventArgs"/> instance containing the event data.</param>
-        /// <param name="sender">The sender.</param>
+        /// <param name="sender">The originalSender.</param>
         /// <returns>A list of <see cref="IObservableCollectionChange{T}"/> - List because Moves can only be represented by two changes: Remove and Adds</returns>
         /// <exception cref="System.ArgumentNullException">
         /// </exception>
@@ -80,32 +80,37 @@ namespace JB.Collections.Reactive.ExtensionMethods
         }
 
         /// <summary>
-        /// Converts the given <paramref name="listChangedEventArgs"/> and converts it to its <see cref="IObservableListChange{T}"/> counterpart.
+        /// Converts the given <paramref name="listChangedEventArgs" /> and converts it to its <see cref="IObservableListChange{T}" /> counterpart.
         /// </summary>
         /// <typeparam name="T"></typeparam>
-        /// <param name="listChangedEventArgs">The <see cref="ListChangedEventArgs"/> instance containing the event data.</param>
-        /// <param name="sender">The sender.</param>
+        /// <param name="listChangedEventArgs">The <see cref="ListChangedEventArgs" /> instance containing the event data.</param>
+        /// <param name="originalSender">The original sender of the <paramref name="listChangedEventArgs"/>.</param>
+        /// <param name="observableList">The observable list that will signal this change.</param>
         /// <returns></returns>
         /// <exception cref="System.ArgumentNullException">
         /// </exception>
-        public static IObservableListChange<T> ToObservableListChange<T>(this ListChangedEventArgs listChangedEventArgs, IEnhancedBindingList<T> sender)
+        /// <exception cref="System.ArgumentOutOfRangeException">$Only {ListChangedType.ItemAdded}, {ListChangedType.ItemChanged}, {ListChangedType.ItemMoved}, {ListChangedType.ItemDeleted} and {ListChangedType.Reset} are supported.</exception>
+        public static IObservableListChange<T> ToObservableListChange<T>(this ListChangedEventArgs listChangedEventArgs, IEnhancedBindingList<T> originalSender, IObservableList<T> observableList)
         {
             if (listChangedEventArgs == null) throw new ArgumentNullException(nameof(listChangedEventArgs));
-            if (sender == null) throw new ArgumentNullException(nameof(sender));
+            if (observableList == null) throw new ArgumentNullException(nameof(observableList));
+            if (originalSender == null) throw new ArgumentNullException(nameof(originalSender));
 
             IObservableListChange<T> observableListChange;
-            var senderAsList = sender as IList<T>;
+            var senderAsList = originalSender as IList<T>;
 
             switch (listChangedEventArgs.ListChangedType)
             {
                 case ListChangedType.ItemAdded:
                     observableListChange = new ObservableListChange<T>(
+                        observableList,
                         ObservableListChangeType.ItemAdded,
                         senderAsList[listChangedEventArgs.NewIndex],
                         listChangedEventArgs.NewIndex);
                     break;
                 case ListChangedType.ItemChanged:
                     observableListChange = new ObservableListChange<T>(
+                        observableList,
                         ObservableListChangeType.ItemChanged,
                         senderAsList[listChangedEventArgs.NewIndex],
                         listChangedEventArgs.NewIndex,
@@ -113,6 +118,7 @@ namespace JB.Collections.Reactive.ExtensionMethods
                     break;
                 case ListChangedType.ItemMoved:
                     observableListChange = new ObservableListChange<T>(
+                        observableList,
                         ObservableListChangeType.ItemMoved,
                         senderAsList[listChangedEventArgs.NewIndex],
                         listChangedEventArgs.NewIndex,
@@ -122,13 +128,13 @@ namespace JB.Collections.Reactive.ExtensionMethods
                     {
                         var itemDeletedListChangedEventArgs = (listChangedEventArgs as ItemDeletedListChangedEventArgs<T>);
                         observableListChange = itemDeletedListChangedEventArgs != null
-                            ? new ObservableListChange<T>(ObservableListChangeType.ItemRemoved, itemDeletedListChangedEventArgs.Item, listChangedEventArgs.NewIndex, listChangedEventArgs.OldIndex)
-                            : new ObservableListChange<T>(ObservableListChangeType.ItemRemoved, default(T), -1, listChangedEventArgs.NewIndex);
+                            ? new ObservableListChange<T>(observableList, ObservableListChangeType.ItemRemoved, itemDeletedListChangedEventArgs.Item, listChangedEventArgs.NewIndex, listChangedEventArgs.OldIndex)
+                            : new ObservableListChange<T>(observableList, ObservableListChangeType.ItemRemoved, default(T), -1, listChangedEventArgs.NewIndex);
 
                         break;
                     }
                 case ListChangedType.Reset:
-                    observableListChange = new ObservableListChange<T>(ObservableListChangeType.Reset);
+                    observableListChange = new ObservableListChange<T>(observableList, ObservableListChangeType.Reset);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(listChangedEventArgs),
