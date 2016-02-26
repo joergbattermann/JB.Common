@@ -10,9 +10,6 @@ namespace JB.Collections
     /// <typeparam name="T"></typeparam>
     public interface IEnhancedBindingList<T> :
         IBindingList,
-        ICollection<T>,
-        ICollection,
-        IReadOnlyCollection<T>,
         IBulkModifiableCollection<T>,
         IList<T>,
         IReadOnlyList<T>,
