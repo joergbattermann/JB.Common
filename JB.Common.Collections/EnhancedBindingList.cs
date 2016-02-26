@@ -98,7 +98,7 @@ namespace JB.Collections
         /// Depending on whether the caller intends to move the item strictly or logically to the <paramref name="newIndex"/> position, correction might be useful.</param>
         /// <exception cref="ArgumentOutOfRangeException">item</exception>
         public virtual void Move(int itemIndex, int newIndex, bool correctNewIndexOnIndexShift = true)
-		{
+        {
             Move(this[itemIndex], newIndex, correctNewIndexOnIndexShift);
 		}
 

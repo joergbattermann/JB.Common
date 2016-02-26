@@ -15,7 +15,7 @@ namespace JB.Collections.Reactive
         IObservableReadOnlyList<T>,
         INotifyObservableListChanges<T>,
         IObservableCollection<T>,
-        IItemMovableList<T>,
+        IItemMovable<T>,
         IList<T>,
         IList,
         ICollection<T>,

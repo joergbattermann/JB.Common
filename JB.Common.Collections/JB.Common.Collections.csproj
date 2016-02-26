@@ -53,8 +53,10 @@
     <Compile Include="IBulkModifiableBindingList.cs" />
     <Compile Include="IBulkModifiableCollection.cs" />
     <Compile Include="IBulkModifiableDictionary.cs" />
+    <Compile Include="IBulkModifiable.cs" />
+    <Compile Include="IBulkModifiableList.cs" />
     <Compile Include="IEnhancedBindingList.cs" />
-    <Compile Include="IItemMovableList.cs" />
+    <Compile Include="IItemMovable.cs" />
     <Compile Include="ItemDeletedListChangedEventArgs.cs" />
     <Compile Include="KeyAlreadyExistsException.cs" />
     <Compile Include="KeyNotFoundException.cs" />

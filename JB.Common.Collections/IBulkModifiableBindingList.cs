@@ -8,17 +8,9 @@ namespace JB.Collections
     /// A <see cref="IBindingList"/> that allows bulk modification of its elements
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    public interface IBulkModifiableBindingList<T> :
-        IBulkModifiableCollection<T>,
-        IReadOnlyCollection<T>,
-        ICollection<T>,
-        ICollection,
+    public interface IBulkModifiableBindingList<in T> :
+        IBulkModifiable<T>,
         IBindingList,
-        IReadOnlyList<T>,
-        IList<T>,
-        IList,
-        IEnumerable<T>,
-        IEnumerable,
         ICancelAddNew,
         IRaiseItemChangedEvents
     {

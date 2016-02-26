@@ -6,15 +6,13 @@
 // <summary></summary>
 // -----------------------------------------------------------------------
 
-using System.Collections.Generic;
-
 namespace JB.Collections
 {
     /// <summary>
-    /// A <see cref="IList{T}"/> that provides moving of its items from one index position to another
+    /// Provides moving of its items from one index position to another
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    public interface IItemMovableList<T> : IList<T>
+    public interface IItemMovable<in T>
     {
         /// <summary>
         /// Moves the specified item to the new index position.

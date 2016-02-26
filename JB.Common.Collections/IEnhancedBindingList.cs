@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
 
@@ -9,15 +8,9 @@ namespace JB.Collections
     /// </summary>
     /// <typeparam name="T"></typeparam>
     public interface IEnhancedBindingList<T> :
-        IBindingList,
-        IBulkModifiableCollection<T>,
-        IList<T>,
-        IReadOnlyList<T>,
-        IItemMovableList<T>,
-        IEnumerable<T>,
-        IEnumerable,
-        ICancelAddNew,
-        IRaiseItemChangedEvents
+        IBindingList, ICancelAddNew, IRaiseItemChangedEvents,
+        IBulkModifiable<T>, IItemMovable<T>,
+        IEnumerable<T>
     {
 
         /// <summary>
