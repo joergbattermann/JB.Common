@@ -1,14 +1,15 @@
 using System.Collections;
 using System.Collections.Generic;
+using JB.Reactive;
 
 namespace JB.Collections.Reactive
 {
     public interface IObservableDictionary<TKey, TValue> :
-        IObservableReadOnlyDictionary<TKey, TValue>,
-        IObservableCollection<KeyValuePair<TKey, TValue>>,
-        IBulkModifiableDictionary<TKey, TValue>,
+        IDictionary<TKey, TValue>,
         INotifyObservableDictionaryChanges<TKey, TValue>,
-        IDictionary<TKey, TValue>
+        INotifyObservableDictionaryItemChanges<TKey, TValue>,
+        INotifyObservableResets,
+        INotifyObserverExceptions
     {
 	}
 }

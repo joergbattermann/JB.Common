@@ -10,8 +10,7 @@ namespace JB.Collections.Reactive
         INotifyObservableDictionaryItemChanges<TKey, TValue>,
         INotifyObservableResets,
         INotifyObserverExceptions,
-        IReadOnlyDictionary<TKey, TValue>,
-        IEnumerable
+        IReadOnlyDictionary<TKey, TValue>
     {
         /// <summary>
         /// Gets a value indicating whether this instance is empty.

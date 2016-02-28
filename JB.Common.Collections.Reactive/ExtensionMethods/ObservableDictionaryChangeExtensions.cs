@@ -18,9 +18,11 @@ namespace JB.Collections.Reactive.ExtensionMethods
         /// <param name="sourceObservable">The source observable.</param>
         /// <param name="target">The target <see cref="IEnhancedBindingList{TValue}" />.</param>
         /// <param name="includeItemChanges">if set to <c>true</c> individual items' changes will be propagated to the <paramref name="target" />.</param>
-        /// <param name="addRangePredicateForResets">This filter predicate tests which elements of the source <see cref="IObservableDictionary{TKey,TValue}"/> to add
-        /// whenever a <see cref="ObservableDictionaryChangeType.Reset"/> is received. A reset is forwarded by clearing the <paramref name="target"/> completely and re-filling it with
-        /// the source's values, and this predicate determines which ones are added. If no filter predicate is provided, all source values will be re-added to the <paramref name="target"/>.</param>
+        /// <param name="addRangePredicateForResets">This filter predicate tests which elements of the source <see cref="IObservableDictionary{TKey,TValue}" /> to add
+        /// whenever a <see cref="ObservableDictionaryChangeType.Reset" /> is received. A reset is forwarded by clearing the <paramref name="target" /> completely and re-filling it with
+        /// the source's values, and this predicate determines which ones are added. If no filter predicate is provided, all source values will be re-added to the <paramref name="target" />.</param>
+        /// <param name="addDistinctValuesOnResetOnly">if set to <c>true</c> only distinct values will be re-added on <see cref="ObservableDictionaryChangeType.Reset" /> changes.</param>
+        /// <param name="valueComparerForResets">The value equality comparer to use for reset changes and if <paramref name="valueComparerForResets"/> is set to [true]. If none is provided, the default one for the value type will be used</param>
         /// <returns>
         /// An <see cref="IDisposable" /> which will forward the changes to the <paramref name="target" /> as long as <see cref="IDisposable.Dispose" /> hasn't been called.
         /// </returns>
@@ -30,7 +32,9 @@ namespace JB.Collections.Reactive.ExtensionMethods
             this IObservable<IObservableDictionaryChange<TKey, TValue>> sourceObservable,
             IEnhancedBindingList<TValue> target,
             bool includeItemChanges = false,
-            Func<TValue, bool> addRangePredicateForResets = null)
+            Func<KeyValuePair<TKey, TValue>, bool> addRangePredicateForResets = null,
+            bool addDistinctValuesOnResetOnly = true,
+            IEqualityComparer<TValue> valueComparerForResets = null)
         {
             if (sourceObservable == null)
                 throw new ArgumentNullException(nameof(sourceObservable));
@@ -40,6 +44,11 @@ namespace JB.Collections.Reactive.ExtensionMethods
             if (addRangePredicateForResets == null)
             {
                 addRangePredicateForResets = _ => true;
+            }
+
+            if (addDistinctValuesOnResetOnly == true && valueComparerForResets == null)
+            {
+                valueComparerForResets = EqualityComparer<TValue>.Default;
             }
 
             return sourceObservable.Subscribe(dictionaryChange =>
@@ -102,8 +111,18 @@ namespace JB.Collections.Reactive.ExtensionMethods
                             {
                                 target.RaiseListChangedEvents = false;
 
-                                ((ICollection<TValue>)target).Clear();
-                                target.AddRange(((IDictionary<TKey, TValue>)dictionaryChange.Dictionary).Values.Where(addRangePredicateForResets));
+                                target.Clear();
+
+                                var rangeofValuesToAdd = dictionaryChange.Dictionary
+                                    .Where(keyValuePair => addRangePredicateForResets(keyValuePair))
+                                    .Select(kvp => kvp.Value).Distinct(valueComparerForResets);
+
+                                if (addDistinctValuesOnResetOnly == true)
+                                {
+                                    rangeofValuesToAdd = rangeofValuesToAdd.Distinct(valueComparerForResets);
+                                }
+
+                                target.AddRange(rangeofValuesToAdd);
                             }
                             finally
                             {

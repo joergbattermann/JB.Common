@@ -26,7 +26,13 @@ namespace JB.Collections.Reactive
     /// <typeparam name="TKey">The type of the keys in the dictionary.</typeparam>
     /// <typeparam name="TValue">The type of the values in the dictionary.</typeparam>
     [DebuggerDisplay("Count={Count}")]
-    public class ObservableDictionary<TKey, TValue> : IObservableDictionary<TKey, TValue>, ICollection, IDisposable
+    public class ObservableDictionary<TKey, TValue> :
+        IObservableDictionary<TKey, TValue>,
+        IBulkModifiableDictionary<TKey, TValue>,
+        IObservableReadOnlyDictionary<TKey, TValue>,
+        IObservableReadOnlyCollection<KeyValuePair<TKey, TValue>>,
+        IObservableCollection<KeyValuePair<TKey, TValue>>,
+        ICollection, IDisposable
     {
         private const string ItemIndexerName = "Item[]"; // taken from ObservableCollection.cs Line #421
 

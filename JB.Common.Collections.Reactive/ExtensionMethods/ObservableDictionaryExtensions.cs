@@ -6,6 +6,7 @@
 // <summary></summary>
 // -----------------------------------------------------------------------
 using System;
+using System.Collections.Generic;
 using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 
@@ -56,14 +57,18 @@ namespace JB.Collections.Reactive.ExtensionMethods
         /// <param name="addRangePredicateForResets">This filter predicate tests which elements of the source <see cref="IObservableDictionary{TKey,TValue}"/> to add
         /// whenever a <see cref="ObservableDictionaryChangeType.Reset"/> is received. A reset is forwarded by clearing the <paramref name="target"/> completely and re-filling it with
         /// the source's values, and this predicate determines which ones are added. If no filter predicate is provided, all source values will be re-added to the <paramref name="target"/>.</param>
+        /// <param name="addDistinctValuesOnResetOnly">if set to <c>true</c> only distinct values will be re-added on <see cref="ObservableDictionaryChangeType.Reset" /> changes.</param>
+        /// <param name="valueComparerForResets">The value equality comparer to use for reset changes and if <paramref name="valueComparerForResets"/> is set to [true]. If none is provided, the default one for the value type will be used</param>
         /// <param name="scheduler">The scheduler to schedule notifications and changes on.</param>
         /// <returns>An <see cref="IDisposable"/> which will forward the changes to the <paramref name="target"/> as long as <see cref="IDisposable.Dispose"/> hasn't been called.</returns>
         public static IDisposable ForwardDictionaryChangesTo<TKey, TValue>(
             this IObservableDictionary<TKey, TValue> source,
             IEnhancedBindingList<TValue> target,
             Func<IObservableDictionaryChange<TKey, TValue>, bool> dictionaryChangesFilterPredicate,
-            Func<TValue, bool> addRangePredicateForResets = null,
             bool includeItemChanges = false,
+            Func<KeyValuePair<TKey, TValue>, bool> addRangePredicateForResets = null,
+            bool addDistinctValuesOnResetOnly = true,
+            IEqualityComparer<TValue> valueComparerForResets = null,
             IScheduler scheduler = null)
         {
             if (source == null)
@@ -80,7 +85,7 @@ namespace JB.Collections.Reactive.ExtensionMethods
                 sourceObservable = sourceObservable.Where(dictionaryChangesFilterPredicate);
             }
 
-            return sourceObservable.ForwardDictionaryChangesTo(target, includeItemChanges, addRangePredicateForResets);
+            return sourceObservable.ForwardDictionaryChangesTo(target, includeItemChanges, addRangePredicateForResets, addDistinctValuesOnResetOnly, valueComparerForResets);
         }
     }
 }
