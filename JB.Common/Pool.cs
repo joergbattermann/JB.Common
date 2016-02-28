@@ -390,6 +390,7 @@ namespace JB
             var result = pooledValue.Value;
             pooledValue.HasBeenDetachedFromPool = true;
 
+            Interlocked.Decrement(ref _totalInstancesCount);
             return result;
         }
 

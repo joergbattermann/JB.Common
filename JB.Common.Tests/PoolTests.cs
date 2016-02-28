@@ -224,8 +224,9 @@ namespace JB.Tests
 
             // when
             var detachedValue = pool.DetachPooledValue(acquiredPooledItem);
-
+            
             // then
+            pool.TotalInstancesCount.Should().Be(poolSize - 1);
             pool.AvailableInstancesCount.Should().Be(poolSize - 1);
             detachedValue.Should().Be(acquiredPooledItemValue);
 
