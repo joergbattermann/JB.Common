@@ -9,8 +9,10 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 using JB.ExtensionMethods;
@@ -21,7 +23,7 @@ namespace JB
     /// A managed pool for shared, re-usable <typeparamref name="TValue">instances</typeparamref>.
     /// </summary>
     /// <typeparam name="TValue">The type of the value.</typeparam>
-    public class Pool<TValue> : IDisposable
+    public class Pool<TValue> : INotifyPropertyChanged, IDisposable
     {
         private long _isDisposed = 0;
         private long _isDisposing = 0;
@@ -205,6 +207,7 @@ namespace JB
                 }, cancellationToken).ConfigureAwait(false);
 
                 Interlocked.Increment(ref _totalInstancesCount);
+                RaisePropertyChanged(nameof(TotalInstancesCount));
             }
         }
 
@@ -248,6 +251,7 @@ namespace JB
                 }
 
                 Interlocked.Decrement(ref _totalInstancesCount);
+                RaisePropertyChanged(nameof(TotalInstancesCount));
             }
         }
 
@@ -327,6 +331,7 @@ namespace JB
                 }
             }
 
+            RaisePropertyChanged(nameof(AvailableInstancesCount));
             cancellationToken.ThrowIfCancellationRequested();
             return new Pooled<TValue>(value, this);
         }
@@ -358,6 +363,8 @@ namespace JB
             cancellationToken.ThrowIfCancellationRequested();
 
             PooledInstances.Enqueue(pooledValue.Value);
+            RaisePropertyChanged(nameof(AvailableInstancesCount));
+
             pooledValue.HasBeenReleasedBackToPool = true;
         }
 
@@ -391,6 +398,8 @@ namespace JB
             pooledValue.HasBeenDetachedFromPool = true;
 
             Interlocked.Decrement(ref _totalInstancesCount);
+            RaisePropertyChanged(nameof(TotalInstancesCount));
+
             return result;
         }
 
@@ -432,6 +441,25 @@ namespace JB
 
                 GC.SuppressFinalize(this);
             }
+        }
+
+        #endregion
+
+        #region Implementation of INotifyPropertyChanged
+
+        /// <summary>
+        /// Occurs when [property changed].
+        /// </summary>
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        /// <summary>
+        /// Called when [property changed].
+        /// </summary>
+        /// <param name="propertyName">Name of the property.</param>
+        protected virtual void RaisePropertyChanged([CallerMemberName] string propertyName = null)
+        {
+            var handler = PropertyChanged;
+            handler?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
         #endregion
