@@ -89,9 +89,11 @@ namespace JB.Tests
         {
             // given
             var pool = new Pool<string>((token) => Guid.NewGuid().ToString(), initialInstanceCount);
+            pool.TotalInstancesCount.Should().Be(initialInstanceCount);
 
             // when
             await pool.IncreasePoolSizeAsync(instancesToIncreaseBy);
+            pool.TotalInstancesCount.Should().Be(initialInstanceCount + instancesToIncreaseBy);
 
             // then
             pool.AvailableInstancesCount.Should().Be(initialInstanceCount + instancesToIncreaseBy);
@@ -106,9 +108,11 @@ namespace JB.Tests
         {
             // given
             var pool = new Pool<string>((token) => Guid.NewGuid().ToString(), initialInstanceCount);
+            pool.TotalInstancesCount.Should().Be(initialInstanceCount);
 
             // when
             await pool.DecreaseAvailablePoolSizeAsync(instancesToDecreaseBy);
+            pool.TotalInstancesCount.Should().Be(initialInstanceCount - instancesToDecreaseBy);
 
             // then
             pool.AvailableInstancesCount.Should().Be(initialInstanceCount - instancesToDecreaseBy);

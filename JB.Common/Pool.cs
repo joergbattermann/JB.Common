@@ -60,6 +60,26 @@ namespace JB
             }
         }
 
+        private long _totalInstancesCount;
+
+        /// <summary>
+        /// Gets the total instances count / pool size.
+        /// </summary>
+        /// <value>
+        /// The total instances count.
+        /// </value>
+        public int TotalInstancesCount
+        {
+            get
+            {
+                return (int)Interlocked.Read(ref _totalInstancesCount);
+            }
+            private set
+            {
+                Interlocked.Exchange(ref _totalInstancesCount, value);
+            }
+        }
+
         /// <summary>
         /// Gets the count of available, ready-to-be-acquired instances in the pool.
         /// </summary>
@@ -100,7 +120,7 @@ namespace JB
         /// </summary>
         /// <param name="instanceBuilder">The instance builder.</param>
         public Pool(Func<CancellationToken, TValue> instanceBuilder)
-                    : this(instanceBuilder, 0)
+            : this(instanceBuilder, 0)
         {
             if (instanceBuilder == null)
                 throw new ArgumentNullException(nameof(instanceBuilder));
@@ -112,7 +132,7 @@ namespace JB
         /// <param name="instanceBuilder">The instance builder.</param>
         /// <param name="initialInstances">The initial instances.</param>
         public Pool(Func<CancellationToken, TValue> instanceBuilder, params TValue[] initialInstances)
-                            : this(instanceBuilder, initialInstances ?? Enumerable.Empty<TValue>())
+            : this(instanceBuilder, initialInstances ?? Enumerable.Empty<TValue>())
         {
             if (instanceBuilder == null)
                 throw new ArgumentNullException(nameof(instanceBuilder));
@@ -135,6 +155,8 @@ namespace JB
 
             InstanceBuilder = instanceBuilder;
             PooledInstances = new ConcurrentQueue<TValue>(Enumerable.Range(0, initialPoolSize).Select(_ => instanceBuilder.Invoke(CancellationToken.None)));
+
+            TotalInstancesCount = PooledInstances.Count;
         }
 
         /// <summary>
@@ -152,6 +174,8 @@ namespace JB
             PooledInstances = initialInstances != null
                 ? new ConcurrentQueue<TValue>(initialInstances)
                 : new ConcurrentQueue<TValue>();
+
+            TotalInstancesCount = PooledInstances.Count;
         }
 
         #region Implementation of IPool<TValue>
@@ -179,6 +203,8 @@ namespace JB
                 {
                     PooledInstances.Enqueue(instance);
                 }, cancellationToken).ConfigureAwait(false);
+
+                Interlocked.Increment(ref _totalInstancesCount);
             }
         }
 
@@ -220,6 +246,8 @@ namespace JB
 
                     await Task.Yield();
                 }
+
+                Interlocked.Decrement(ref _totalInstancesCount);
             }
         }
 
