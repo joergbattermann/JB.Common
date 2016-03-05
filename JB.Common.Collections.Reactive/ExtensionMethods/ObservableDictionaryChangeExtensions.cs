@@ -115,7 +115,7 @@ namespace JB.Collections.Reactive.ExtensionMethods
 
                                 var rangeofValuesToAdd = dictionaryChange.Dictionary
                                     .Where(keyValuePair => addRangePredicateForResets(keyValuePair))
-                                    .Select(kvp => kvp.Value).Distinct(valueComparerForResets);
+                                    .Select(kvp => kvp.Value);
 
                                 if (addDistinctValuesOnResetOnly == true)
                                 {
