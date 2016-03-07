@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Reactive.Concurrency;
@@ -24,9 +25,9 @@ namespace JB.Collections.Reactive
 		/// <param name="scheduler">The scheduler.</param>
 		/// <param name="syncRoot">The object used to synchronize access the thread-safe collection.</param>
 		public SchedulerSynchronizedBindingList(IList<T> list = null, object syncRoot = null, IScheduler scheduler = null)
-			: base(syncRoot == null ? new SynchronizedCollection<T>(list ?? new List<T>()) : new SynchronizedCollection<T>(syncRoot, list ?? new List<T>()), scheduler)
+			: base(new SynchronizedCollection<T>(syncRoot ?? new object(), list ?? new List<T>()), scheduler)
 		{
-		}
+        }
 
         /// <summary>
         /// Gets or sets a value indicating whether this instance is synchronized.

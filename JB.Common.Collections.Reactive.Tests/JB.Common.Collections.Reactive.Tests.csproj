@@ -102,6 +102,7 @@
     <Compile Include="ObservableListAddMultipleItemsTests.cs" />
     <Compile Include="ObservableCollectionSingleItemTests.cs" />
     <Compile Include="ObservableListInitializationTests.cs" />
+    <Compile Include="SchedulerSynchronizedBindingListTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
