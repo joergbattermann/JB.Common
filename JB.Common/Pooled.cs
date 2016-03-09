@@ -85,7 +85,15 @@ namespace JB
 
                 if (HasBeenReleasedBackToPool == false && HasBeenDetachedFromPool == false)
                 {
-                    ReleaseBackToPool();
+                    if (_owningPool == null || _owningPool.IsDisposed)
+                    {
+                        var valueAsIDisposable = Value as IDisposable;
+                        valueAsIDisposable?.Dispose();
+                    }
+                    else
+                    {
+                        ReleaseBackToPool();
+                    }
                 }
             }
             finally
@@ -195,6 +203,11 @@ namespace JB
 
             if (HasBeenDetachedFromPool)
                 throw new InvalidOperationException("Detached pooled values can no longer be released and returned back into the pool.");
+
+            if (OwningPool.IsDisposed)
+            {
+                throw new InvalidOperationException("Pooled value cannot be returned back into the pool if the latter has already been disposed.");
+            }
 
             OwningPool.ReleasePooledValue(this, cancellationToken);
         }

@@ -426,6 +426,9 @@ namespace JB
                     TValue value;
                     while (PooledInstances.TryDequeue(out value) == false)
                     {
+                        var valueAsIDisposable = value as IDisposable;
+                        valueAsIDisposable?.Dispose();
+
                         if (PooledInstances.IsEmpty)
                             break;
                     }

@@ -69,6 +69,24 @@ namespace JB.Tests
         }
 
         [Fact]
+        public async Task WillNotBeReturnedToPoolAfterPoolDisposalTest()
+        {
+            // given
+            var pool = new Pool<string>((token) => Guid.NewGuid().ToString(), 1);
+            var acquiredPooledItem = await pool.AcquirePooledValueAsync();
+
+            // when
+            pool.Dispose();
+
+            // then
+            acquiredPooledItem.IsDisposed.Should().Be(false);
+
+            Action valueDispose = () => acquiredPooledItem.Dispose();
+
+            valueDispose.ShouldNotThrow<ObjectDisposedException>();
+        }
+
+        [Fact]
         public async Task WillBeReturnedToPoolOnDisposalTest()
         {
             // given
