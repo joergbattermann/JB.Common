@@ -312,7 +312,7 @@ namespace JB.Collections.Reactive
                 return true;
 
             var useResetInsteadOfIndividualChanges = IsItemsChangedAmountGreaterThanResetThreshold(itemsAsList.Count, ThresholdAmountWhenChangesAreNotifiedAsReset);
-            using ((useResetInsteadOfIndividualChanges && IsTrackingCountChanges) ? SuppressCountChangeNotifications(false) : Disposable.Empty)
+            using ((useResetInsteadOfIndividualChanges && IsTrackingChanges) ? SuppressChangeNotifications(false) : Disposable.Empty)
             {
                 // then perform change itself
                 foreach (var keyValuePair in itemsAsList)
