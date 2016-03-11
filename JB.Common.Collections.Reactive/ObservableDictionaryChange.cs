@@ -92,7 +92,7 @@ namespace JB.Collections.Reactive
         {
             if (dictionary == null) throw new ArgumentNullException(nameof(dictionary));
 
-            if ((changeType != ObservableDictionaryChangeType.Reset)
+            if ((changeType != ObservableDictionaryChangeType.Reset && changeType != ObservableDictionaryChangeType.ItemValueChanged)
                 && (KeyIsValueType.Value == false && Equals(key, default(TKey))))
                 throw new ArgumentOutOfRangeException(nameof(key), $"Item Adds, Key-/Value Changes or Removes must have a (non-default) '{nameof(key)}'");
 
