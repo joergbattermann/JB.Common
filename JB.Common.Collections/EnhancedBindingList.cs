@@ -55,11 +55,20 @@ namespace JB.Collections
 			if (items == null)
 				return;
 
-            foreach (var item in items)
+            var originalRaiseListChangedEvents = this.RaiseListChangedEvents;
+            try
             {
-                Add(item);
+                this.RaiseListChangedEvents = false;
+                foreach (var item in items)
+                {
+                    Add(item);
+                }
             }
-
+            finally
+            {
+                this.RaiseListChangedEvents = originalRaiseListChangedEvents;
+            }
+            
             if (signalResetWhenFinished)
                 ResetBindings();
         }
@@ -77,9 +86,18 @@ namespace JB.Collections
             if (items == null)
                 return;
 
-            foreach (var item in items)
+            var originalRaiseListChangedEvents = this.RaiseListChangedEvents;
+            try
             {
-                Remove(item);
+                this.RaiseListChangedEvents = false;
+                foreach (var item in items)
+                {
+                    Remove(item);
+                }
+            }
+            finally
+            {
+                this.RaiseListChangedEvents = originalRaiseListChangedEvents;
             }
 
             if (signalResetWhenFinished)

@@ -22,7 +22,7 @@ namespace JB.Collections.Reactive.Tests
         [InlineData(0, 10)]
         [InlineData(99, 999)]
         [InlineData(42, 42)]
-        public void AddRangeIncreasesCountOneByOneTest(int lowerLimit, int upperLimit)
+        public void AddRangeIncreasesCountTest(int lowerLimit, int upperLimit)
         {
             // given
             var rangeToAdd = Enumerable.Range(lowerLimit, upperLimit - lowerLimit + 1).ToList();
@@ -39,44 +39,10 @@ namespace JB.Collections.Reactive.Tests
                 testScheduler.Start();
 
                 // then
-                testObserver.Messages.Count.Should().Be(rangeToAdd.Count);
                 observableList.Count.Should().Be(rangeToAdd.Count);
             }
         }
-
-        [Theory]
-        [InlineData(0, 10)]
-        [InlineData(99, 999)]
-        [InlineData(42, 42)]
-        public void AddRangeNotifiesAboutItemsInOrderTest(int lowerLimit, int upperLimit)
-        {
-            // given
-            var rangeToAdd = Enumerable.Range(lowerLimit, upperLimit - lowerLimit + 1).ToList();
-            var testScheduler = new TestScheduler();
-            var testCollectionChangesObserver = testScheduler.CreateObserver<IObservableCollectionChange<int>>();
-            var testListChangesObserver = testScheduler.CreateObserver<IObservableListChange<int>>();
-
-            using (var observableList = new ObservableList<int>())
-            {
-                // when
-                observableList.ThresholdAmountWhenChangesAreNotifiedAsReset = rangeToAdd.Count + 1;
-                observableList.CollectionChanges.Subscribe(testCollectionChangesObserver);
-                observableList.ListChanges.Subscribe(testListChangesObserver);
-
-                testScheduler.Schedule(TimeSpan.FromTicks(100), () => { observableList.AddRange(rangeToAdd); });
-                testScheduler.Start();
-
-                // then
-                testCollectionChangesObserver.Messages.Count.Should().Be(rangeToAdd.Count);
-                testCollectionChangesObserver.Messages.Select(message => message.Value.Value.Item).ShouldAllBeEquivalentTo(rangeToAdd);
-
-                testListChangesObserver.Messages.Count.Should().Be(rangeToAdd.Count);
-                testListChangesObserver.Messages.Select(message => message.Value.Value.Item).ShouldAllBeEquivalentTo(rangeToAdd);
-
-                observableList.Count.Should().Be(rangeToAdd.Count);
-            }
-        }
-
+        
         [Theory]
         [InlineData(0, 10)]
         [InlineData(99, 999)]
