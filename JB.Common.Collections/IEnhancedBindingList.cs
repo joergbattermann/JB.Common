@@ -9,7 +9,7 @@ namespace JB.Collections
     /// <typeparam name="T"></typeparam>
     public interface IEnhancedBindingList<T> :
         IBindingList, ICancelAddNew, IRaiseItemChangedEvents,
-        IBulkModifiable<T>, IItemMovable<T>,
+        IBulkModifiableBindingList<T>, IItemMovable<T>,
         IEnumerable<T>
     {
 
