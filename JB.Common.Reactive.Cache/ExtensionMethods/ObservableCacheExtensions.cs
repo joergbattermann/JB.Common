@@ -607,11 +607,10 @@ namespace JB.Reactive.Cache.ExtensionMethods
         /// <param name="key">The key to remove.</param>
         /// <param name="scheduler">Scheduler to perform the remove action on.</param>
         /// <returns>
-        /// An observable stream that returns an observable stream of either [true] or [false] for every element provided by the <paramref name="source"/> observable
-        /// and whether it was successfully found and removed.. or not.
+        /// An observable stream that indicates whether the <paramref name="key"/> was removed successfully.
         /// </returns>
         /// <remarks>
-        /// The returned observable stream of [true] or [false] has the same order as the <paramref name="source"/> observable.
+        /// The returned observable stream of [true] or [false] indicates whether the <paramref name="key"/> was removed successfully.
         /// </remarks>
         public static IObservable<bool> Remove<TKey, TValue>(this IObservableCache<TKey, TValue> cache, TKey key, IScheduler scheduler = null)
         {
@@ -634,7 +633,7 @@ namespace JB.Reactive.Cache.ExtensionMethods
         /// and whether it was successfully found and removed.. or not.
         /// </returns>
         /// <remarks>
-        /// The returned observable stream of [true] or [false] has the same order as the <paramref name="source"/> observable.
+        /// The returned observable stream of [true] or [false] has the same order as the <paramref name="keys"/> provided.
         /// </remarks>
         public static IObservable<bool> RemoveRange<TKey, TValue>(this IObservableCache<TKey, TValue> cache, IEnumerable<TKey> keys, IScheduler scheduler = null)
         {

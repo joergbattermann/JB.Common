@@ -1,21 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
-VisualStudioVersion = 14.0.24720.0
+VisualStudioVersion = 14.0.25123.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JB.Common.Collections", "JB.Common.Collections\JB.Common.Collections.csproj", "{360B8B3F-5EF4-4CD1-96F2-F3CC67A2B2B3}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{8A122F14-4B60-4FF0-A400-DEED25A9E624}"
 	ProjectSection(SolutionItems) = preProject
 		CommonAssemblyInfo.cs = CommonAssemblyInfo.cs
-		JB.Common.Collections.nuspec = JB.Common.Collections.nuspec
-		JB.Common.Collections.Reactive.nuspec = JB.Common.Collections.Reactive.nuspec
-		JB.Common.nuspec = JB.Common.nuspec
-		JB.Common.Reactive.Analytics.nuspec = JB.Common.Reactive.Analytics.nuspec
-		JB.Common.Reactive.Cache.nuspec = JB.Common.Reactive.Cache.nuspec
-		JB.Common.Reactive.nuspec = JB.Common.Reactive.nuspec
-		JB.Common.VisualStudio.nuspec = JB.Common.VisualStudio.nuspec
-		JB.Common.VisualStudio.TeamFoundation.nuspec = JB.Common.VisualStudio.TeamFoundation.nuspec
 		LICENSE = LICENSE
 		README.md = README.md
 	EndProjectSection
@@ -47,6 +39,24 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JB.Common.Reactive.Logging", "JB.Common.Reactive.Logging\JB.Common.Reactive.Logging.csproj", "{407A0B3A-58F2-444F-99D8-6D9FDC1F61D2}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JB.Common.Reactive.Cache.Tests", "JB.Common.Reactive.Cache.Tests\JB.Common.Reactive.Cache.Tests.csproj", "{21239505-BBAE-4C3A-AAB7-77DB5C513C01}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JB.Common.TeamFoundationServer.Client", "JB.Common.TeamFoundationServer.Client\JB.Common.TeamFoundationServer.Client.csproj", "{C5714A07-3CCD-4C9E-A2F6-DEB840EF9B13}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JB.Common.VisualStudio.Services.Client", "JB.Common.VisualStudio.Services.Client\JB.Common.VisualStudio.Services.Client.csproj", "{1423B0DD-E2E1-492D-A7B2-EB1B62D19572}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "NuGet", "NuGet", "{927AC848-51F0-4F70-A5E1-65C84B59ABE7}"
+	ProjectSection(SolutionItems) = preProject
+		JB.Common.Collections.nuspec = JB.Common.Collections.nuspec
+		JB.Common.Collections.Reactive.nuspec = JB.Common.Collections.Reactive.nuspec
+		JB.Common.nuspec = JB.Common.nuspec
+		JB.Common.Reactive.Analytics.nuspec = JB.Common.Reactive.Analytics.nuspec
+		JB.Common.Reactive.Cache.nuspec = JB.Common.Reactive.Cache.nuspec
+		JB.Common.Reactive.nuspec = JB.Common.Reactive.nuspec
+		JB.Common.TeamFoundationServer.Client.nuspec = JB.Common.TeamFoundationServer.Client.nuspec
+		JB.Common.VisualStudio.nuspec = JB.Common.VisualStudio.nuspec
+		JB.Common.VisualStudio.Services.Client.nuspec = JB.Common.VisualStudio.Services.Client.nuspec
+		JB.Common.VisualStudio.TeamFoundation.nuspec = JB.Common.VisualStudio.TeamFoundation.nuspec
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -110,6 +120,14 @@ Global
 		{21239505-BBAE-4C3A-AAB7-77DB5C513C01}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{21239505-BBAE-4C3A-AAB7-77DB5C513C01}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{21239505-BBAE-4C3A-AAB7-77DB5C513C01}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C5714A07-3CCD-4C9E-A2F6-DEB840EF9B13}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C5714A07-3CCD-4C9E-A2F6-DEB840EF9B13}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C5714A07-3CCD-4C9E-A2F6-DEB840EF9B13}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C5714A07-3CCD-4C9E-A2F6-DEB840EF9B13}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1423B0DD-E2E1-492D-A7B2-EB1B62D19572}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1423B0DD-E2E1-492D-A7B2-EB1B62D19572}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1423B0DD-E2E1-492D-A7B2-EB1B62D19572}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1423B0DD-E2E1-492D-A7B2-EB1B62D19572}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -120,5 +138,6 @@ Global
 		{5215AC7E-41FF-4A49-8EEB-F3515D813EF5} = {26BE593D-322B-408F-BFC7-3F2B3273DE21}
 		{66781C50-92C1-4832-85DE-5BF3E8EC14C2} = {26BE593D-322B-408F-BFC7-3F2B3273DE21}
 		{21239505-BBAE-4C3A-AAB7-77DB5C513C01} = {26BE593D-322B-408F-BFC7-3F2B3273DE21}
+		{927AC848-51F0-4F70-A5E1-65C84B59ABE7} = {8A122F14-4B60-4FF0-A400-DEED25A9E624}
 	EndGlobalSection
 EndGlobal

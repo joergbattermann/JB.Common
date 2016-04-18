@@ -3,6 +3,10 @@ using System.Runtime.Serialization;
 
 namespace JB.Reactive.Cache
 {
+    /// <summary>
+    /// An <see cref="Exception"/> that indicates that the given <typeparamref name="TKey"/> has expired
+    /// </summary>
+    /// <typeparam name="TKey">The type of the key.</typeparam>
     [Serializable()]
     public class KeyHasExpiredException<TKey> : Exception
     {

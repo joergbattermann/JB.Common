@@ -11,6 +11,11 @@ using System.ComponentModel;
 
 namespace JB.Reactive.Cache
 {
+    /// <summary>
+    /// Default implementation of the <see cref="IObservableCacheChange{TKey,TValue}"/> interface.
+    /// </summary>
+    /// <typeparam name="TKey">The type of the key.</typeparam>
+    /// <typeparam name="TValue">The type of the value.</typeparam>
     public class ObservableCacheChange<TKey, TValue> : IObservableCacheChange<TKey, TValue>
     {
         /// <summary>
@@ -106,7 +111,7 @@ namespace JB.Reactive.Cache
             if ((changeType != ObservableCacheChangeType.Reset)
                 && (expirationType.HasValue == false))
                 throw new ArgumentOutOfRangeException(nameof(expirationType), $"{nameof(expirationType)} must be provided for all non-Reset changes");
-            
+
             if ((changeType != ObservableCacheChangeType.Reset)
                 && (KeyIsValueType.Value == false && Equals(key, default(TKey))))
                 throw new ArgumentOutOfRangeException(nameof(key), $"Item Adds, Changes, Expires or Removes must have a (non-default) {nameof(key)}");

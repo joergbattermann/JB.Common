@@ -10,11 +10,15 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Reactive.Concurrency;
-using System.Runtime.CompilerServices;
 using System.Threading;
 
 namespace JB.Reactive.Cache
 {
+    /// <summary>
+    /// Represents a cached element.
+    /// </summary>
+    /// <typeparam name="TKey">The type of the key.</typeparam>
+    /// <typeparam name="TValue">The type of the value.</typeparam>
     public class ObservableCachedElement<TKey, TValue> : IDisposable
     {
         private IScheduler _expirationScheduler;
@@ -52,7 +56,7 @@ namespace JB.Reactive.Cache
             {
                 if (Equals(value, HasExpired))
                     return;
-               
+
                 Interlocked.Exchange(ref _hasExpired, value ? 1 : 0);
             }
         }
@@ -146,7 +150,7 @@ namespace JB.Reactive.Cache
 
             if (expiry < TimeSpan.Zero)
                 throw new ArgumentOutOfRangeException(nameof(expiry), $"{nameof(expiry)} cannot be negative");
-            
+
             CheckForAndThrowIfDisposed();
 
             lock (_expiryModificationLocker)
@@ -208,7 +212,7 @@ namespace JB.Reactive.Cache
                                         RemoveKeyAndValueFromPropertyChangedHandling();
                                         HasExpired = true;
                                     }
-                                    
+
                                     expirationObserver.OnNext(this);
                                 }
                                 catch (Exception exception)
@@ -238,7 +242,7 @@ namespace JB.Reactive.Cache
                 }
             }
         }
-        
+
         /// <summary>
         /// Calculates the expiration timespan based on the <paramref name="expirationDateTime"/>.
         /// </summary>
@@ -248,7 +252,7 @@ namespace JB.Reactive.Cache
         {
             return expirationDateTime.ToUniversalTime() - ExpirationScheduler.Now.UtcDateTime;
         }
-        
+
         /// <summary>
         /// Gets the key.
         /// </summary>
@@ -330,7 +334,7 @@ namespace JB.Reactive.Cache
             private set
             {
                 CheckForAndThrowIfDisposed();
-                
+
                 _expiryDateTime = value;
             }
         }
@@ -352,7 +356,7 @@ namespace JB.Reactive.Cache
             private set
             {
                 CheckForAndThrowIfDisposed(false);
-                
+
                 _expirationScheduler = value;
             }
         }
@@ -362,6 +366,7 @@ namespace JB.Reactive.Cache
         /// </summary>
         /// <param name="key">The key.</param>
         /// <param name="value">The cached value.</param>
+        /// <param name="expiry">The expiry.</param>
         /// <param name="expirationType">Type of the expiration.</param>
         public ObservableCachedElement(TKey key, TValue value, TimeSpan expiry, ObservableCacheExpirationType expirationType)
         {
@@ -438,7 +443,7 @@ namespace JB.Reactive.Cache
         protected virtual void OnPropertyChanged(object sender, PropertyChangedEventArgs e)
         {
             CheckForAndThrowIfDisposed();
-            
+
             if (sender is TKey)
                 RaiseForwardedPropertyChanged(_keyPropertyChanged, sender, e);
             else if (sender is TValue)
@@ -497,7 +502,7 @@ namespace JB.Reactive.Cache
 
             return now.Add(expiry);
         }
-        
+
         #region Implementation of IDisposable
 
         private long _isDisposing = 0;

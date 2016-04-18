@@ -5,7 +5,7 @@
     <version>$version$</version>
     <authors>Joerg Battermann</authors>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
-    <description>Provides custom types, helpers and extension methods for Visual Studio extensibility, particularly its Team Foundation part.</description>
+    <description>Provides custom types, helpers and extension methods for the Microsoft Visual Studio Team Services &amp Team Foundation Server 2015 client(s).</description>
     <summary>This package contains custom type(s) I needed myself or deemed useful for current or future projects.</summary>
     <releaseNotes>Initial version.</releaseNotes>
     <language>en-US</language>
@@ -14,13 +14,13 @@
     <projectUrl>https://github.com/jbattermann/JB.Common/blob/master/README.md</projectUrl>
     <dependencies>
       <dependency id="JB.Common" version="[$version$,]" />
-      <dependency id="JB.Common.VisualStudio" version="[$version$,]" />
+      <dependency id="Microsoft.TeamFoundationServer.Client" version="[14.95.3,]" />
     </dependencies>
-    <tags>VisualStudio TeamFoundation TeamFoundationServer TFS TeamExplorer WorkItemTracking WorkItem Common Helpers HelperMethods ExtensionMethods Extensibility VSIX</tags>
+    <tags>TFS TFS2015 TeamFoundationServer VisualStudio VisualStudioTeamServices VSTS TeamServices Common Helpers HelperMethods ExtensionMethods</tags>
   </metadata>
   <files>
-    <file src="JB.Common.VisualStudio.TeamFoundation\bin\Release\JB.Common.VisualStudio.TeamFoundation.dll" target="lib\net45" />
-    <file src="JB.Common.VisualStudio.TeamFoundation\bin\Release\JB.Common.VisualStudio.TeamFoundation.pdb" target="lib\net45" />
-    <file src="JB.Common.VisualStudio.TeamFoundation\bin\Release\JB.Common.VisualStudio.TeamFoundation.xml" target="lib\net45" />
+    <file src="JB.Common.VisualStudio.TeamFoundation\bin\Release\JB.Common.VisualStudio.TeamFoundation.Client.dll" target="lib\net46" />
+    <file src="JB.Common.VisualStudio.TeamFoundation\bin\Release\JB.Common.VisualStudio.TeamFoundation.Client.pdb" target="lib\net46" />
+    <file src="JB.Common.VisualStudio.TeamFoundation\bin\Release\JB.Common.VisualStudio.TeamFoundation.Client.xml" target="lib\net46" />
   </files>
 </package>

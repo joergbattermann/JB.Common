@@ -11,13 +11,18 @@ using System.ComponentModel;
 
 namespace JB.Reactive.Cache
 {
+    /// <summary>
+    /// Contains and represents a change that took place in the cache.
+    /// </summary>
+    /// <typeparam name="TKey">The type of the key.</typeparam>
+    /// <typeparam name="TValue">The type of the value.</typeparam>
     public interface IObservableCacheChange<out TKey, out TValue>
     {
         /// <summary>
-        ///     Gets the type of the change.
+        /// Gets the type of the change.
         /// </summary>
         /// <value>
-        ///     The type of the change.
+        /// The type of the change.
         /// </value>
         ObservableCacheChangeType ChangeType { get; }
 

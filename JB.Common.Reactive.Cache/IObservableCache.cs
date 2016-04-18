@@ -14,6 +14,11 @@ using JB.Collections.Reactive;
 
 namespace JB.Reactive.Cache
 {
+    /// <summary>
+    /// Core interface for an (RX) observable cache.
+    /// </summary>
+    /// <typeparam name="TKey">The type of the key.</typeparam>
+    /// <typeparam name="TValue">The type of the value.</typeparam>
     public interface IObservableCache<TKey, TValue> :
         INotifyObservableCacheChanges<TKey, TValue>,
         INotifyObservableCacheItemChanges<TKey, TValue>,
@@ -116,7 +121,7 @@ namespace JB.Reactive.Cache
         /// <param name="keys">The expire to check.</param>
         /// <param name="scheduler"><see cref="IScheduler"/> to perform the check on.</param>
         /// <returns>
-        /// An observable stream that returns the <see cref="DateTime"/> (UTC) the <paramref name="key"/> expire in the same chronological order they were provided.
+        /// An observable stream that returns the <see cref="DateTime"/> (UTC) the <paramref name="keys"/> expire in the same chronological order they were provided.
         /// </returns>
         IObservable<DateTime> ExpiresAt(IObservable<TKey> keys, IScheduler scheduler = null);
 
@@ -199,7 +204,7 @@ namespace JB.Reactive.Cache
         /// Updates the expiration for the specified <paramref name="keysAndNewExpiry"/>.
         /// </summary>
         /// <param name="keysAndNewExpiry">The keys to update with the corresponding new expiry <see cref="TimeSpan"/>.</param>
-        /// <param name="throwIfExpired">If set to <c>true</c>, a <see cref="KeyHasExpiredException{TKey}"/> will be thrown if the <paramref name="key"/> has expired upon subscription.</param>
+        /// <param name="throwIfExpired">If set to <c>true</c>, a <see cref="KeyHasExpiredException{TKey}"/> will be thrown if the <paramref name="keysAndNewExpiry"/> has expired upon subscription.</param>
         /// <param name="scheduler">Scheduler to perform the update on.</param>
         /// <returns>
         /// An observable stream that returns the updated key-value pairs.

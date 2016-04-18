@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<package xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <metadata xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+    <id>JB.Common.VisualStudio.Services.Client</id>
+    <version>$version$</version>
+    <authors>Joerg Battermann</authors>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>Provides custom types, helpers and extension methods for the Microsoft Visual Studio Team Services client(s).</description>
+    <summary>This package contains custom type(s) I needed myself or deemed useful for current or future projects.</summary>
+    <releaseNotes>Initial version.</releaseNotes>
+    <language>en-US</language>
+    <copyright>Joerg Battermann</copyright>
+    <licenseUrl>https://github.com/jbattermann/JB.Common/blob/master/LICENSE</licenseUrl>
+    <projectUrl>https://github.com/jbattermann/JB.Common/blob/master/README.md</projectUrl>
+    <dependencies>
+      <dependency id="JB.Common" version="[$version$,]" />
+      <dependency id="Microsoft.VisualStudio.Services.InteractiveClient" version="[14.95.3,]" />
+      <dependency id="Microsoft.VisualStudio.Services.Client" version="[14.95.3,]" />
+    </dependencies>
+    <tags>VisualStudio VisualStudioTeamServices VSTS TeamServices Common Helpers HelperMethods ExtensionMethods</tags>
+  </metadata>
+  <files>
+    <file src="JB.Common.VisualStudio.Services.Client\bin\Release\JB.Common.VisualStudio.Services.Client.dll" target="lib\net46" />
+    <file src="JB.Common.VisualStudio.Services.Client\bin\Release\JB.Common.VisualStudio.Services.Client.pdb" target="lib\net46" />
+    <file src="JB.Common.VisualStudio.Services.Client\bin\Release\JB.Common.VisualStudio.Services.Client.xml" target="lib\net46" />
+  </files>
+</package>

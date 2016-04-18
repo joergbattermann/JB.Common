@@ -7,10 +7,22 @@
 // -----------------------------------------------------------------------
 namespace JB.Reactive.Cache
 {
+    /// <summary>
+    /// Determines how cached items are handled upon expiration.
+    /// </summary>
     public enum ObservableCacheExpirationType
     {
+        /// <summary>
+        /// Everything remains as-is.
+        /// </summary>
         DoNothing,
+        /// <summary>
+        /// The item will be removed upon expiration.
+        /// </summary>
         Remove,
+        /// <summary>
+        /// The item will be updated upon expiration.
+        /// </summary>
         Update
     }
 }

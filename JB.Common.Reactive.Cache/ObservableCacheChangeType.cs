@@ -8,6 +8,9 @@
 
 namespace JB.Reactive.Cache
 {
+    /// <summary>
+    /// Determines the possible cache changes.
+    /// </summary>
     public enum ObservableCacheChangeType
     {
         /// <summary>
@@ -16,7 +19,7 @@ namespace JB.Reactive.Cache
         ItemAdded,
 
         /// <summary>
-        ///     The property of a key has changed.
+        /// The property of a key has changed.
         /// </summary>
         ItemKeyChanged,
 
