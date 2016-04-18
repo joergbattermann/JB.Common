@@ -20,8 +20,8 @@
     <tags>TFS TFS2015 TeamFoundationServer VisualStudio VisualStudioTeamServices VSTS TeamServices Common Helpers HelperMethods ExtensionMethods</tags>
   </metadata>
   <files>
-    <file src="JB.Common.TeamFoundationServer.Client\bin\Release\JB.Common.VisualStudio.TeamFoundation.Client.dll" target="lib\net46" />
-    <file src="JB.Common.TeamFoundationServer.Client\bin\Release\JB.Common.VisualStudio.TeamFoundation.Client.pdb" target="lib\net46" />
-    <file src="JB.Common.TeamFoundationServer.Client\bin\Release\JB.Common.VisualStudio.TeamFoundation.Client.xml" target="lib\net46" />
+    <file src="JB.Common.TeamFoundationServer.Client\bin\Release\JB.Common.TeamFoundationServer.Client.dll" target="lib\net46" />
+    <file src="JB.Common.TeamFoundationServer.Client\bin\Release\JB.Common.TeamFoundationServer.Client.pdb" target="lib\net46" />
+    <file src="JB.Common.TeamFoundationServer.Client\bin\Release\JB.Common.TeamFoundationServer.Client.xml" target="lib\net46" />
   </files>
 </package>
