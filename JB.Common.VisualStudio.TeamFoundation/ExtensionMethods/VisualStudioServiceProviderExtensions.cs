@@ -66,7 +66,7 @@ namespace JB.VisualStudio.TeamFoundation.ExtensionMethods
         {
             if (serviceProvider == null) throw new ArgumentNullException(nameof(serviceProvider));
 
-            return serviceProvider.GetService<ITeamExplorerPage>();
+            return serviceProvider.GetTeamExplorer()?.CurrentPage;
         }
     }
 }
