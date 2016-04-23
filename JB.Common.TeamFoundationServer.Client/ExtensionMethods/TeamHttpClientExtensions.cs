@@ -107,12 +107,12 @@ namespace JB.Common.TeamFoundationServer.Client.ExtensionMethods
         }
 
         /// <summary>
-        /// Gets all team members for the given <paramref name="project" /> and <paramref name="team"/>.
+        /// Gets all team members for the given <paramref name="project" /> and <paramref name="team" />.
         /// </summary>
         /// <param name="client">The <see cref="TeamHttpClient" /> to use.</param>
-        /// <param name="connection">The connection for the <paramref name="client"/> that will be used to retrieve the identities for the team members.</param>
-        /// <param name="projectId">The project identifier.</param>
-        /// <param name="teamId">The team identifier whose members to retrieve.</param>
+        /// <param name="connection">The connection for the <paramref name="client" /> that will be used to retrieve the identities for the team members.</param>
+        /// <param name="project">The project.</param>
+        /// <param name="team">The team.</param>
         /// <param name="pageSize">Page size to use while retrieving the projects.</param>
         /// <param name="userState">The user state object.</param>
         /// <param name="cancellationToken">The cancellation token.</param>
@@ -186,8 +186,8 @@ namespace JB.Common.TeamFoundationServer.Client.ExtensionMethods
             if (teamId == null)
                 throw new ArgumentNullException(nameof(teamId));
             
-            if(Equals(client.BaseAddress, connection.Uri) == false)
-                throw new ArgumentException($"The '{nameof(connection)}' parameter must be for the given '{nameof(client)}'", nameof(connection));
+            if(Equals(client.BaseAddress, connection.Uri))
+                throw new ArgumentException($"The '{nameof(connection)}' parameter must be for the base uri of the VSTS / TFS system", nameof(connection));
 
             var result = new List<Identity>();
             var identityReferences = new List<IdentityRef>();
