@@ -20,7 +20,7 @@ namespace JB.VisualStudio.TeamFoundation.TeamExplorer
     ///     with the <see cref="TeamExplorerSectionAttribute" />
     ///     in order to be picked up by visual studio. As this attribute requires a
     ///     <see cref="TeamExplorerSectionAttribute.ParentPageId" /> - this can be
-    ///     a standard TeamExplorer page, known via constants in <see cref="TeamExplorerPageIds" /> OR if one added custom
+    ///     a standard TeamExplorer page, known via constants in <see cref="Microsoft.TeamFoundation.Controls.TeamExplorerPageIds" /> OR if one added custom
     ///     pages,
     ///     the <see cref="TeamExplorerPageNavigationItemBase.TargetPageId" /> can / should be used.
     ///     As everything is loaded via .Net's MEF / Composition functionality, sections should typically also be marked as
