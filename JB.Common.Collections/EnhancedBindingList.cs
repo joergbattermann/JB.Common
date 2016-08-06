@@ -230,13 +230,35 @@ namespace JB.Collections
 			}
 		}
 
-	    #region Implementation of IBulkModifiableCollection<T>
+        /// <summary>
+        /// Raises a <see cref="E:System.ComponentModel.BindingList`1.ListChanged" /> event of type <see cref="F:System.ComponentModel.ListChangedType.Reset" />.
+        /// </summary>
+        new void ResetBindings()
+	    {
+            if (RaiseListChangedEvents == false)
+            {
+                return;
+            }
 
-	    /// <summary>
-	    /// Adds a range of items.
-	    /// </summary>
-	    /// <param name="items">The items.</param>
-	    public virtual void AddRange(IEnumerable<T> items)
+            // else
+            base.ResetBindings();
+	    }
+
+        /// <summary>
+        /// Raises a <see cref="E:System.ComponentModel.BindingList`1.ListChanged" /> event of type <see cref="F:System.ComponentModel.ListChangedType.Reset" />.
+        /// </summary>
+        void IEnhancedBindingList<T>.ResetBindings()
+	    {
+	        this.ResetBindings();
+	    }
+
+        #region Implementation of IBulkModifiableCollection<T>
+
+        /// <summary>
+        /// Adds a range of items.
+        /// </summary>
+        /// <param name="items">The items.</param>
+        public virtual void AddRange(IEnumerable<T> items)
 	    {
 	        this.AddRange(items, false);
 	    }
