@@ -34,7 +34,7 @@ namespace JB.Collections
 		/// <param name="addingNewEventArgs">An <see cref="T:System.ComponentModel.AddingNewEventArgs" /> that contains the event data. </param>
 		protected override void OnAddingNew(AddingNewEventArgs addingNewEventArgs)
 		{
-			_synchronizationContext.Post(() => base.OnAddingNew(addingNewEventArgs));
+			_synchronizationContext.Send(() => base.OnAddingNew(addingNewEventArgs));
 		}
 
 		/// <summary>
@@ -43,7 +43,7 @@ namespace JB.Collections
 		/// <param name="listChangedEventArgs">A <see cref="T:System.ComponentModel.ListChangedEventArgs" /> that contains the event data. </param>
 		protected override void OnListChanged(ListChangedEventArgs listChangedEventArgs)
 		{
-			_synchronizationContext.Post(() => base.OnListChanged(listChangedEventArgs));
+			_synchronizationContext.Send(() => base.OnListChanged(listChangedEventArgs));
 		}
 
 		#endregion
