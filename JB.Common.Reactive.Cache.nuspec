@@ -17,7 +17,7 @@
       <dependency id="JB.Common.Collections" version="[$version$,]" />
       <dependency id="JB.Common.Reactive" version="[$version$,]" />
       <dependency id="JB.Common.Collections.Reactive" version="[$version$,]" />
-      <dependency id="Rx-Main" version="[2.2.5,]" />
+      <dependency id="System.Reactive" version="[3.1.1,]" />
     </dependencies>
     <tags>Reactive Extensions RXNet Streaming Cache Caching</tags>
   </metadata>
