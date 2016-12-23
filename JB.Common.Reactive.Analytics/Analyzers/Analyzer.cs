@@ -1,5 +1,4 @@
 using System;
-using System.Reactive.Concurrency;
 using System.Reactive.Subjects;
 using System.Threading;
 using JB.Reactive.Analytics.AnalysisResults;
@@ -31,7 +30,7 @@ namespace JB.Reactive.Analytics.Analyzers
         {
             _analysisResultSubject = new Subject<TAnalysisResult>();
         }
-
+        
         /// <summary>
         /// Gets the analysis results subject.
         /// </summary>
@@ -102,7 +101,7 @@ namespace JB.Reactive.Analytics.Analyzers
         private long _isDisposed = 0;
 
         private readonly object _isDisposedLocker = new object();
-
+        
         /// <summary>
         ///     Gets or sets a value indicating whether this instance has been disposed.
         /// </summary>

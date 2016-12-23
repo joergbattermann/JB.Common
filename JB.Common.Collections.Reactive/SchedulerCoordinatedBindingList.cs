@@ -1,6 +1,6 @@
 ﻿// -----------------------------------------------------------------------
 // <copyright file="SchedulerCoordinatedBindingList.cs" company="Joerg Battermann">
-//   Copyright (c) 2015 Joerg Battermann. All rights reserved.
+//   Copyright (c) 2016 Joerg Battermann. All rights reserved.
 // </copyright>
 // <author>Joerg Battermann</author>
 // <summary>A Binding List that makes sure its events are raised on the proper Scheduler.</summary>

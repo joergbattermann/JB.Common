@@ -62,15 +62,18 @@
       <Link>Properties\CommonAssemblyInfo.cs</Link>
     </Compile>
     <Compile Include="AnalysisResults\CountAnalysisResult.cs" />
+    <Compile Include="AnalysisResults\ElapsedTimeAnalysisResult.cs" />
+    <Compile Include="AnalysisResults\ThrougputAnalysisResult.cs" />
     <Compile Include="Analyzers\Analyzer.cs" />
     <Compile Include="Analyzers\CountAnalyzer.cs" />
+    <Compile Include="Analyzers\ThroughputAnalyzer.cs" />
     <Compile Include="ExtensionMethods\ObservableExtensions.cs" />
     <Compile Include="AnalysisResults\IAnalysisResult.cs" />
     <Compile Include="AnalysisResults\ICountBasedAnalysisResult.cs" />
     <Compile Include="AnalysisResults\IMultipleElementsAnalysisResult.cs" />
     <Compile Include="Analyzers\IAnalyzer.cs" />
     <Compile Include="AnalysisResults\ISingleElementAnalysisResult.cs" />
-    <Compile Include="AnalysisResults\ITimeSpanBasedAnalysisResult.cs" />
+    <Compile Include="AnalysisResults\IElapsedTimeAnalysisResult.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

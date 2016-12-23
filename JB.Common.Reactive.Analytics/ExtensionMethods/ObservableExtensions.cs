@@ -1,6 +1,6 @@
 ﻿// -----------------------------------------------------------------------
 // <copyright file="ObservableExtensions.cs" company="Joerg Battermann">
-//   Copyright (c) 2015 Joerg Battermann. All rights reserved.
+//   Copyright (c) 2016 Joerg Battermann. All rights reserved.
 // </copyright>
 // <author>Joerg Battermann</author>
 // <summary></summary>
@@ -71,9 +71,46 @@ namespace JB.Reactive.Analytics.ExtensionMethods
                 var sourceSequenceForwardingSubscription = analyzer.Subscribe(observer);
 
                 return () => new CompositeDisposable(sourceSequenceForwardingSubscription, sourceAnalyticsProviderSubscription).Dispose();
-            })
-            .Publish()
-            .RefCount();
+            });
+        }
+
+        /// <summary>
+        /// Takes the source sequence, subscribes the <paramref name="analyzer" /> to it and returns the analyzer's <see cref="IAnalysisResult" /> sequence.
+        /// </summary>
+        /// <typeparam name="TSource">The type of the elements in the source sequence.</typeparam>
+        /// <typeparam name="TAnalysisResult">The type of the analysis result.</typeparam>
+        /// <typeparam name="TAnalyzer">The type of the analyzer</typeparam>
+        /// <param name="source">The source sequence.</param>
+        /// <param name="analyzer">The analyzer to use.</param>
+        /// <param name="actionToPerformOnAnalyzerUponSubscription">If provided, the <paramref name="actionToPerformOnAnalyzerUponSubscription"/> will be invoked immediately before subscribing to the <paramref name="source"/> sequence.</param>
+        /// <param name="scheduler">Scheduler used to introduce concurrency for making subscriptions to the given
+        /// source sequence and thereby running the <paramref name="analyzer" /> on.</param>
+        /// <returns>
+        /// The observable sequence that contains the analysis results the <paramref name="analyzer" /> produces.
+        /// </returns>
+        /// <exception cref="System.ArgumentNullException">
+        /// </exception>
+        public static IObservable<TAnalysisResult> AnalyzeWith<TSource, TAnalyzer, TAnalysisResult>(this IObservable<TSource> source, TAnalyzer analyzer, Action<TAnalyzer> actionToPerformOnAnalyzerUponSubscription = null, IScheduler scheduler = null)
+            where TAnalysisResult : IAnalysisResult
+            where TAnalyzer : IAnalyzer<TSource, TAnalysisResult>
+        {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            if (analyzer == null) throw new ArgumentNullException(nameof(analyzer));
+
+            return Observable.Create<TAnalysisResult>(observer =>
+            {
+                actionToPerformOnAnalyzerUponSubscription?.Invoke(analyzer);
+
+                // first we wire up the analyzer with the source sequence
+                var sourceAnalyticsProviderSubscription = scheduler != null
+                    ? source.SubscribeOn(scheduler).Subscribe(analyzer)
+                    : source.Subscribe(analyzer);
+
+                // then we wire up the returned observable with the analyzer's output sequence
+                var sourceSequenceForwardingSubscription = analyzer.Subscribe(observer);
+
+                return () => new CompositeDisposable(sourceSequenceForwardingSubscription, sourceAnalyticsProviderSubscription).Dispose();
+            });
         }
 
         /// <summary>
@@ -111,9 +148,7 @@ namespace JB.Reactive.Analytics.ExtensionMethods
                 var sourceSequenceForwardingSubscription = compositeAnalyzersObservable.Subscribe(observer);
 
                 return () => new CompositeDisposable(sourceSequenceForwardingSubscription, sourceAnalyticsProviderSubscription).Dispose();
-            })
-            .Publish()
-            .RefCount();
+            });
         }
 
         /// <summary>
@@ -156,9 +191,7 @@ namespace JB.Reactive.Analytics.ExtensionMethods
                 var sourceSequenceForwardingSubscription = compositeAnalyzersObservable.Subscribe(observer);
 
                 return () => new CompositeDisposable(sourceSequenceForwardingSubscription, sourceAnalyticsProviderSubscription).Dispose();
-            })
-            .Publish()
-            .RefCount();
+            });
         }
 
         /// <summary>
@@ -255,8 +288,7 @@ namespace JB.Reactive.Analytics.ExtensionMethods
 
         /// <summary>
         /// Provides an observable stream of <see cref="ICountBasedAnalysisResult" /> elements reporting the current count
-        /// for every received <typeparamref name="TSource" /> instance. If a <paramref name="predicate" /> is provided, the count
-        /// will only be increased if the test returns [true].
+        /// for every received <typeparamref name="TSource" /> instance.
         /// </summary>
         /// <typeparam name="TSource">The type of the source.</typeparam>
         /// <param name="source">The source sequence.</param>
@@ -270,13 +302,37 @@ namespace JB.Reactive.Analytics.ExtensionMethods
         /// <exception cref="System.ArgumentNullException"></exception>
         public static IObservable<ICountBasedAnalysisResult> AnalyzeCount<TSource>(this IObservable<TSource> source,
                             long initialCount = 0,
-                            Func<TSource, bool> predicate = null,
                             IScheduler scheduler = null)
         {
             if (source == null) throw new ArgumentNullException(nameof(source));
 
             return source
-                .AnalyzeWith(new CountAnalyzer<TSource>(initialCount, predicate), scheduler);
+                .AnalyzeWith(new CountAnalyzer<TSource>(initialCount), scheduler);
+        }
+
+        /// <summary>
+        /// Provides an observable stream of <see cref="ICountBasedAnalysisResult" /> elements reporting the current count
+        /// for every received <typeparamref name="TSource" /> instance.
+        /// </summary>
+        /// <typeparam name="TSource">The type of the source.</typeparam>
+        /// <param name="source">The source sequence.</param>
+        /// <param name="initialCount">The initial count.</param>
+        /// <param name="scheduler">The scheduler to run the <see cref="IAnalyzer{TSource}" /> on.</param>
+        /// <returns>
+        /// A new <see cref="IObservable{TSource}" /> providing the full <paramref name="source" /> sequence back to the caller.
+        /// </returns>
+        /// <exception cref="System.ArgumentNullException">source</exception>
+        public static IObservable<ThrougputAnalysisResult> AnalyzeThroughput<TSource>(this IObservable<TSource> source,
+            long initialCount = 0,
+            IScheduler scheduler = null)
+        {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+
+            return source
+                .AnalyzeWith<TSource, ThroughputAnalyzer<TSource>, ThrougputAnalysisResult>(
+                    new ThroughputAnalyzer<TSource>(initialCount, false),
+                    throughputAnalyzer => { throughputAnalyzer.StartTimer(); },
+                    scheduler);
         }
     }
 }

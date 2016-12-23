@@ -1,6 +1,6 @@
 ﻿// -----------------------------------------------------------------------
 // <copyright file="CountAnalysisResult.cs" company="Joerg Battermann">
-//   Copyright (c) 2015 Joerg Battermann. All rights reserved.
+//   Copyright (c) 2016 Joerg Battermann. All rights reserved.
 // </copyright>
 // <author>Joerg Battermann</author>
 // <summary></summary>
@@ -11,7 +11,7 @@ using System.Diagnostics;
 
 namespace JB.Reactive.Analytics.AnalysisResults
 {
-    [DebuggerDisplay("{Count}")]
+    [DebuggerDisplay("{" + nameof(Count) + "}")]
     public class CountAnalysisResult : ICountBasedAnalysisResult, IEquatable<CountAnalysisResult>, IEquatable<ICountBasedAnalysisResult>
     {
         #region Implementation of ICountBasedAnalysisResult
@@ -67,6 +67,9 @@ namespace JB.Reactive.Analytics.AnalysisResults
         {
             if (other == null)
                 return false;
+
+            if (ReferenceEquals(this, other))
+                return true;
 
             return Equals(Count, other.Count);
         }

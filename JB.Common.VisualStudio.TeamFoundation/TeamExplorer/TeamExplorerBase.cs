@@ -1,6 +1,6 @@
 ﻿// -----------------------------------------------------------------------
 // <copyright file="TeamExplorerBase.cs" company="Joerg Battermann">
-//   Copyright (c) 2015 Joerg Battermann. All rights reserved.
+//   Copyright (c) 2016 Joerg Battermann. All rights reserved.
 // </copyright>
 // <author>Joerg Battermann</author>
 // <summary></summary>
@@ -48,7 +48,8 @@ namespace JB.VisualStudio.TeamFoundation.TeamExplorer
         {
             get
             {
-                Debug.Assert(ServiceProvider != null, string.Format(".{0} accessed before .{1} has been set", nameof(CurrentTeamFoundationContext), nameof(ServiceProvider)));
+                Debug.Assert(ServiceProvider != null,
+                    $".{nameof(CurrentTeamFoundationContext)} accessed before .{nameof(ServiceProvider)} has been set");
                 return TeamFoundationContextManager?.CurrentContext;
             }
         }
@@ -237,7 +238,7 @@ namespace JB.VisualStudio.TeamFoundation.TeamExplorer
         /// <param name="propertyName">Name of the property.</param>
         protected virtual void RaisePropertyChanged([CallerMemberName] string propertyName = "")
         {
-            Debug.Assert(!string.IsNullOrWhiteSpace(propertyName), string.Format("{0} Should not be null or empty", nameof(propertyName)));
+            Debug.Assert(!string.IsNullOrWhiteSpace(propertyName), $"{nameof(propertyName)} Should not be null or empty");
 
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
