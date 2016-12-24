@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
-VisualStudioVersion = 14.0.25123.0
+VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JB.Common.Collections", "JB.Common.Collections\JB.Common.Collections.csproj", "{360B8B3F-5EF4-4CD1-96F2-F3CC67A2B2B3}"
 EndProject
@@ -57,6 +57,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "NuGet", "NuGet", "{927AC848
 		JB.Common.VisualStudio.Services.Client.nuspec = JB.Common.VisualStudio.Services.Client.nuspec
 		JB.Common.VisualStudio.TeamFoundation.nuspec = JB.Common.VisualStudio.TeamFoundation.nuspec
 	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JB.Common.Reactive.Testing", "JB.Common.Reactive.Testing\JB.Common.Reactive.Testing.csproj", "{5E603FC4-8E2A-45E3-8527-4DCF35049CED}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -128,6 +130,10 @@ Global
 		{1423B0DD-E2E1-492D-A7B2-EB1B62D19572}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1423B0DD-E2E1-492D-A7B2-EB1B62D19572}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1423B0DD-E2E1-492D-A7B2-EB1B62D19572}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5E603FC4-8E2A-45E3-8527-4DCF35049CED}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5E603FC4-8E2A-45E3-8527-4DCF35049CED}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5E603FC4-8E2A-45E3-8527-4DCF35049CED}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5E603FC4-8E2A-45E3-8527-4DCF35049CED}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -1,15 +1,16 @@
 ﻿using System;
-using System.Diagnostics;
+using System.Reactive.Concurrency;
 using System.Threading;
 using JB.Reactive.Analytics.AnalysisResults;
 
 namespace JB.Reactive.Analytics.Analyzers
 {
-    public class ThroughputAnalyzer<TSource> : Analyzer<TSource, ThrougputAnalysisResult>
+    public class ThroughputAnalyzer<TSource> : Analyzer<TSource, IThroughputAnalysisResult>
     {
         private long _totalCount;
-
-        private readonly Stopwatch _stopwatch;
+        
+        private IStopwatch _stopwatch;
+        private IStopwatchProvider StopwatchProvider { get; }
 
         /// <summary>
         /// Gets the elapsed time.
@@ -55,20 +56,24 @@ namespace JB.Reactive.Analytics.Analyzers
             {
                 CheckForAndThrowIfDisposed();
 
-                return _stopwatch.IsRunning;
+                return _stopwatch != null;
             }
         }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="CountAnalyzer{TSource}" /> class.
         /// </summary>
+        /// <param name="stopwatchProvider">The stopwatch provider.</param>
         /// <param name="initialCount">The initial count.</param>
         /// <param name="startTimerImmediately">Indicates whether the underlying timer shall start immediately upon construction.</param>
-        public ThroughputAnalyzer(long initialCount = 0, bool startTimerImmediately = true)
+        /// <exception cref="System.ArgumentException">scheduler - scheduler</exception>
+        public ThroughputAnalyzer(IStopwatchProvider stopwatchProvider, long initialCount = 0, bool startTimerImmediately = true)
         {
-            _totalCount = initialCount;
-            _stopwatch = new Stopwatch();
+            if (stopwatchProvider == null) throw new ArgumentNullException(nameof(stopwatchProvider));
 
+            StopwatchProvider = stopwatchProvider;
+            _totalCount = initialCount;
+            
             if(startTimerImmediately)
                 StartTimer();
         }
@@ -81,7 +86,7 @@ namespace JB.Reactive.Analytics.Analyzers
             if(IsRunning)
                 throw new InvalidOperationException("The Timer is already running and can only be started once.");
 
-            _stopwatch.Start();
+            _stopwatch = StopwatchProvider.StartStopwatch();
         }
         
         #region Overrides of Analyzer<TSource>
@@ -96,7 +101,7 @@ namespace JB.Reactive.Analytics.Analyzers
             {
                 var totalCount = Interlocked.Increment(ref _totalCount);
 
-                AnalysisResultsSubject.OnNext(new ThrougputAnalysisResult(totalCount, ElapsedTime));
+                AnalysisResultsSubject.OnNext(new ThroughputAnalysisResult(totalCount, ElapsedTime));
             }
         }
 

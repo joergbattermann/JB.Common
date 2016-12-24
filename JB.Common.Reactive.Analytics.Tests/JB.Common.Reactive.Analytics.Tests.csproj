@@ -96,12 +96,17 @@
       <Link>Properties\CommonAssemblyInfo.cs</Link>
     </Compile>
     <Compile Include="Analyzers\CountAnalyzerTests.cs" />
+    <Compile Include="Analyzers\ThroughputAnalyzerTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\JB.Common.Reactive.Analytics\JB.Common.Reactive.Analytics.csproj">
       <Project>{450b98c1-5f88-48e7-808e-7bdd4cf0d179}</Project>
       <Name>JB.Common.Reactive.Analytics</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\JB.Common.Reactive.Testing\JB.Common.Reactive.Testing.csproj">
+      <Project>{5e603fc4-8e2a-45e3-8527-4dcf35049ced}</Project>
+      <Name>JB.Common.Reactive.Testing</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>

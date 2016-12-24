@@ -293,8 +293,6 @@ namespace JB.Reactive.Analytics.ExtensionMethods
         /// <typeparam name="TSource">The type of the source.</typeparam>
         /// <param name="source">The source sequence.</param>
         /// <param name="initialCount">The initial count.</param>
-        /// <param name="predicate">A function to test each element whether or not to increase the count. If none is provided,
-        /// the count will be increased with every <typeparamref name="TSource" /> element reported.</param>
         /// <param name="scheduler">The scheduler to run the <see cref="IAnalyzer{TSource}" /> on.</param>
         /// <returns>
         /// A new <see cref="IObservable{TSource}" /> providing the full <paramref name="source" /> sequence back to the caller.
@@ -318,19 +316,44 @@ namespace JB.Reactive.Analytics.ExtensionMethods
         /// <param name="source">The source sequence.</param>
         /// <param name="initialCount">The initial count.</param>
         /// <param name="scheduler">The scheduler to run the <see cref="IAnalyzer{TSource}" /> on.</param>
+        /// <param name="stopWatchProvider">The stop watch provider. If none is provided, the <paramref name="scheduler"/> will be used and if no scheduler is provided, the <see cref="Scheduler.Default"/> will be attempted to be used.</param>
         /// <returns>
         /// A new <see cref="IObservable{TSource}" /> providing the full <paramref name="source" /> sequence back to the caller.
         /// </returns>
         /// <exception cref="System.ArgumentNullException">source</exception>
-        public static IObservable<ThrougputAnalysisResult> AnalyzeThroughput<TSource>(this IObservable<TSource> source,
+        /// <exception cref="System.ArgumentException"></exception>
+        public static IObservable<IThroughputAnalysisResult> AnalyzeThroughput<TSource>(
+            this IObservable<TSource> source,
             long initialCount = 0,
-            IScheduler scheduler = null)
+            IScheduler scheduler = null,
+            IStopwatchProvider stopWatchProvider = null)
         {
             if (source == null) throw new ArgumentNullException(nameof(source));
 
+            if (stopWatchProvider == null)
+            {
+                stopWatchProvider = (scheduler ?? Scheduler.Default).AsStopwatchProvider();
+            }
+
+            if (stopWatchProvider == null)
+            {
+                if (scheduler != null)
+                {
+                    throw new ArgumentException(
+                        $"{nameof(scheduler)} provides no {nameof(IStopwatchProvider)} implementation. Please provide one explicitly.",
+                        nameof(stopWatchProvider));
+                }
+                else
+                {
+                    throw new ArgumentException(
+                        $"Default platform scheduler provides no {nameof(IStopwatchProvider)} implementation. Please provide one explicitly.",
+                        nameof(stopWatchProvider));
+                }
+            }
+
             return source
-                .AnalyzeWith<TSource, ThroughputAnalyzer<TSource>, ThrougputAnalysisResult>(
-                    new ThroughputAnalyzer<TSource>(initialCount, false),
+                .AnalyzeWith<TSource, ThroughputAnalyzer<TSource>, IThroughputAnalysisResult>(
+                    new ThroughputAnalyzer<TSource>(stopWatchProvider, initialCount, false),
                     throughputAnalyzer => { throughputAnalyzer.StartTimer(); },
                     scheduler);
         }

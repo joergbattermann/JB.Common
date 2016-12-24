@@ -7,7 +7,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Collections.Specialized;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -61,7 +60,7 @@ namespace JB.Common.TeamFoundationServer.Client.ExtensionMethods
             if (client == null)
                 throw new ArgumentNullException(nameof(client));
             if (Equals(Guid.Empty, projectId))
-                throw new ArgumentException(nameof(projectId));
+                throw new ArgumentOutOfRangeException(nameof(projectId));
 
             return client.GetAllTeams(projectId.ToString(), pageSize, userState, cancellationToken);
         }
@@ -154,9 +153,9 @@ namespace JB.Common.TeamFoundationServer.Client.ExtensionMethods
             if (connection == null)
                 throw new ArgumentNullException(nameof(connection));
             if (Equals(Guid.Empty, projectId))
-                throw new ArgumentException(nameof(projectId));
+                throw new ArgumentOutOfRangeException(nameof(projectId));
             if (Equals(Guid.Empty, teamId))
-                throw new ArgumentException(nameof(teamId));
+                throw new ArgumentOutOfRangeException(nameof(teamId));
 
             return client.GetAllTeamMembers(connection, projectId.ToString(), teamId.ToString(), pageSize, userState, cancellationToken);
         }

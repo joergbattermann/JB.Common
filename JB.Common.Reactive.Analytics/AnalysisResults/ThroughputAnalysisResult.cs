@@ -1,10 +1,8 @@
 ﻿using System;
-using System.Diagnostics;
 
 namespace JB.Reactive.Analytics.AnalysisResults
 {
-    [DebuggerDisplay("{" + nameof(TotalCount) + "}/{" + nameof(ElapsedTime) + "}")]
-    public class ThrougputAnalysisResult : ElapsedTimeAnalysisResult
+    public class ThroughputAnalysisResult : ElapsedTimeAnalysisResult, IThroughputAnalysisResult
     {
         /// <summary>
         /// Gets the total amount / count of items observed.
@@ -12,7 +10,7 @@ namespace JB.Reactive.Analytics.AnalysisResults
         /// <value>
         /// The total amount / count of items observed.
         /// </value>
-        public long TotalCount { get; }
+        public long Count { get; }
 
         /// <summary>
         /// Gets the throughput / millisecond.
@@ -20,7 +18,7 @@ namespace JB.Reactive.Analytics.AnalysisResults
         /// <value>
         /// The throughput / millisecond.
         /// </value>
-        public double ThroughputPerMillisecond => TotalCount / ElapsedTime.TotalMilliseconds;
+        public double ThroughputPerMillisecond => Count / ElapsedTime.TotalMilliseconds;
 
         /// <summary>
         /// Gets the throughput / second.
@@ -28,7 +26,7 @@ namespace JB.Reactive.Analytics.AnalysisResults
         /// <value>
         /// The throughput / second.
         /// </value>
-        public double ThroughputPerSecond => TotalCount / ElapsedTime.TotalSeconds;
+        public double ThroughputPerSecond => Count / ElapsedTime.TotalSeconds;
 
         /// <summary>
         /// Gets the throughput / minute.
@@ -36,7 +34,7 @@ namespace JB.Reactive.Analytics.AnalysisResults
         /// <value>
         /// The throughput / minute.
         /// </value>
-        public double ThroughputPerMinute => TotalCount / ElapsedTime.TotalMinutes;
+        public double ThroughputPerMinute => Count / ElapsedTime.TotalMinutes;
 
         /// <summary>
         /// Gets the throughput / hour.
@@ -44,7 +42,7 @@ namespace JB.Reactive.Analytics.AnalysisResults
         /// <value>
         /// The throughput / hour.
         /// </value>
-        public double ThroughputPerHour => TotalCount / ElapsedTime.TotalHours;
+        public double ThroughputPerHour => Count / ElapsedTime.TotalHours;
 
         /// <summary>
         /// Gets the throughput / day.
@@ -52,20 +50,20 @@ namespace JB.Reactive.Analytics.AnalysisResults
         /// <value>
         /// The throughput / day.
         /// </value>
-        public double ThroughputPerDay => TotalCount / ElapsedTime.TotalDays;
+        public double ThroughputPerDay => Count / ElapsedTime.TotalDays;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ThrougputAnalysisResult"/> class.
+        /// Initializes a new instance of the <see cref="ThroughputAnalysisResult"/> class.
         /// </summary>
-        /// <param name="totalCount">The total amount / count of items observed.</param>
+        /// <param name="count">The total amount / count of items observed.</param>
         /// <param name="elapsedTime">The elapsed time.</param>
-        public ThrougputAnalysisResult(long totalCount, TimeSpan elapsedTime)
+        public ThroughputAnalysisResult(long count, TimeSpan elapsedTime)
             :base(elapsedTime)
         {
-            if(totalCount < 0)
-                throw new ArgumentOutOfRangeException(nameof(totalCount));
+            if(count < 0)
+                throw new ArgumentOutOfRangeException(nameof(count));
 
-            TotalCount = totalCount;
+            Count = count;
         }
     }
 }

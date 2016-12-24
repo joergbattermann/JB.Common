@@ -23,7 +23,7 @@ namespace JB.Reactive.Analytics.Tests.Analyzers
         [InlineData(0, 1)]
         [InlineData(10, 90)]
         [InlineData(0, 1000)]
-        public void BufferWhileShouldReleaseBufferOnCompleted(int start, int count)
+        public void CountAnalyzerShouldCountAllMessages(int start, int count)
         {
             // given
             var testScheduler = new TestScheduler();
@@ -35,7 +35,11 @@ namespace JB.Reactive.Analytics.Tests.Analyzers
                 testScheduler.Start();
 
                 // then
-                analysisResultsObserver.Messages.Count.Should().Be(count + 1); // +1 because the last message is an oncompleted one
+                analysisResultsObserver.Messages.Count.Should().Be(count + 1); // total count of messages is count+1 because the last message is an oncompleted one
+
+                analysisResultsObserver.Messages.First().Value.Value.Count.Should().Be(1);
+                analysisResultsObserver.Messages[count -1].Value.Value.Count.Should().Be(count);
+
                 analysisResultsObserver.Messages.Last().Value.Kind.Should().Be(NotificationKind.OnCompleted);
             }
         }

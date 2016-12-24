@@ -69,7 +69,8 @@
     </Compile>
     <Compile Include="AnalysisResults\CountAnalysisResult.cs" />
     <Compile Include="AnalysisResults\ElapsedTimeAnalysisResult.cs" />
-    <Compile Include="AnalysisResults\ThrougputAnalysisResult.cs" />
+    <Compile Include="AnalysisResults\IThroughputAnalysisResult.cs" />
+    <Compile Include="AnalysisResults\ThroughputAnalysisResult.cs" />
     <Compile Include="Analyzers\Analyzer.cs" />
     <Compile Include="Analyzers\CountAnalyzer.cs" />
     <Compile Include="Analyzers\ThroughputAnalyzer.cs" />

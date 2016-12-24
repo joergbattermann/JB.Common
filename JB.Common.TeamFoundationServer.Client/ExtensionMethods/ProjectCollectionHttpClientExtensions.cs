@@ -31,7 +31,7 @@ namespace JB.Common.TeamFoundationServer.Client.ExtensionMethods
         public static Task<TeamProjectCollection> GetProjectCollection(this ProjectCollectionHttpClient client, Guid id, object userState = null)
         {
             if (client == null) throw new ArgumentNullException(nameof(client));
-            if (Equals(Guid.Empty, id)) throw new ArgumentException(nameof(id));
+            if (Equals(Guid.Empty, id)) throw new ArgumentOutOfRangeException(nameof(id));
 
             return client.GetProjectCollection(id.ToString(), userState);
         }
