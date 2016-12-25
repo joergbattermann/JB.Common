@@ -5,6 +5,7 @@ using System.Reactive.Linq;
 using FluentAssertions;
 using JB.Reactive.Analytics.AnalysisResults;
 using JB.Reactive.Analytics.ExtensionMethods;
+using JB.Reactive.Testing.ExtensionMethods;
 using Microsoft.Reactive.Testing;
 using Xunit;
 
@@ -16,14 +17,14 @@ namespace JB.Reactive.Analytics.Tests.Analyzers
         [InlineData(0, 1)]
         [InlineData(10, 90)]
         [InlineData(0, 1000)]
-        public void ThroughputAnalyzerShouldCalculateThroughputCorrectly(int start, int count)
+        public void OverallThroughputAnalyzerShouldCalculateThroughputCorrectly(int start, int count)
         {
             // given
             var testScheduler = new TestScheduler();
             
             var analysisResultsObserver = testScheduler.CreateObserver<IThroughputAnalysisResult>();
 
-            using (Observable.Range(start, count, testScheduler).AnalyzeThroughput(scheduler: testScheduler).Subscribe(analysisResultsObserver))
+            using (Observable.Range(start, count, testScheduler).AnalyzeOverallThroughput(scheduler: testScheduler).Subscribe(analysisResultsObserver))
             {
                 // when producer ran to completion
                 testScheduler.AdvanceBy(count + 2);
@@ -39,6 +40,42 @@ namespace JB.Reactive.Analytics.Tests.Analyzers
 
                 lastThroughputMessage.Value.Value.ThroughputPerMillisecond.Should().Be(lastThroughputMessage.Value.Value.Count / elapsedTimeForLastThroughputMessage.TotalMilliseconds);
 
+                analysisResultsObserver.Messages.Last().Value.Kind.Should().Be(NotificationKind.OnCompleted);
+            }
+        }
+
+        [Fact]
+        public void ThroughputAnalyzerShouldCalculateThroughputCorrectly()
+        {
+            // given
+            var testScheduler = new TestScheduler();
+
+            var analysisResultsObserver = testScheduler.CreateObserver<IThroughputAnalysisResult>();
+
+            var interval = TimeSpan.FromMilliseconds(1);
+            var resolution = TimeSpan.FromMilliseconds(10);
+
+            using (Observable.Interval(interval, testScheduler).Take(20).AnalyzeThroughput(resolution, scheduler: testScheduler).Subscribe(analysisResultsObserver))
+            {
+                analysisResultsObserver.Messages.Count.Should().Be(0);
+
+                // when some time has passed
+                testScheduler.AdvanceTo(resolution + interval);
+
+                // then
+                analysisResultsObserver.Messages.Count.Should().Be(1);
+                analysisResultsObserver.Messages[0].Value.Value.ElapsedTime.Should().Be(resolution);
+                analysisResultsObserver.Messages[0].Value.Value.ThroughputPerMillisecond.Should().Be(analysisResultsObserver.Messages[0].Value.Value.Count / analysisResultsObserver.Messages[0].Value.Value.ElapsedTime.TotalMilliseconds);
+
+                // when
+                testScheduler.AdvanceTo(resolution + resolution + interval);
+
+                // then
+                analysisResultsObserver.Messages.Count.Should().Be(3);
+
+                analysisResultsObserver.Messages[1].Value.Value.ElapsedTime.Should().Be(resolution);
+                analysisResultsObserver.Messages[1].Value.Value.ThroughputPerMillisecond.Should().Be(analysisResultsObserver.Messages[1].Value.Value.Count / analysisResultsObserver.Messages[1].Value.Value.ElapsedTime.TotalMilliseconds);
+                
                 analysisResultsObserver.Messages.Last().Value.Kind.Should().Be(NotificationKind.OnCompleted);
             }
         }

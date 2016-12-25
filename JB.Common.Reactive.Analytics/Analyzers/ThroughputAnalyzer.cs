@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Reactive.Concurrency;
+using System.Reactive.Linq;
 using System.Threading;
 using JB.Reactive.Analytics.AnalysisResults;
 
@@ -7,40 +8,45 @@ namespace JB.Reactive.Analytics.Analyzers
 {
     public class ThroughputAnalyzer<TSource> : Analyzer<TSource, IThroughputAnalysisResult>
     {
-        private long _totalCount;
-        
-        private IStopwatch _stopwatch;
-        private IStopwatchProvider StopwatchProvider { get; }
+        private long _currentCount;
 
         /// <summary>
-        /// Gets the elapsed time.
+        /// Gets or sets the interval subscription.
         /// </summary>
         /// <value>
-        /// The elapsed time.
+        /// The interval subscription.
         /// </value>
-        public TimeSpan ElapsedTime
-        {
-            get
-            {
-                CheckForAndThrowIfDisposed();
-
-                return _stopwatch.Elapsed;
-            }
-        }
+        private IDisposable IntervalSubscription { get; set; }
 
         /// <summary>
-        /// Gets the total count.
+        /// Gets the scheduler used for the <see cref="IntervalSubscription"/>.
+        /// </summary>
+        /// <value>
+        /// The scheduler.
+        /// </value>
+        public IScheduler Scheduler { get; }
+
+        /// <summary>
+        /// Gets the resolution of the internally used timer interval.
+        /// </summary>
+        /// <value>
+        /// The resolution.
+        /// </value>
+        private TimeSpan Resolution { get; }
+
+        /// <summary>
+        /// Gets the current count.
         /// </summary>
         /// <value>
         /// The current count.
         /// </value>
-        public long TotalCount
+        public long CurrentCount
         {
             get
             {
                 CheckForAndThrowIfDisposed();
 
-                return Interlocked.Read(ref _totalCount);
+                return Interlocked.Read(ref _currentCount);
             }
         }
 
@@ -56,25 +62,28 @@ namespace JB.Reactive.Analytics.Analyzers
             {
                 CheckForAndThrowIfDisposed();
 
-                return _stopwatch != null;
+                return !IsDisposing && !IsDisposed && IntervalSubscription != null;
             }
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="CountAnalyzer{TSource}" /> class.
+        /// Initializes a new instance of the <see cref="ThroughputAnalyzer{TSource}" /> class.
         /// </summary>
-        /// <param name="stopwatchProvider">The stopwatch provider.</param>
+        /// <param name="resolution">The resolution at which to emit the throughput rate.</param>
         /// <param name="initialCount">The initial count.</param>
         /// <param name="startTimerImmediately">Indicates whether the underlying timer shall start immediately upon construction.</param>
-        /// <exception cref="System.ArgumentException">scheduler - scheduler</exception>
-        public ThroughputAnalyzer(IStopwatchProvider stopwatchProvider, long initialCount = 0, bool startTimerImmediately = true)
+        /// <param name="scheduler">The scheduler to run the internal timer on.</param>
+        /// <exception cref="System.ArgumentOutOfRangeException">resolution - Must be at least 2 Ticks or more</exception>
+        public ThroughputAnalyzer(TimeSpan resolution, long initialCount = 0, bool startTimerImmediately = true, IScheduler scheduler = null)
         {
-            if (stopwatchProvider == null) throw new ArgumentNullException(nameof(stopwatchProvider));
+            if (resolution.Ticks <= 1) throw new ArgumentOutOfRangeException(nameof(resolution), "Must be at least 2 Ticks or more");
 
-            StopwatchProvider = stopwatchProvider;
-            _totalCount = initialCount;
+            _currentCount = initialCount;
+
+            Resolution = resolution;
+            Scheduler = scheduler;
             
-            if(startTimerImmediately)
+            if (startTimerImmediately)
                 StartTimer();
         }
 
@@ -83,12 +92,22 @@ namespace JB.Reactive.Analytics.Analyzers
         /// </summary>
         public void StartTimer()
         {
-            if(IsRunning)
+            if (IsRunning)
                 throw new InvalidOperationException("The Timer is already running and can only be started once.");
 
-            _stopwatch = StopwatchProvider.StartStopwatch();
+            // using an Observable.Interval subscription as timer
+            IntervalSubscription = (Scheduler != null ? Observable.Interval(Resolution, Scheduler) : Observable.Interval(Resolution))
+                .Do(_ =>
+                {
+                    // and on every interval we capture and reset the counter
+                    var currentCountBeforeReset = Interlocked.Exchange(ref _currentCount, 0);
+
+                    // and expose its current value
+                    AnalysisResultsSubject.OnNext(new ThroughputAnalysisResult(currentCountBeforeReset, Resolution));
+                })
+                .Subscribe();
         }
-        
+
         #region Overrides of Analyzer<TSource>
 
         /// <summary>
@@ -99,10 +118,23 @@ namespace JB.Reactive.Analytics.Analyzers
         {
             if (IsRunning)
             {
-                var totalCount = Interlocked.Increment(ref _totalCount);
-
-                AnalysisResultsSubject.OnNext(new ThroughputAnalysisResult(totalCount, ElapsedTime));
+                Interlocked.Increment(ref _currentCount);
             }
+        }
+
+
+        /// <summary>
+        /// Releases unmanaged and - optionally - managed resources.
+        /// </summary>
+        /// <param name="disposeManagedResources"><c>true</c> to release both managed and unmanaged resources; <c>false</c> to release only unmanaged resources.</param>
+        protected override void Dispose(bool disposeManagedResources)
+        {
+            if (disposeManagedResources)
+            {
+                IntervalSubscription?.Dispose();
+            }
+
+            base.Dispose(disposeManagedResources);
         }
 
         #endregion

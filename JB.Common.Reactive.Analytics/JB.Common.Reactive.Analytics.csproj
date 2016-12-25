@@ -73,6 +73,7 @@
     <Compile Include="AnalysisResults\ThroughputAnalysisResult.cs" />
     <Compile Include="Analyzers\Analyzer.cs" />
     <Compile Include="Analyzers\CountAnalyzer.cs" />
+    <Compile Include="Analyzers\OverallThroughputAnalyzer.cs" />
     <Compile Include="Analyzers\ThroughputAnalyzer.cs" />
     <Compile Include="ExtensionMethods\ObservableExtensions.cs" />
     <Compile Include="AnalysisResults\IAnalysisResult.cs" />

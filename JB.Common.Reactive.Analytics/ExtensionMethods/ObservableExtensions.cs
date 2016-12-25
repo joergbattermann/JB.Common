@@ -32,12 +32,12 @@ namespace JB.Reactive.Analytics.ExtensionMethods
         /// </returns>
         /// <exception cref="System.ArgumentNullException">
         /// </exception>
-        public static IObservable<IAnalysisResult> AnalyzeWith<TSource>(this IObservable<TSource> source, IAnalyzer<TSource> analyzer, IScheduler scheduler = null)
+        public static IObservable<IAnalysisResult> Analyze<TSource>(this IObservable<TSource> source, IAnalyzer<TSource> analyzer, IScheduler scheduler = null)
         {
             if (source == null) throw new ArgumentNullException(nameof(source));
             if (analyzer == null) throw new ArgumentNullException(nameof(analyzer));
 
-            return source.AnalyzeWith<TSource, IAnalysisResult>(analyzer, scheduler);
+            return source.Analyze<TSource, IAnalysisResult>(analyzer, scheduler);
         }
 
         /// <summary>
@@ -54,7 +54,7 @@ namespace JB.Reactive.Analytics.ExtensionMethods
         /// </returns>
         /// <exception cref="System.ArgumentNullException">
         /// </exception>
-        public static IObservable<TAnalysisResult> AnalyzeWith<TSource, TAnalysisResult>(this IObservable<TSource> source, IAnalyzer<TSource, TAnalysisResult> analyzer, IScheduler scheduler = null)
+        public static IObservable<TAnalysisResult> Analyze<TSource, TAnalysisResult>(this IObservable<TSource> source, IAnalyzer<TSource, TAnalysisResult> analyzer, IScheduler scheduler = null)
             where TAnalysisResult : IAnalysisResult
         {
             if (source == null) throw new ArgumentNullException(nameof(source));
@@ -90,7 +90,7 @@ namespace JB.Reactive.Analytics.ExtensionMethods
         /// </returns>
         /// <exception cref="System.ArgumentNullException">
         /// </exception>
-        public static IObservable<TAnalysisResult> AnalyzeWith<TSource, TAnalyzer, TAnalysisResult>(this IObservable<TSource> source, TAnalyzer analyzer, Action<TAnalyzer> actionToPerformOnAnalyzerUponSubscription = null, IScheduler scheduler = null)
+        public static IObservable<TAnalysisResult> Analyze<TSource, TAnalyzer, TAnalysisResult>(this IObservable<TSource> source, TAnalyzer analyzer, Action<TAnalyzer> actionToPerformOnAnalyzerUponSubscription = null, IScheduler scheduler = null)
             where TAnalysisResult : IAnalysisResult
             where TAnalyzer : IAnalyzer<TSource, TAnalysisResult>
         {
@@ -126,7 +126,7 @@ namespace JB.Reactive.Analytics.ExtensionMethods
         /// </returns>
         /// <exception cref="System.ArgumentNullException">
         /// </exception>
-        public static IObservable<IAnalysisResult> AnalyzeWith<TSource>(this IObservable<TSource> source, ICollection<IAnalyzer<TSource>> analyzers, IScheduler scheduler = null)
+        public static IObservable<IAnalysisResult> Analyze<TSource>(this IObservable<TSource> source, ICollection<IAnalyzer<TSource>> analyzers, IScheduler scheduler = null)
         {
             if (source == null) throw new ArgumentNullException(nameof(source));
             if (analyzers == null) throw new ArgumentNullException(nameof(analyzers));
@@ -166,7 +166,7 @@ namespace JB.Reactive.Analytics.ExtensionMethods
         /// <exception cref="System.ArgumentNullException">
         /// </exception>
         /// <exception cref="System.ArgumentOutOfRangeException"></exception>
-        public static IObservable<TAnalysisResult> AnalyzeWith<TSource, TAnalysisResult>(this IObservable<TSource> source,
+        public static IObservable<TAnalysisResult> Analyze<TSource, TAnalysisResult>(this IObservable<TSource> source,
             ICollection<IAnalyzer<TSource, TAnalysisResult>> analyzers,
             IScheduler scheduler = null)
             where TAnalysisResult : IAnalysisResult
@@ -205,13 +205,13 @@ namespace JB.Reactive.Analytics.ExtensionMethods
         /// </returns>
         /// <exception cref="System.ArgumentNullException">
         /// </exception>
-        public static IObservable<IAnalysisResult> AnalyzeWith<TSource>(this IObservable<TSource> source, params IAnalyzer<TSource>[] analyzers)
+        public static IObservable<IAnalysisResult> Analyze<TSource>(this IObservable<TSource> source, params IAnalyzer<TSource>[] analyzers)
         {
             if (source == null) throw new ArgumentNullException(nameof(source));
             if (analyzers == null) throw new ArgumentNullException(nameof(analyzers));
             if (analyzers.Length == 0) throw new ArgumentOutOfRangeException(nameof(analyzers));
 
-            return source.AnalyzeWith(analyzers.ToList());
+            return source.Analyze(analyzers.ToList());
         }
 
         /// <summary>
@@ -227,14 +227,14 @@ namespace JB.Reactive.Analytics.ExtensionMethods
         /// <exception cref="System.ArgumentNullException">
         /// </exception>
         /// <exception cref="System.ArgumentOutOfRangeException"></exception>
-        public static IObservable<TAnalysisResult> AnalyzeWith<TSource, TAnalysisResult>(this IObservable<TSource> source, params IAnalyzer<TSource, TAnalysisResult>[] analyzers)
+        public static IObservable<TAnalysisResult> Analyze<TSource, TAnalysisResult>(this IObservable<TSource> source, params IAnalyzer<TSource, TAnalysisResult>[] analyzers)
             where TAnalysisResult : IAnalysisResult
         {
             if (source == null) throw new ArgumentNullException(nameof(source));
             if (analyzers == null) throw new ArgumentNullException(nameof(analyzers));
             if (analyzers.Length == 0) throw new ArgumentOutOfRangeException(nameof(analyzers));
 
-            return source.AnalyzeWith(analyzers.ToList());
+            return source.Analyze(analyzers.ToList());
         }
 
         /// <summary>
@@ -250,14 +250,14 @@ namespace JB.Reactive.Analytics.ExtensionMethods
         /// </returns>
         /// <exception cref="System.ArgumentNullException">
         /// </exception>
-        public static IObservable<IAnalysisResult> AnalyzeWith<TSource>(this IObservable<TSource> source, IScheduler scheduler, params IAnalyzer<TSource>[] analyzers)
+        public static IObservable<IAnalysisResult> Analyze<TSource>(this IObservable<TSource> source, IScheduler scheduler, params IAnalyzer<TSource>[] analyzers)
         {
             if (source == null) throw new ArgumentNullException(nameof(source));
             if (scheduler == null) throw new ArgumentNullException(nameof(scheduler));
             if (analyzers == null) throw new ArgumentNullException(nameof(analyzers));
             if (analyzers.Length == 0) throw new ArgumentOutOfRangeException(nameof(analyzers));
 
-            return source.AnalyzeWith(analyzers.ToList(), scheduler);
+            return source.Analyze(analyzers.ToList(), scheduler);
         }
 
         /// <summary>
@@ -275,7 +275,7 @@ namespace JB.Reactive.Analytics.ExtensionMethods
         /// <exception cref="System.ArgumentNullException">
         /// </exception>
         /// <exception cref="System.ArgumentOutOfRangeException"></exception>
-        public static IObservable<TAnalysisResult> AnalyzeWith<TSource, TAnalysisResult>(this IObservable<TSource> source, IScheduler scheduler, params IAnalyzer<TSource, TAnalysisResult>[] analyzers)
+        public static IObservable<TAnalysisResult> Analyze<TSource, TAnalysisResult>(this IObservable<TSource> source, IScheduler scheduler, params IAnalyzer<TSource, TAnalysisResult>[] analyzers)
             where TAnalysisResult : IAnalysisResult
         {
             if (source == null) throw new ArgumentNullException(nameof(source));
@@ -283,7 +283,7 @@ namespace JB.Reactive.Analytics.ExtensionMethods
             if (analyzers == null) throw new ArgumentNullException(nameof(analyzers));
             if (analyzers.Length == 0) throw new ArgumentOutOfRangeException(nameof(analyzers));
 
-            return source.AnalyzeWith(analyzers.ToList(), scheduler);
+            return source.Analyze(analyzers.ToList(), scheduler);
         }
 
         /// <summary>
@@ -305,12 +305,12 @@ namespace JB.Reactive.Analytics.ExtensionMethods
             if (source == null) throw new ArgumentNullException(nameof(source));
 
             return source
-                .AnalyzeWith(new CountAnalyzer<TSource>(initialCount), scheduler);
+                .Analyze(new CountAnalyzer<TSource>(initialCount), scheduler);
         }
 
         /// <summary>
-        /// Provides an observable stream of <see cref="ICountBasedAnalysisResult" /> elements reporting the current count
-        /// for every received <typeparamref name="TSource" /> instance.
+        /// Provides an observable stream of <see cref="IThroughputAnalysisResult" /> elements reporting the overall throughput
+        /// since the time of subscription of every received <typeparamref name="TSource" /> instance.
         /// </summary>
         /// <typeparam name="TSource">The type of the source.</typeparam>
         /// <param name="source">The source sequence.</param>
@@ -321,8 +321,7 @@ namespace JB.Reactive.Analytics.ExtensionMethods
         /// A new <see cref="IObservable{TSource}" /> providing the full <paramref name="source" /> sequence back to the caller.
         /// </returns>
         /// <exception cref="System.ArgumentNullException">source</exception>
-        /// <exception cref="System.ArgumentException"></exception>
-        public static IObservable<IThroughputAnalysisResult> AnalyzeThroughput<TSource>(
+        public static IObservable<IThroughputAnalysisResult> AnalyzeOverallThroughput<TSource>(
             this IObservable<TSource> source,
             long initialCount = 0,
             IScheduler scheduler = null,
@@ -352,8 +351,38 @@ namespace JB.Reactive.Analytics.ExtensionMethods
             }
 
             return source
-                .AnalyzeWith<TSource, ThroughputAnalyzer<TSource>, IThroughputAnalysisResult>(
-                    new ThroughputAnalyzer<TSource>(stopWatchProvider, initialCount, false),
+                .Analyze<TSource, OverallThroughputAnalyzer<TSource>, IThroughputAnalysisResult>(
+                    new OverallThroughputAnalyzer<TSource>(stopWatchProvider, initialCount, false),
+                    throughputAnalyzer => { throughputAnalyzer.StartTimer(); },
+                    scheduler);
+        }
+
+        /// <summary>
+        /// Provides an observable stream of <see cref="IThroughputAnalysisResult" /> elements reporting the throughput of <typeparamref name="TSource" /> instances
+        /// at a given timespan <paramref name="resolution" />.
+        /// </summary>
+        /// <typeparam name="TSource">The type of the source.</typeparam>
+        /// <param name="source">The source sequence.</param>
+        /// <param name="resolution">The resolution at which to sample the <paramref name="source" /> sequence.</param>
+        /// <param name="initialCount">The initial count.</param>
+        /// <param name="scheduler">The scheduler to run the <see cref="IAnalyzer{TSource}" /> on.</param>
+        /// <returns>
+        /// A sequence of <see cref="IThroughputAnalysisResult" /> instances at the provided <paramref name="resolution" />.
+        /// </returns>
+        /// <exception cref="System.ArgumentNullException">source</exception>
+        /// <exception cref="System.ArgumentOutOfRangeException">resolution - Must be at least 2 Ticks</exception>
+        public static IObservable<IThroughputAnalysisResult> AnalyzeThroughput<TSource>(
+            this IObservable<TSource> source,
+            TimeSpan resolution,
+            long initialCount = 0,
+            IScheduler scheduler = null)
+        {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            if (resolution.Ticks <= 1) throw new ArgumentOutOfRangeException(nameof(resolution), "Must be at least 2 Ticks");
+
+            return source
+                .Analyze<TSource, ThroughputAnalyzer<TSource>, IThroughputAnalysisResult>(
+                    new ThroughputAnalyzer<TSource>(resolution, initialCount, false, scheduler),
                     throughputAnalyzer => { throughputAnalyzer.StartTimer(); },
                     scheduler);
         }

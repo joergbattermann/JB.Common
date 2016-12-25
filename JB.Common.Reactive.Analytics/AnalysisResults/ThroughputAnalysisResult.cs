@@ -18,7 +18,7 @@ namespace JB.Reactive.Analytics.AnalysisResults
         /// <value>
         /// The throughput / millisecond.
         /// </value>
-        public double ThroughputPerMillisecond => Count / ElapsedTime.TotalMilliseconds;
+        public double ThroughputPerMillisecond => Count == 0 ? 0 : Count / ElapsedTime.TotalMilliseconds;
 
         /// <summary>
         /// Gets the throughput / second.
@@ -26,7 +26,7 @@ namespace JB.Reactive.Analytics.AnalysisResults
         /// <value>
         /// The throughput / second.
         /// </value>
-        public double ThroughputPerSecond => Count / ElapsedTime.TotalSeconds;
+        public double ThroughputPerSecond => Count == 0 ? 0 : Count / ElapsedTime.TotalSeconds;
 
         /// <summary>
         /// Gets the throughput / minute.
@@ -34,7 +34,7 @@ namespace JB.Reactive.Analytics.AnalysisResults
         /// <value>
         /// The throughput / minute.
         /// </value>
-        public double ThroughputPerMinute => Count / ElapsedTime.TotalMinutes;
+        public double ThroughputPerMinute => Count == 0 ? 0 : Count / ElapsedTime.TotalMinutes;
 
         /// <summary>
         /// Gets the throughput / hour.
@@ -42,7 +42,7 @@ namespace JB.Reactive.Analytics.AnalysisResults
         /// <value>
         /// The throughput / hour.
         /// </value>
-        public double ThroughputPerHour => Count / ElapsedTime.TotalHours;
+        public double ThroughputPerHour => Count == 0 ? 0 : Count / ElapsedTime.TotalHours;
 
         /// <summary>
         /// Gets the throughput / day.
@@ -50,7 +50,7 @@ namespace JB.Reactive.Analytics.AnalysisResults
         /// <value>
         /// The throughput / day.
         /// </value>
-        public double ThroughputPerDay => Count / ElapsedTime.TotalDays;
+        public double ThroughputPerDay => Count == 0 ? 0 : Count / ElapsedTime.TotalDays;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ThroughputAnalysisResult"/> class.
