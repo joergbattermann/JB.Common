@@ -18,8 +18,8 @@
     <tags>Collections Collection List BindingList Enumerable</tags>
   </metadata>
   <files>
-    <file src="JB.Common.Collections\bin\Release\JB.Common.Collections.dll" target="lib\net45" />
-    <file src="JB.Common.Collections\bin\Release\JB.Common.Collections.pdb" target="lib\net45" />
-    <file src="JB.Common.Collections\bin\Release\JB.Common.Collections.xml" target="lib\net45" />
+    <file src="JB.Common.Collections\bin\Release\JB.Common.Collections.dll" target="lib\net46" />
+    <file src="JB.Common.Collections\bin\Release\JB.Common.Collections.pdb" target="lib\net46" />
+    <file src="JB.Common.Collections\bin\Release\JB.Common.Collections.xml" target="lib\net46" />
   </files>
 </package>

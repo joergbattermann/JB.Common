@@ -10,6 +10,7 @@ namespace JB.VisualStudio.TeamFoundation.TeamExplorer
     public static class TeamExplorerPageContextKeys
     {
 
+#pragma warning disable 1591
         public static readonly string Builds = "QueuedBuildId";
 
         public static readonly string CodeReviewWorkItem = CodeReviewContextKeyNames.WorkItem;
@@ -20,5 +21,6 @@ namespace JB.VisualStudio.TeamFoundation.TeamExplorer
         public static readonly string CodeReviewShelvesetName = CodeReviewContextKeyNames.ShelvesetName;
         public static readonly string CodeReviewShelvesetExcludedCount = CodeReviewContextKeyNames.ShelvesetExcludedCount;
         public static readonly string CodeReviewChangesetId = CodeReviewContextKeyNames.ChangesetId;
+#pragma warning restore 1591
     }
 }

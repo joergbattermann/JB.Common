@@ -14,15 +14,15 @@
     <projectUrl>https://github.com/jbattermann/JB.Common/blob/master/README.md</projectUrl>
     <dependencies>
       <dependency id="JB.Common" version="[$version$,]" />
-      <dependency id="Microsoft.VisualStudio.Shell.14.0" version="[14.0.23205,]" />
-      <dependency id="Microsoft.VisualStudio.Shell.Interop.14.0.DesignTime" version="[14.0.23205,]" />
-      <dependency id="Microsoft.VisualStudio.ImageCatalog" version="[14.0.23205,]" />
+      <dependency id="Microsoft.VisualStudio.Shell.14.0" version="[14.3.25407,]" />
+      <dependency id="Microsoft.VisualStudio.Shell.Interop.14.0.DesignTime" version="[14.3.25407,]" />
+      <dependency id="Microsoft.VisualStudio.ImageCatalog" version="[14.3.25407,]" />
     </dependencies>
     <tags>VisualStudio Common Helpers HelperMethods ExtensionMethods Extensibility VSIX</tags>
   </metadata>
   <files>
-    <file src="JB.Common.VisualStudio\bin\Release\JB.Common.VisualStudio.dll" target="lib\net45" />
-    <file src="JB.Common.VisualStudio\bin\Release\JB.Common.VisualStudio.pdb" target="lib\net45" />
-    <file src="JB.Common.VisualStudio\bin\Release\JB.Common.VisualStudio.xml" target="lib\net45" />
+    <file src="JB.Common.VisualStudio\bin\Release\JB.Common.VisualStudio.dll" target="lib\net46" />
+    <file src="JB.Common.VisualStudio\bin\Release\JB.Common.VisualStudio.pdb" target="lib\net46" />
+    <file src="JB.Common.VisualStudio\bin\Release\JB.Common.VisualStudio.xml" target="lib\net46" />
   </files>
 </package>

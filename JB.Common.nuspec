@@ -15,8 +15,8 @@
     <tags>Common Helpers HelperMethods ExtensionMethods</tags>
   </metadata>
   <files>
-    <file src="JB.Common\bin\Release\JB.Common.dll" target="lib\net45" />
-    <file src="JB.Common\bin\Release\JB.Common.pdb" target="lib\net45" />
-    <file src="JB.Common\bin\Release\JB.Common.xml" target="lib\net45" />
+    <file src="JB.Common\bin\Release\JB.Common.dll" target="lib\net46" />
+    <file src="JB.Common\bin\Release\JB.Common.pdb" target="lib\net46" />
+    <file src="JB.Common\bin\Release\JB.Common.xml" target="lib\net46" />
   </files>
 </package>

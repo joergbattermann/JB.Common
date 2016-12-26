@@ -19,8 +19,8 @@
     <tags>VisualStudio TeamFoundation TeamFoundationServer TFS TeamExplorer WorkItemTracking WorkItem Common Helpers HelperMethods ExtensionMethods Extensibility VSIX</tags>
   </metadata>
   <files>
-    <file src="JB.Common.VisualStudio.TeamFoundation\bin\Release\JB.Common.VisualStudio.TeamFoundation.dll" target="lib\net45" />
-    <file src="JB.Common.VisualStudio.TeamFoundation\bin\Release\JB.Common.VisualStudio.TeamFoundation.pdb" target="lib\net45" />
-    <file src="JB.Common.VisualStudio.TeamFoundation\bin\Release\JB.Common.VisualStudio.TeamFoundation.xml" target="lib\net45" />
+    <file src="JB.Common.VisualStudio.TeamFoundation\bin\Release\JB.Common.VisualStudio.TeamFoundation.dll" target="lib\net46" />
+    <file src="JB.Common.VisualStudio.TeamFoundation\bin\Release\JB.Common.VisualStudio.TeamFoundation.pdb" target="lib\net46" />
+    <file src="JB.Common.VisualStudio.TeamFoundation\bin\Release\JB.Common.VisualStudio.TeamFoundation.xml" target="lib\net46" />
   </files>
 </package>

@@ -15,15 +15,15 @@
     <dependencies>
       <dependency id="JB.Common" version="[$version$,]" />
       <dependency id="JB.Common.Collections" version="[$version$,]" />
-      <dependency id="JB.Common.Reactive" version="[$version$,]" />
       <dependency id="JB.Common.Collections.Reactive" version="[$version$,]" />
+      <dependency id="JB.Common.Reactive" version="[$version$,]" />
       <dependency id="System.Reactive" version="[3.1.1,]" />
     </dependencies>
     <tags>Reactive Extensions RXNet Streaming Cache Caching</tags>
   </metadata>
   <files>
-    <file src="JB.Common.Reactive.Cache\bin\Release\JB.Common.Reactive.Cache.dll" target="lib\net45" />
-    <file src="JB.Common.Reactive.Cache\bin\Release\JB.Common.Reactive.Cache.pdb" target="lib\net45" />
-    <file src="JB.Common.Reactive.Cache\bin\Release\JB.Common.Reactive.Cache.xml" target="lib\net45" />
+    <file src="JB.Common.Reactive.Cache\bin\Release\JB.Common.Reactive.Cache.dll" target="lib\net46" />
+    <file src="JB.Common.Reactive.Cache\bin\Release\JB.Common.Reactive.Cache.pdb" target="lib\net46" />
+    <file src="JB.Common.Reactive.Cache\bin\Release\JB.Common.Reactive.Cache.xml" target="lib\net46" />
   </files>
 </package>

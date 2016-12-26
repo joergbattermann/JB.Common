@@ -1,11 +1,11 @@
 <?xml version="1.0"?>
 <package xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
   <metadata xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
-    <id>JB.Common.TeamFoundationServer.Client</id>
+    <id>JB.Common.TeamFoundationServer.Reactive.Client</id>
     <version>$version$</version>
     <authors>Joerg Battermann</authors>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
-    <description>Provides custom types, helpers and extension methods for the Microsoft Visual Studio Team Services &amp; Team Foundation Server 2015 client(s).</description>
+    <description>Provides RX.Net specific client(s), custom types, helpers and extension methods for the Microsoft Visual Studio Team Services &amp; Team Foundation Server 2015 client(s).</description>
     <summary>This package contains custom type(s) I needed myself or deemed useful for current or future projects.</summary>
     <releaseNotes>Initial version.</releaseNotes>
     <language>en-US</language>
@@ -15,7 +15,10 @@
     <dependencies>
       <dependency id="JB.Common" version="[$version$,]" />
       <dependency id="JB.Common.VisualStudio.Services.Client" version="[$version$,]" />
+      <dependency id="JB.Common.TeamFoundationServer.Client" version="[$version$,]" />
       <dependency id="Microsoft.TeamFoundationServer.Client" version="[14.102.0,]" />
+      <dependency id="Microsoft.VisualStudio.Services.Client" version="[14.102.0,]" />
+      <dependency id="System.Reactive" version="[3.1.1,]" />
     </dependencies>
     <tags>TFS TFS2015 TeamFoundationServer VisualStudio VisualStudioTeamServices VSTS TeamServices Common Helpers HelperMethods ExtensionMethods</tags>
   </metadata>

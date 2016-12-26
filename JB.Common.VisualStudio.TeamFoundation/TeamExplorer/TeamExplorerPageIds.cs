@@ -15,6 +15,7 @@ namespace JB.VisualStudio.TeamFoundation.TeamExplorer
     /// </summary>
     public static class TeamExplorerPageIds
     {
+#pragma warning disable 1591
         public static readonly Guid AllChanges = new Guid(Microsoft.TeamFoundation.Controls.TeamExplorerPageIds.AllChanges);
         public static readonly Guid Builds = new Guid(Microsoft.TeamFoundation.Controls.TeamExplorerPageIds.Builds);
         public static readonly Guid ChangesetDetails = new Guid(Microsoft.TeamFoundation.Controls.TeamExplorerPageIds.ChangesetDetails);
@@ -40,5 +41,6 @@ namespace JB.VisualStudio.TeamFoundation.TeamExplorer
         public static readonly Guid ShelvesetDetails = new Guid(Microsoft.TeamFoundation.Controls.TeamExplorerPageIds.ShelvesetDetails);
         public static readonly Guid ViewCodeReview = new Guid(Microsoft.TeamFoundation.Controls.TeamExplorerPageIds.ViewCodeReview);
         public static readonly Guid WorkItems = new Guid(Microsoft.TeamFoundation.Controls.TeamExplorerPageIds.WorkItems);
+#pragma warning restore 1591
     }
 }

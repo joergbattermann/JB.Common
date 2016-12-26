@@ -19,8 +19,8 @@
     <tags>Reactive Extensions rxnet Async AsyncReaderWriterLock</tags>
   </metadata>
   <files>
-    <file src="JB.Common.Reactive\bin\Release\JB.Common.Reactive.dll" target="lib\net45" />
-    <file src="JB.Common.Reactive\bin\Release\JB.Common.Reactive.pdb" target="lib\net45" />
-    <file src="JB.Common.Reactive\bin\Release\JB.Common.Reactive.xml" target="lib\net45" />
+    <file src="JB.Common.Reactive\bin\Release\JB.Common.Reactive.dll" target="lib\net46" />
+    <file src="JB.Common.Reactive\bin\Release\JB.Common.Reactive.pdb" target="lib\net46" />
+    <file src="JB.Common.Reactive\bin\Release\JB.Common.Reactive.xml" target="lib\net46" />
   </files>
 </package>

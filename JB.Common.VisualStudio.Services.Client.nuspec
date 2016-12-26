@@ -14,8 +14,8 @@
     <projectUrl>https://github.com/jbattermann/JB.Common/blob/master/README.md</projectUrl>
     <dependencies>
       <dependency id="JB.Common" version="[$version$,]" />
-      <dependency id="Microsoft.VisualStudio.Services.InteractiveClient" version="[14.95.3,]" />
-      <dependency id="Microsoft.VisualStudio.Services.Client" version="[14.95.3,]" />
+      <dependency id="Microsoft.VisualStudio.Services.InteractiveClient" version="[14.102.0,]" />
+      <dependency id="Microsoft.VisualStudio.Services.Client" version="[14.102.0,]" />
     </dependencies>
     <tags>VisualStudio VisualStudioTeamServices VSTS TeamServices Common Helpers HelperMethods ExtensionMethods</tags>
   </metadata>

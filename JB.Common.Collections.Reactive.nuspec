@@ -21,8 +21,8 @@
     <tags>ObservableList ObservableCollection ObservableBindingList ObservableDictionary Collection List BindingList Dictionary ReactiveList ReactiveBindingList ReactiveDictionary Reactive RX.Net</tags>
   </metadata>
   <files>
-    <file src="JB.Common.Collections.Reactive\bin\Release\JB.Common.Collections.Reactive.dll" target="lib\net45" />
-    <file src="JB.Common.Collections.Reactive\bin\Release\JB.Common.Collections.Reactive.pdb" target="lib\net45" />
-    <file src="JB.Common.Collections.Reactive\bin\Release\JB.Common.Collections.Reactive.xml" target="lib\net45" />
+    <file src="JB.Common.Collections.Reactive\bin\Release\JB.Common.Collections.Reactive.dll" target="lib\net46" />
+    <file src="JB.Common.Collections.Reactive\bin\Release\JB.Common.Collections.Reactive.pdb" target="lib\net46" />
+    <file src="JB.Common.Collections.Reactive\bin\Release\JB.Common.Collections.Reactive.xml" target="lib\net46" />
   </files>
 </package>

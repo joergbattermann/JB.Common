@@ -20,8 +20,8 @@
     <tags>Reactive Extensions RXNet Streaming Analytics Analysis Insight</tags>
   </metadata>
   <files>
-    <file src="JB.Common.Reactive.Analytics\bin\Release\JB.Common.Reactive.Analytics.dll" target="lib\net45" />
-    <file src="JB.Common.Reactive.Analytics\bin\Release\JB.Common.Reactive.Analytics.pdb" target="lib\net45" />
-    <file src="JB.Common.Reactive.Analytics\bin\Release\JB.Common.Reactive.Analytics.xml" target="lib\net45" />
+    <file src="JB.Common.Reactive.Analytics\bin\Release\JB.Common.Reactive.Analytics.dll" target="lib\net46" />
+    <file src="JB.Common.Reactive.Analytics\bin\Release\JB.Common.Reactive.Analytics.pdb" target="lib\net46" />
+    <file src="JB.Common.Reactive.Analytics\bin\Release\JB.Common.Reactive.Analytics.xml" target="lib\net46" />
   </files>
 </package>

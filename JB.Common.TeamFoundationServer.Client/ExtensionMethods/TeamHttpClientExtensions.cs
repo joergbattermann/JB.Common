@@ -16,7 +16,7 @@ using Microsoft.VisualStudio.Services.Identity;
 using Microsoft.VisualStudio.Services.Identity.Client;
 using Microsoft.VisualStudio.Services.WebApi;
 
-namespace JB.Common.TeamFoundationServer.Client.ExtensionMethods
+namespace JB.TeamFoundationServer.Client.ExtensionMethods
 {
     /// <summary>
     /// Provides extension methods for <see cref="TeamHttpClient"/> instances.

@@ -12,7 +12,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.TeamFoundation.Core.WebApi;
 
-namespace JB.Common.TeamFoundationServer.Client.ExtensionMethods
+namespace JB.TeamFoundationServer.Client.ExtensionMethods
 {
     /// <summary>
     /// Provides extension methods for <see cref="ProjectCollectionHttpClient"/> instances.
