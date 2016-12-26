@@ -52,6 +52,7 @@
     <Compile Include="ExtensionMethods\ServiceProviderExtensions.cs" />
     <Compile Include="ExtensionMethods\TypeExtensions.cs" />
     <Compile Include="ForwardedEventArgs.cs" />
+    <Compile Include="Linq\Enumerable.cs" />
     <Compile Include="Pool.cs" />
     <Compile Include="Pooled.cs" />
     <Compile Include="PooledValueAcquisitionMode.cs" />

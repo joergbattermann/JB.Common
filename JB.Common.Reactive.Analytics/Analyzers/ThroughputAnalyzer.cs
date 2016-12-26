@@ -70,15 +70,12 @@ namespace JB.Reactive.Analytics.Analyzers
         /// Initializes a new instance of the <see cref="ThroughputAnalyzer{TSource}" /> class.
         /// </summary>
         /// <param name="resolution">The resolution at which to emit the throughput rate.</param>
-        /// <param name="initialCount">The initial count.</param>
         /// <param name="startTimerImmediately">Indicates whether the underlying timer shall start immediately upon construction.</param>
         /// <param name="scheduler">The scheduler to run the internal timer on.</param>
         /// <exception cref="System.ArgumentOutOfRangeException">resolution - Must be at least 2 Ticks or more</exception>
-        public ThroughputAnalyzer(TimeSpan resolution, long initialCount = 0, bool startTimerImmediately = true, IScheduler scheduler = null)
+        public ThroughputAnalyzer(TimeSpan resolution, bool startTimerImmediately = true, IScheduler scheduler = null)
         {
-            if (resolution.Ticks <= 1) throw new ArgumentOutOfRangeException(nameof(resolution), "Must be at least 2 Ticks or more");
-
-            _currentCount = initialCount;
+            if (resolution.Ticks < 0) throw new ArgumentOutOfRangeException(nameof(resolution));
 
             Resolution = resolution;
             Scheduler = scheduler;
@@ -97,15 +94,14 @@ namespace JB.Reactive.Analytics.Analyzers
 
             // using an Observable.Interval subscription as timer
             IntervalSubscription = (Scheduler != null ? Observable.Interval(Resolution, Scheduler) : Observable.Interval(Resolution))
-                .Do(_ =>
+                .Subscribe(_ =>
                 {
                     // and on every interval we capture and reset the counter
                     var currentCountBeforeReset = Interlocked.Exchange(ref _currentCount, 0);
 
                     // and expose its current value
                     AnalysisResultsSubject.OnNext(new ThroughputAnalysisResult(currentCountBeforeReset, Resolution));
-                })
-                .Subscribe();
+                });
         }
 
         #region Overrides of Analyzer<TSource>
@@ -121,8 +117,7 @@ namespace JB.Reactive.Analytics.Analyzers
                 Interlocked.Increment(ref _currentCount);
             }
         }
-
-
+        
         /// <summary>
         /// Releases unmanaged and - optionally - managed resources.
         /// </summary>

@@ -1,3 +1,4 @@
+using System;
 using System.Reactive.Subjects;
 using JB.Reactive.Analytics.AnalysisResults;
 

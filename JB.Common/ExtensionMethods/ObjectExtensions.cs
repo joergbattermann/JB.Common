@@ -7,7 +7,9 @@
 // -----------------------------------------------------------------------
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics.Contracts;
+using JB.Linq;
 
 namespace JB.ExtensionMethods
 {
@@ -40,6 +42,18 @@ namespace JB.ExtensionMethods
             if (value == null) throw new ArgumentNullException(nameof(value));
 
             return value is TInterface;
+        }
+
+        /// <summary>
+        /// Returns the specified value as an <see cref="IEnumerable{TSource}"/>.
+        /// </summary>
+        /// <typeparam name="TSource">The type of the <paramref name="value"/>.</typeparam>
+        /// <param name="value">The value to return as an enumerable.</param>
+        /// <returns></returns>
+        [Pure]
+        public static IEnumerable<TSource> AsEnumerable<TSource>(this TSource value)
+        {
+            return Enumerable.From(value);
         }
     }
 }

@@ -79,5 +79,40 @@ namespace JB.Reactive.Analytics.Tests.Analyzers
                 analysisResultsObserver.Messages.Last().Value.Kind.Should().Be(NotificationKind.OnCompleted);
             }
         }
+
+        [Fact]
+        public void ThroughputAnalyzerShouldCalculateThroughputCorrectlyAndForwardSourceSequence()
+        {
+            // given
+            var testScheduler = new TestScheduler();
+
+            var sourceSequenceObserver = testScheduler.CreateObserver<long>();
+            var throughPutAnalysisResultsObserver = testScheduler.CreateObserver<IThroughputAnalysisResult>();
+
+            var interval = TimeSpan.FromMilliseconds(1);
+            var resolution = TimeSpan.FromMilliseconds(10);
+
+            using (Observable.Interval(interval, testScheduler).Take(20).AnalyzeThroughputWith(throughPutAnalysisResultsObserver, resolution, testScheduler).Subscribe(sourceSequenceObserver))
+            {
+                throughPutAnalysisResultsObserver.Messages.Count.Should().Be(0);
+
+                // when some time has passed
+                testScheduler.AdvanceTo(resolution + interval);
+
+                // then
+                throughPutAnalysisResultsObserver.Messages.Count.Should().Be(1);
+                throughPutAnalysisResultsObserver.Messages[0].Value.Value.ElapsedTime.Should().Be(resolution);
+                throughPutAnalysisResultsObserver.Messages[0].Value.Value.ThroughputPerMillisecond.Should().Be(throughPutAnalysisResultsObserver.Messages[0].Value.Value.Count / throughPutAnalysisResultsObserver.Messages[0].Value.Value.ElapsedTime.TotalMilliseconds);
+
+                // when
+                testScheduler.AdvanceTo(resolution + resolution + interval);
+
+                // then
+                throughPutAnalysisResultsObserver.Messages.Count.Should().Be(2);
+
+                throughPutAnalysisResultsObserver.Messages[1].Value.Value.ElapsedTime.Should().Be(resolution);
+                throughPutAnalysisResultsObserver.Messages[1].Value.Value.ThroughputPerMillisecond.Should().Be(throughPutAnalysisResultsObserver.Messages[1].Value.Value.Count / throughPutAnalysisResultsObserver.Messages[1].Value.Value.ElapsedTime.TotalMilliseconds);
+            }
+        }
     }
 }

@@ -71,14 +71,12 @@ namespace JB.Reactive.Analytics.Analyzers
         /// Initializes a new instance of the <see cref="CountAnalyzer{TSource}" /> class.
         /// </summary>
         /// <param name="stopwatchProvider">The stopwatch provider.</param>
-        /// <param name="initialCount">The initial count.</param>
         /// <param name="startTimerImmediately">Indicates whether the underlying timer shall start immediately upon construction.</param>
         /// <exception cref="System.ArgumentNullException">stopwatchProvider</exception>
-        public OverallThroughputAnalyzer(IStopwatchProvider stopwatchProvider, long initialCount = 0, bool startTimerImmediately = true)
+        public OverallThroughputAnalyzer(IStopwatchProvider stopwatchProvider, bool startTimerImmediately = true)
         {
             if (stopwatchProvider == null) throw new ArgumentNullException(nameof(stopwatchProvider));
-
-            _totalCount = initialCount;
+            
             StopwatchProvider = stopwatchProvider;
             
             if(startTimerImmediately)
