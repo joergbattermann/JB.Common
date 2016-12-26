@@ -75,7 +75,7 @@ namespace JB.Reactive.Analytics.ExtensionMethods
 
                 var sourceForwardingSubscription = source.Subscribe(observer);
 
-                return new CompositeDisposable(analyzerProducerSubscription, sourceConsumerSubscription, sourceForwardingSubscription);
+                return new CompositeDisposable(sourceForwardingSubscription, sourceConsumerSubscription, analyzerProducerSubscription);
             });
         }
 
@@ -139,7 +139,7 @@ namespace JB.Reactive.Analytics.ExtensionMethods
 
                 var sourceForwardingSubscription = source.Subscribe(observer);
 
-                return new CompositeDisposable(analyzerProducerSubscription, sourceConsumerSubscription, sourceForwardingSubscription);
+                return new CompositeDisposable(sourceForwardingSubscription, sourceConsumerSubscription, analyzerProducerSubscription);
             });
         }
 
@@ -207,7 +207,7 @@ namespace JB.Reactive.Analytics.ExtensionMethods
 
                 var sourceForwardingSubscription = source.Subscribe(observer);
 
-                return new CompositeDisposable(analyzerProducerSubscription, sourceConsumerSubscription, sourceForwardingSubscription);
+                return new CompositeDisposable(sourceForwardingSubscription, sourceConsumerSubscription, analyzerProducerSubscription);
             });
         }
 
@@ -270,7 +270,7 @@ namespace JB.Reactive.Analytics.ExtensionMethods
 
                 var sourceForwardingSubscription = source.Subscribe(observer);
 
-                return new CompositeDisposable(analyzerProducerSubscription, sourceConsumerSubscription, sourceForwardingSubscription);
+                return new CompositeDisposable(sourceForwardingSubscription, sourceConsumerSubscription, analyzerProducerSubscription);
             });
         }
 
@@ -341,7 +341,7 @@ namespace JB.Reactive.Analytics.ExtensionMethods
 
                 var sourceForwardingSubscription = source.Subscribe(observer);
 
-                return new CompositeDisposable(analyzerProducerSubscription, sourceConsumerSubscription, sourceForwardingSubscription);
+                return new CompositeDisposable(sourceForwardingSubscription, sourceConsumerSubscription, analyzerProducerSubscription);
             });
         }
 
@@ -419,7 +419,7 @@ namespace JB.Reactive.Analytics.ExtensionMethods
 
                 var sourceForwardingSubscription = source.Subscribe(observer);
 
-                return new CompositeDisposable(analyzerProducerSubscription, sourceConsumerSubscription, sourceForwardingSubscription);
+                return new CompositeDisposable(sourceForwardingSubscription, sourceConsumerSubscription, analyzerProducerSubscription);
             });
         }
 
@@ -475,7 +475,7 @@ namespace JB.Reactive.Analytics.ExtensionMethods
 
                 var analyzerProducerSubscription = analyzer.Subscribe(observer);
 
-                return new CompositeDisposable(analyzerProducerSubscription, sourceConsumerSubscription);
+                return new CompositeDisposable(sourceConsumerSubscription, analyzerProducerSubscription);
             });
         }
 
@@ -536,7 +536,7 @@ namespace JB.Reactive.Analytics.ExtensionMethods
 
                 var analyzerProducerSubscription = analyzer.Subscribe(observer);
 
-                return new CompositeDisposable(analyzerProducerSubscription, sourceConsumerSubscription);
+                return new CompositeDisposable(sourceConsumerSubscription, analyzerProducerSubscription);
             });
         }
 
@@ -596,7 +596,7 @@ namespace JB.Reactive.Analytics.ExtensionMethods
 
                 var analyzerProducersSubscription = analyzers.Merge().Subscribe(observer);
 
-                return new CompositeDisposable(analyzerProducersSubscription, sourceConsumerSubscriptions);
+                return new CompositeDisposable(sourceConsumerSubscriptions, analyzerProducersSubscription);
             });
         }
 
@@ -666,7 +666,7 @@ namespace JB.Reactive.Analytics.ExtensionMethods
                
                 var analyzerProducersSubscription = analyzers.Merge().Subscribe(observer);
 
-                return new CompositeDisposable(analyzerProducersSubscription, sourceConsumerSubscriptions);
+                return new CompositeDisposable(sourceConsumerSubscriptions, analyzerProducersSubscription);
             });
         }
 
