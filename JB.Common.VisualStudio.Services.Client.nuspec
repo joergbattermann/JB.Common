@@ -17,7 +17,7 @@
       <dependency id="Microsoft.VisualStudio.Services.InteractiveClient" version="[14.102.0,]" />
       <dependency id="Microsoft.VisualStudio.Services.Client" version="[14.102.0,]" />
     </dependencies>
-    <tags>VisualStudio VisualStudioTeamServices VSTS TeamServices Common Helpers HelperMethods ExtensionMethods</tags>
+    <tags>VisualStudio VisualStudioTeamServices VisualStudio VisualStudioOnline VSO VisualStudioTeamServices VSTS TeamServices Common Helpers HelperMethods ExtensionMethods</tags>
   </metadata>
   <files>
     <file src="JB.Common.VisualStudio.Services.Client\bin\Release\JB.Common.VisualStudio.Services.Client.dll" target="lib\net46" />

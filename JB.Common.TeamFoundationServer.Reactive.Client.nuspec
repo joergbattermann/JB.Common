@@ -20,7 +20,7 @@
       <dependency id="Microsoft.VisualStudio.Services.Client" version="[14.102.0,]" />
       <dependency id="System.Reactive" version="[3.1.1,]" />
     </dependencies>
-    <tags>TFS TFS2015 TeamFoundationServer VisualStudio VisualStudioTeamServices VSTS TeamServices Common Helpers HelperMethods ExtensionMethods</tags>
+    <tags>Reactive Extensions RX rxnet TFS TeamFoundationServer VisualStudio VisualStudioOnline VSO VisualStudioTeamServices VSTS TeamServices Common Helpers HelperMethods ExtensionMethods</tags>
   </metadata>
   <files>
     <file src="JB.Common.TeamFoundationServer.Client\bin\Release\JB.Common.TeamFoundationServer.Client.dll" target="lib\net46" />
