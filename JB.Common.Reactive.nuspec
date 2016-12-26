@@ -16,7 +16,7 @@
       <dependency id="JB.Common" version="[$version$,]" />
       <dependency id="System.Reactive" version="[3.1.1,]" />
     </dependencies>
-    <tags>Reactive Extensions rxnet Async AsyncReaderWriterLock</tags>
+    <tags>Reactive Extensions RX rxnet Async AsyncReaderWriterLock</tags>
   </metadata>
   <files>
     <file src="JB.Common.Reactive\bin\Release\JB.Common.Reactive.dll" target="lib\net46" />
