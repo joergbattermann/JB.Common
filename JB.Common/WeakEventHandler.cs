@@ -1,6 +1,6 @@
 ﻿// -----------------------------------------------------------------------
 // <copyright file="WeakEventHandler.cs" company="Joerg Battermann">
-//   Copyright (c) 2016 Joerg Battermann. All rights reserved.
+//   Copyright (c) 2017 Joerg Battermann. All rights reserved.
 // </copyright>
 // <author>Joerg Battermann</author>
 // <summary>Idea is based on Paul Stovell's blog post (http://paulstovell.com/blog/weakevents) but uses cached expression bodies/constructs for better performance.</summary>
