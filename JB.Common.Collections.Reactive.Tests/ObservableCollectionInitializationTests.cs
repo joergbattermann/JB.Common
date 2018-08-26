@@ -24,8 +24,8 @@ namespace JB.Collections.Reactive.Tests
             using (var observableCollection = new ObservableCollection<int>(initialList))
             {
                 // then
-                observableCollection.Count.Should().Be(initialList.Count);
-                observableCollection.Should().AllBeEquivalentTo(initialList);
+                observableCollection.Should().HaveCount(initialList.Count);
+                observableCollection.Should().BeEquivalentTo(initialList);
             }
         }
 

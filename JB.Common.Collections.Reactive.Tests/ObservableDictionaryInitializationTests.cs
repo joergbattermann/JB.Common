@@ -121,7 +121,8 @@ namespace JB.Collections.Reactive.Tests
         public void ShouldContainAllInitiallyProvidedElements()
         {
             // given
-            var initialList = new List<int>() {1, 2, 3}.ToDictionary(value => value, value => $"#{value}");
+            var initialList = new List<int>() {1, 2, 3}
+                .ToDictionary(value => value, value => $"#{value}");
 
             // when
             using (var observableDictionary = new ObservableDictionary<int, string>(initialList))

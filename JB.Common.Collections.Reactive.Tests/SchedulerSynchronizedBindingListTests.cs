@@ -24,8 +24,8 @@ namespace JB.Collections.Reactive.Tests
             var schedulerSynchronizedBindingList = new SchedulerSynchronizedBindingList<int>(initialList);
 
             // then
-            schedulerSynchronizedBindingList.Count.Should().Be(initialList.Count);
-            schedulerSynchronizedBindingList.Should().AllBeEquivalentTo(initialList);
+            schedulerSynchronizedBindingList.Should().HaveCount(initialList.Count);
+            schedulerSynchronizedBindingList.Should().BeEquivalentTo(initialList);
         }
     }
 }
