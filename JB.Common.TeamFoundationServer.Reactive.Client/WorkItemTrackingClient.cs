@@ -63,7 +63,7 @@ namespace JB.TeamFoundationServer.Reactive.Client
         /// <exception cref="ArgumentNullException">client</exception>
         public virtual IObservable<WorkItem> GetWorkItemsAsync(IEnumerable<int> ids, IEnumerable<string> fields = null,
             DateTime? asOf = null, WorkItemExpand? expand = null,
-            /* WorkItemErrorPolicy? errorPolicy = null, */ // temporarily disabled - will be coming in VS 2017 / the 15.* version(s) of the client
+            WorkItemErrorPolicy? errorPolicy = null,
             object userState = null, CancellationToken cancellationToken = default(CancellationToken))
         {
             return Observable.Create<WorkItem>(observer =>
@@ -72,7 +72,7 @@ namespace JB.TeamFoundationServer.Reactive.Client
 
                 var retrievalObservable = workItemTrackingHttpClient
                     .GetWorkItems(ids, fields, asOf, expand,
-                        /* errorPolicy, */ // temporarily disabled - will be coming in VS 2017 / the 15.* version(s) of the client - see method parameter, too
+                        errorPolicy,
                         userState)
                     .Subscribe(observer);
 

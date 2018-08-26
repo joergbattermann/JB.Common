@@ -331,8 +331,8 @@ namespace JB.Reactive.Cache.Tests
                 expiresInObserver.Messages.Count.Should().Be(2);
                 expiresAtObserver.Messages.Count.Should().Be(2);
 
-                expiresInObserver.Messages.First().Value.Value.ShouldBeEquivalentTo(TimeSpan.FromTicks(expiresAtTicks));
-                expiresAtObserver.Messages.First().Value.Value.ShouldBeEquivalentTo(expirationScheduler.Now.UtcDateTime.AddTicks(expiresAtTicks));
+                expiresInObserver.Messages.First().Value.Value.Should().Be(TimeSpan.FromTicks(expiresAtTicks));
+                expiresAtObserver.Messages.First().Value.Value.Should().Be(expirationScheduler.Now.UtcDateTime.AddTicks(expiresAtTicks));
 
                 // and when
                 expiresInObserver.Messages.Clear();
@@ -349,8 +349,8 @@ namespace JB.Reactive.Cache.Tests
                 expiresInObserver.Messages.Count.Should().Be(2);
                 expiresAtObserver.Messages.Count.Should().Be(2);
 
-                expiresInObserver.Messages.First().Value.Value.ShouldBeEquivalentTo(TimeSpan.Zero);
-                expiresAtObserver.Messages.First().Value.Value.ShouldBeEquivalentTo(expirationScheduler.Now.UtcDateTime);
+                expiresInObserver.Messages.First().Value.Value.Should().Be(TimeSpan.Zero);
+                expiresAtObserver.Messages.First().Value.Value.Should().Be(expirationScheduler.Now.UtcDateTime);
 
 
                 // and finally when
@@ -368,8 +368,8 @@ namespace JB.Reactive.Cache.Tests
                 expiresInObserver.Messages.Count.Should().Be(2);
                 expiresAtObserver.Messages.Count.Should().Be(2);
 
-                expiresInObserver.Messages.First().Value.Value.ShouldBeEquivalentTo(TimeSpan.FromTicks(expiresAtTicks * -1));
-                expiresAtObserver.Messages.First().Value.Value.ShouldBeEquivalentTo(expirationScheduler.Now.UtcDateTime.Subtract(TimeSpan.FromTicks(expiresAtTicks)));
+                expiresInObserver.Messages.First().Value.Value.Should().Be(TimeSpan.FromTicks(expiresAtTicks * -1));
+                expiresAtObserver.Messages.First().Value.Value.Should().Be(expirationScheduler.Now.UtcDateTime.Subtract(TimeSpan.FromTicks(expiresAtTicks)));
             }
         }
 
@@ -980,7 +980,7 @@ namespace JB.Reactive.Cache.Tests
             Action action = () => { expirationScheduler.AdvanceBy(10); };
 
             // then
-            action.ShouldNotThrow<ObjectDisposedException>();
+            action.Should().NotThrow<ObjectDisposedException>();
             
 
             //using ()
@@ -1137,7 +1137,7 @@ namespace JB.Reactive.Cache.Tests
         }
 
         [Fact]
-        public async Task ShouldNotifySubscribersAboutKeyChangesWhileItemsAreInCache()
+        public void ShouldNotifySubscribersAboutKeyChangesWhileItemsAreInCache()
         {
             // given
             var notificationScheduler = new TestScheduler();
@@ -1205,7 +1205,7 @@ namespace JB.Reactive.Cache.Tests
         }
 
         [Fact]
-        public async Task ShouldNotNotifySubscribersAboutKeyChangesAfterItemsAreRemovedFromCache()
+        public void ShouldNotNotifySubscribersAboutKeyChangesAfterItemsAreRemovedFromCache()
         {
             // given
             var notificationScheduler = new TestScheduler();

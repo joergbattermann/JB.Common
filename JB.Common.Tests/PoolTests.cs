@@ -128,7 +128,7 @@ namespace JB.Tests
             Func<Task> invalidDecreaseOnEmptyPool = async () => await emptyPool.DecreaseAvailablePoolSizeAsync(-1);
 
             // then
-            invalidDecreaseOnEmptyPool.ShouldThrow<ArgumentOutOfRangeException>().And.ParamName.Should().Be("decreaseBy");
+            invalidDecreaseOnEmptyPool.Should().Throw<ArgumentOutOfRangeException>().And.ParamName.Should().Be("decreaseBy");
         }
 
         [Fact]
@@ -143,8 +143,8 @@ namespace JB.Tests
             Func<Task> invalidDecreaseOnNonEmptyPool = async () => await nonEmptyPool.DecreaseAvailablePoolSizeAsync(11);
 
             // then
-            invalidDecreaseOnEmptyPool.ShouldThrow<ArgumentOutOfRangeException>().And.ParamName.Should().Be("decreaseBy");
-            invalidDecreaseOnNonEmptyPool.ShouldThrow<ArgumentOutOfRangeException>().And.ParamName.Should().Be("decreaseBy");
+            invalidDecreaseOnEmptyPool.Should().Throw<ArgumentOutOfRangeException>().And.ParamName.Should().Be("decreaseBy");
+            invalidDecreaseOnNonEmptyPool.Should().Throw<ArgumentOutOfRangeException>().And.ParamName.Should().Be("decreaseBy");
         }
 
         [Fact]
@@ -188,10 +188,10 @@ namespace JB.Tests
 
             // then
             // prior to returning poolsize should be down by one
-            detachFromPoolAction.ShouldNotThrow();
+            detachFromPoolAction.Should().NotThrow();
 
             // however a second (or more) time(s) should not be allowed
-            detachFromPoolAction.ShouldThrow<ArgumentOutOfRangeException>();
+            detachFromPoolAction.Should().Throw<ArgumentOutOfRangeException>();
         }
 
         [Fact]
@@ -206,10 +206,10 @@ namespace JB.Tests
 
             // then
             // prior to returning poolsize should be down by one
-            returningToPoolAction.ShouldNotThrow();
+            returningToPoolAction.Should().NotThrow();
             
             // however a second (or more) time(s) should not be allowed
-            returningToPoolAction.ShouldThrow<ArgumentOutOfRangeException>();
+            returningToPoolAction.Should().Throw<ArgumentOutOfRangeException>();
         }
 
         [Theory]
@@ -251,14 +251,14 @@ namespace JB.Tests
             // prior to returning poolsize should be down by one
             pool.AvailableInstancesCount.Should().Be(poolSize -1);
 
-            returningToPoolAction.ShouldNotThrow();
+            returningToPoolAction.Should().NotThrow();
 
             // after returning poolsize should be back to expected size
             pool.AvailableInstancesCount.Should().Be(poolSize);
             acquiredPooledItem.HasBeenReleasedBackToPool.Should().Be(true);
             acquiredPooledItem.HasBeenDetachedFromPool.Should().Be(false);
 
-            accessingPoolValueAfterReturningToPoolAction.ShouldThrow<InvalidOperationException>();
+            accessingPoolValueAfterReturningToPoolAction.Should().Throw<InvalidOperationException>();
         }
 
         [Fact]
@@ -274,7 +274,7 @@ namespace JB.Tests
             Action detachFromPoolAction = () => secondPool.DetachPooledValue(acquiredPooledItem);
 
             // then
-            detachFromPoolAction.ShouldThrow<ArgumentOutOfRangeException>().And.ParamName.Should().Be("pooledValue");
+            detachFromPoolAction.Should().Throw<ArgumentOutOfRangeException>().And.ParamName.Should().Be("pooledValue");
 
             owningPool.AvailableInstancesCount.Should().Be(0);
             acquiredPooledItem.HasBeenReleasedBackToPool.Should().Be(false);
@@ -295,13 +295,13 @@ namespace JB.Tests
             Action accessingPoolValueAfterReturningToDifferentPoolAction = () => { var pooledValue = acquiredPooledItem.Value; };
 
             // then
-            returningToPoolAction.ShouldThrow<ArgumentOutOfRangeException>().And.ParamName.Should().Be("pooledValue");
+            returningToPoolAction.Should().Throw<ArgumentOutOfRangeException>().And.ParamName.Should().Be("pooledValue");
 
             owningPool.AvailableInstancesCount.Should().Be(0);
             acquiredPooledItem.HasBeenReleasedBackToPool.Should().Be(false);
             acquiredPooledItem.HasBeenDetachedFromPool.Should().Be(false);
 
-            accessingPoolValueAfterReturningToDifferentPoolAction.ShouldNotThrow<InvalidOperationException>();
+            accessingPoolValueAfterReturningToDifferentPoolAction.Should().NotThrow<InvalidOperationException>();
         }
 
         [Fact]
@@ -356,7 +356,7 @@ namespace JB.Tests
             };
 
             // then
-            taskArrangement.ShouldNotThrow();
+            taskArrangement.Should().NotThrow();
             waitingConsumerAcquiredPooledValue.Should().NotBe(default(Pooled<string>));
             waitingConsumerAcquiredPooledValue.Value.Should().NotBe(default(string));
             pool.AvailableInstancesCount.Should().Be(0);

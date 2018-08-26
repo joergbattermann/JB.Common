@@ -15,7 +15,7 @@
     <dependencies>
       <dependency id="JB.Common" version="[$version$,]" />
       <dependency id="JB.Common.VisualStudio.Services.Client" version="[$version$,]" />
-      <dependency id="Microsoft.TeamFoundationServer.Client" version="[14.102.0,]" />
+      <dependency id="Microsoft.TeamFoundationServer.Client" version="[15.112.1,]" />
     </dependencies>
     <tags>TFS TFS2015 TeamFoundationServer VisualStudio VisualStudioOnline VSO VisualStudioTeamServices VSTS TeamServices Common Helpers HelperMethods ExtensionMethods</tags>
   </metadata>

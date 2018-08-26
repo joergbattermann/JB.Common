@@ -90,7 +90,7 @@ namespace JB.Collections.Reactive.Tests
                 Action action = () => observableDictionary.AddOrUpdate("1", default(string));
 
                 // then
-                action.ShouldNotThrow<ArgumentNullException>();
+                action.Should().NotThrow<ArgumentNullException>();
 
                 observableDictionary.Count.Should().Be(1);
                 observableDictionary.Should().Contain("1", default(string));
@@ -107,7 +107,7 @@ namespace JB.Collections.Reactive.Tests
                 Action action = () => observableDictionary.AddOrUpdate("1", default(string));
 
                 // then
-                action.ShouldNotThrow<ArgumentNullException>();
+                action.Should().NotThrow<ArgumentNullException>();
 
                 observableDictionary.Count.Should().Be(1);
                 observableDictionary.Should().Contain("1", default(string));
@@ -125,7 +125,7 @@ namespace JB.Collections.Reactive.Tests
 
                 // then
                 action
-                    .ShouldThrow<ArgumentNullException>()
+                    .Should().Throw<ArgumentNullException>()
                     .WithMessage("Value cannot be null.\r\nParameter name: key");
 
                 observableDictionary.Count.Should().Be(0);
@@ -201,7 +201,7 @@ namespace JB.Collections.Reactive.Tests
 
                 // then
                 invalidRemoveRangeForNonExistingKey
-                    .ShouldThrow<ArgumentOutOfRangeException>()
+                    .Should().Throw<ArgumentOutOfRangeException>()
                     .WithMessage("The following key(s) are already in this dictionary and cannot be added to it: 0, 1\r\nParameter name: items");
 
                 observableDictionary.Count.Should().Be(3);
@@ -223,7 +223,7 @@ namespace JB.Collections.Reactive.Tests
 
                 // then
                 action
-                    .ShouldThrow<ArgumentNullException>()
+                    .Should().Throw<ArgumentNullException>()
                     .WithMessage("Value cannot be null.\r\nParameter name: items");
 
                 observableDictionary.Count.Should().Be(0);
@@ -240,7 +240,7 @@ namespace JB.Collections.Reactive.Tests
                 Action action = () => observableDictionary.Add("1", default(string));
 
                 // then
-                action.ShouldNotThrow<ArgumentNullException>();
+                action.Should().NotThrow<ArgumentNullException>();
 
                 observableDictionary.Count.Should().Be(1);
             }
@@ -257,7 +257,7 @@ namespace JB.Collections.Reactive.Tests
 
                 // then
                 action
-                    .ShouldThrow<ArgumentNullException>()
+                    .Should().Throw<ArgumentNullException>()
                     .WithMessage("Value cannot be null.\r\nParameter name: key");
 
                 observableDictionary.Count.Should().Be(0);
@@ -317,7 +317,7 @@ namespace JB.Collections.Reactive.Tests
                 Action action = () => { var value = observableDictionary[2]; };
 
                 // then
-                action.ShouldThrow<KeyNotFoundException>();
+                action.Should().Throw<KeyNotFoundException>();
             }
         }
 
@@ -338,7 +338,7 @@ namespace JB.Collections.Reactive.Tests
 
                 // then
                 action
-                    .ShouldThrow<ArgumentNullException>()
+                    .Should().Throw<ArgumentNullException>()
                     .WithMessage("Value cannot be null.\r\nParameter name: key");
             }
         }
@@ -360,7 +360,7 @@ namespace JB.Collections.Reactive.Tests
 
                 // then
                 action
-                    .ShouldThrow<ArgumentNullException>()
+                    .Should().Throw<ArgumentNullException>()
                     .WithMessage("Value cannot be null.\r\nParameter name: key");
             }
         }
@@ -451,7 +451,7 @@ namespace JB.Collections.Reactive.Tests
                 // then
 
                 invalidRemoveRangeForNonExistingKey
-                    .ShouldNotThrow<ArgumentOutOfRangeException>();
+                    .Should().NotThrow<ArgumentOutOfRangeException>();
 
                 observableDictionary.Count.Should().Be(2);
             }
@@ -493,7 +493,7 @@ namespace JB.Collections.Reactive.Tests
 
                 // then
                 action
-                    .ShouldThrow<ArgumentNullException>()
+                    .Should().Throw<ArgumentNullException>()
                     .WithMessage("Value cannot be null.\r\nParameter name: key");
 
                 observableDictionary.Count.Should().Be(2);
@@ -540,7 +540,7 @@ namespace JB.Collections.Reactive.Tests
 
                 // then
                 invalidRemoveRangeForNonExistingKey
-                    .ShouldThrow<ArgumentOutOfRangeException>()
+                    .Should().Throw<ArgumentOutOfRangeException>()
                     .WithMessage("The following key(s) are not in this dictionary and cannot be removed from it: 10\r\nParameter name: keys");
 
                 observableDictionary.Count.Should().Be(0);
@@ -558,7 +558,7 @@ namespace JB.Collections.Reactive.Tests
 
                 // then
                 action
-                    .ShouldThrow<ArgumentNullException>()
+                    .Should().Throw<ArgumentNullException>()
                     .WithMessage("Value cannot be null.\r\nParameter name: keys");
 
                 observableDictionary.Count.Should().Be(0);
@@ -609,7 +609,7 @@ namespace JB.Collections.Reactive.Tests
 
                 // then
                 invalidRemoveRangeForNonExistingKey
-                    .ShouldThrow<ArgumentOutOfRangeException>()
+                    .Should().Throw<ArgumentOutOfRangeException>()
                     .WithMessage("The following key/value pair(s) are not in this dictionary and cannot be removed from it: [1, Two]\r\nParameter name: items");
 
                 observableDictionary.Count.Should().Be(1);
@@ -627,7 +627,7 @@ namespace JB.Collections.Reactive.Tests
 
                 // then
                 invalidRemoveRangeForNonExistingKey
-                    .ShouldThrow<ArgumentOutOfRangeException>()
+                    .Should().Throw<ArgumentOutOfRangeException>()
                     .WithMessage("The following key/value pair(s) are not in this dictionary and cannot be removed from it: [10, Ten]\r\nParameter name: items");
 
                 observableDictionary.Count.Should().Be(0);
@@ -645,7 +645,7 @@ namespace JB.Collections.Reactive.Tests
 
                 // then
                 action
-                    .ShouldThrow<ArgumentNullException>()
+                    .Should().Throw<ArgumentNullException>()
                     .WithMessage("Value cannot be null.\r\nParameter name: items");
 
                 observableDictionary.Count.Should().Be(0);
@@ -836,7 +836,7 @@ namespace JB.Collections.Reactive.Tests
 
                 // then
                 retrieval
-                    .ShouldThrow<ArgumentNullException>()
+                    .Should().Throw<ArgumentNullException>()
                     .WithMessage("Value cannot be null.\r\nParameter name: key");
             }
         }
@@ -897,7 +897,7 @@ namespace JB.Collections.Reactive.Tests
 
                 // then
                 retrieval
-                    .ShouldThrow<ArgumentNullException>()
+                    .Should().Throw<ArgumentNullException>()
                     .WithMessage("Value cannot be null.\r\nParameter name: key");
 
                 observableDictionary.Count.Should().Be(0);
@@ -937,7 +937,7 @@ namespace JB.Collections.Reactive.Tests
                 // then
 
                 invalidRemoveRangeForNonExistingKey
-                    .ShouldNotThrow<ArgumentOutOfRangeException>();
+                    .Should().NotThrow<ArgumentOutOfRangeException>();
 
                 observableDictionary.Count.Should().Be(0);
             }
@@ -954,7 +954,7 @@ namespace JB.Collections.Reactive.Tests
 
                 // then
                 action
-                    .ShouldThrow<ArgumentNullException>()
+                    .Should().Throw<ArgumentNullException>()
                     .WithMessage("Value cannot be null.\r\nParameter name: key");
 
                 observableDictionary.Count.Should().Be(0);
@@ -1042,7 +1042,7 @@ namespace JB.Collections.Reactive.Tests
 
                 // then
                 action
-                    .ShouldThrow<ArgumentNullException>()
+                    .Should().Throw<ArgumentNullException>()
                     .WithMessage("Value cannot be null.\r\nParameter name: key");
 
                 observableDictionary.Count.Should().Be(0);
@@ -1098,7 +1098,6 @@ namespace JB.Collections.Reactive.Tests
         [InlineData(1)]
         [InlineData(10)]
         [InlineData(100)]
-        [InlineData(100)]
         public void TryRemoveRangeOfKeysRemovesExistingItems(int initialAmountOfItems)
         {
             // given
@@ -1115,7 +1114,7 @@ namespace JB.Collections.Reactive.Tests
                 Action action = () => observableDictionary.TryRemoveRange(keysForKeyValuePairs, out nonRemovables);
 
                 // then check whether all items have been accounted for
-                action.ShouldNotThrow();
+                action.Should().NotThrow();
                 observableDictionary.Count.Should().Be(0);
 
                 nonRemovables.Should().NotBeNull();
@@ -1180,13 +1179,11 @@ namespace JB.Collections.Reactive.Tests
             using (var observableDictionary = new ObservableDictionary<int, string>())
             {
                 // when
-                IList<int> nonRemovables;
-                bool removalResult = false;
-                Action action = () => observableDictionary.TryRemoveRange(null, out nonRemovables);
+                Action action = () => observableDictionary.TryRemoveRange(null, out IList<int> _);
 
                 // then check whether all items have been accounted for
                 action
-                    .ShouldThrow<ArgumentNullException>()
+                    .Should().Throw<ArgumentNullException>()
                     .WithMessage("Value cannot be null.\r\nParameter name: keys");
             }
         }
@@ -1237,7 +1234,6 @@ namespace JB.Collections.Reactive.Tests
         [InlineData(0)]
         [InlineData(1)]
         [InlineData(10)]
-        [InlineData(100)]
         [InlineData(100)]
         public void TryRemoveRangeOfKeyValuePairsRemovesExistingItems(int initialAmountOfItems)
         {
@@ -1315,13 +1311,11 @@ namespace JB.Collections.Reactive.Tests
             using (var observableDictionary = new ObservableDictionary<int, string>())
             {
                 // when
-                IDictionary<int, string> nonRemovables;
-                bool removalResult = false;
-                Action action = () => observableDictionary.TryRemoveRange(null, out nonRemovables);
+                Action action = () => observableDictionary.TryRemoveRange(null, out IDictionary<int, string> _);
 
                 // then check whether all items have been accounted for
                 action
-                    .ShouldThrow<ArgumentNullException>()
+                    .Should().Throw<ArgumentNullException>()
                     .WithMessage("Value cannot be null.\r\nParameter name: items");
             }
         }
@@ -1358,7 +1352,7 @@ namespace JB.Collections.Reactive.Tests
 
                 // then
                 action
-                    .ShouldThrow<ArgumentNullException>()
+                    .Should().Throw<ArgumentNullException>()
                     .WithMessage("Value cannot be null.\r\nParameter name: key");
 
                 observableDictionary.Count.Should().Be(0);

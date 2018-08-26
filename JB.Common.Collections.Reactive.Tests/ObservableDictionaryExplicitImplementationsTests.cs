@@ -48,7 +48,7 @@ namespace JB.Collections.Reactive.Tests
 
                 // then
                 action
-                    .ShouldThrow<ArgumentException>()
+                    .Should().Throw<ArgumentException>()
                     .WithMessage("The key already existed in the dictionary.");
 
                 observableDictionary.Count.Should().Be(1);
@@ -67,7 +67,7 @@ namespace JB.Collections.Reactive.Tests
             Action action = () => { ((ICollection<KeyValuePair<int, string>>) observableDictionary).Add(new KeyValuePair<int, string>(1, "One")); };
 
             // then
-            action.ShouldThrow<ObjectDisposedException>();
+            action.Should().Throw<ObjectDisposedException>();
         }
 
         [Fact]
@@ -119,7 +119,7 @@ namespace JB.Collections.Reactive.Tests
 
                 // then
                 retrieval
-                    .ShouldThrow<ArgumentNullException>()
+                    .Should().Throw<ArgumentNullException>()
                     .WithMessage("Value cannot be null.\r\nParameter name: key");
             }
         }
@@ -197,7 +197,7 @@ namespace JB.Collections.Reactive.Tests
             Action action = () => { ((ICollection<KeyValuePair<int, string>>) observableDictionary).Contains(new KeyValuePair<int, string>(1, "One")); };
 
             // then
-            action.ShouldThrow<ObjectDisposedException>();
+            action.Should().Throw<ObjectDisposedException>();
         }
 
         [Fact]
@@ -274,7 +274,7 @@ namespace JB.Collections.Reactive.Tests
             };
 
             // then
-            action.ShouldThrow<ObjectDisposedException>();
+            action.Should().Throw<ObjectDisposedException>();
         }
 
         [Fact]
@@ -297,7 +297,7 @@ namespace JB.Collections.Reactive.Tests
             };
 
             // then
-            action.ShouldThrow<ObjectDisposedException>();
+            action.Should().Throw<ObjectDisposedException>();
         }
         
         [Fact]
@@ -337,7 +337,7 @@ namespace JB.Collections.Reactive.Tests
             Action action = () => { var enumerator = ((IEnumerable<KeyValuePair<int, string>>) observableDictionary).GetEnumerator(); };
 
             // then
-            action.ShouldThrow<ObjectDisposedException>();
+            action.Should().Throw<ObjectDisposedException>();
         }
 
         [Fact]
@@ -377,7 +377,7 @@ namespace JB.Collections.Reactive.Tests
             Action action = () => { var enumerator = ((IEnumerable) observableDictionary).GetEnumerator(); };
 
             // then
-            action.ShouldThrow<ObjectDisposedException>();
+            action.Should().Throw<ObjectDisposedException>();
         }
         
         [Fact]
@@ -422,7 +422,7 @@ namespace JB.Collections.Reactive.Tests
                 var keys = ((IReadOnlyDictionary<int, string>) observableDictionary).Keys;
 
                 // then
-                keys.ShouldAllBeEquivalentTo(initialKeys);
+                keys.Should().BeEquivalentTo(initialKeys);
             }
         }
 
@@ -502,7 +502,7 @@ namespace JB.Collections.Reactive.Tests
             Action action = () => { ((ICollection<KeyValuePair<int, string>>) observableDictionary).Remove(new KeyValuePair<int, string>(1, "One")); };
 
             // then
-            action.ShouldThrow<ObjectDisposedException>();
+            action.Should().Throw<ObjectDisposedException>();
         }
 
         [Fact]
@@ -517,8 +517,8 @@ namespace JB.Collections.Reactive.Tests
             Action countPropertyAccessAction = () => { var count = ((ICollection<KeyValuePair<int, string>>) observableDictionary).Count; };
 
             // then
-            isReadOnlyPropertyAccessAction.ShouldThrow<ObjectDisposedException>();
-            countPropertyAccessAction.ShouldThrow<ObjectDisposedException>();
+            isReadOnlyPropertyAccessAction.Should().Throw<ObjectDisposedException>();
+            countPropertyAccessAction.Should().Throw<ObjectDisposedException>();
         }
 
         [Fact]
@@ -534,9 +534,9 @@ namespace JB.Collections.Reactive.Tests
             Action isSynchronizedPropertyAccess = () => { var isSynchronized = ((ICollection) observableDictionary).IsSynchronized; };
 
             // then
-            syncRootPropertyAccess.ShouldThrow<ObjectDisposedException>();
-            countPropertyAccess.ShouldThrow<ObjectDisposedException>();
-            isSynchronizedPropertyAccess.ShouldThrow<ObjectDisposedException>();
+            syncRootPropertyAccess.Should().Throw<ObjectDisposedException>();
+            countPropertyAccess.Should().Throw<ObjectDisposedException>();
+            isSynchronizedPropertyAccess.Should().Throw<ObjectDisposedException>();
         }
         
         [Fact]
@@ -551,8 +551,8 @@ namespace JB.Collections.Reactive.Tests
             Action valuesPropertyAccessAction = () => { var values = ((IReadOnlyDictionary<int, string>) observableDictionary).Values; };
 
             // then
-            keysPropertyAccessAction.ShouldThrow<ObjectDisposedException>();
-            valuesPropertyAccessAction.ShouldThrow<ObjectDisposedException>();
+            keysPropertyAccessAction.Should().Throw<ObjectDisposedException>();
+            valuesPropertyAccessAction.Should().Throw<ObjectDisposedException>();
         }
 
         [Fact]
@@ -565,7 +565,7 @@ namespace JB.Collections.Reactive.Tests
             Action action = () => { var value = ((IReadOnlyDictionary<string, string>) observableDictionary).ContainsKey("One"); };
 
             // then
-            action.ShouldThrow<ObjectDisposedException>();
+            action.Should().Throw<ObjectDisposedException>();
         }
 
         [Fact]
@@ -578,7 +578,7 @@ namespace JB.Collections.Reactive.Tests
             Action action = () => { var value = ((IReadOnlyDictionary<int, string>) observableDictionary).ContainsKey(1); };
 
             // then
-            action.ShouldThrow<ObjectDisposedException>();
+            action.Should().Throw<ObjectDisposedException>();
         }
 
         [Fact]
@@ -592,7 +592,7 @@ namespace JB.Collections.Reactive.Tests
             Action action = () => ((IReadOnlyDictionary<int, string>) observableDictionary).TryGetValue(1, out value);
 
             // then
-            action.ShouldThrow<ObjectDisposedException>();
+            action.Should().Throw<ObjectDisposedException>();
         }
 
         [Fact]
@@ -606,7 +606,7 @@ namespace JB.Collections.Reactive.Tests
             Action action = () => ((IReadOnlyDictionary<string, string>) observableDictionary).TryGetValue("One", out value);
 
             // then
-            action.ShouldThrow<ObjectDisposedException>();
+            action.Should().Throw<ObjectDisposedException>();
         }
 
         [Fact]
@@ -620,7 +620,7 @@ namespace JB.Collections.Reactive.Tests
 
                 // then
                 action
-                    .ShouldThrow<NotSupportedException>()
+                    .Should().Throw<NotSupportedException>()
                     .WithMessage("The SyncRoot property may not be used for the synchronization of concurrent collections.");
             }
         }
@@ -682,7 +682,7 @@ namespace JB.Collections.Reactive.Tests
 
                 // then
                 retrieval
-                    .ShouldThrow<ArgumentNullException>()
+                    .Should().Throw<ArgumentNullException>()
                     .WithMessage("Value cannot be null.\r\nParameter name: key");
 
                 observableDictionary.Count.Should().Be(0);
@@ -707,7 +707,7 @@ namespace JB.Collections.Reactive.Tests
                 var values = ((IReadOnlyDictionary<int, string>) observableDictionary).Values;
 
                 // then
-                values.ShouldAllBeEquivalentTo(initialValues);
+                values.Should().BeEquivalentTo(initialValues);
             }
         }
     }

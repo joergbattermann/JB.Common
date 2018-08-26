@@ -54,6 +54,7 @@ namespace JB.VisualStudio.ExtensionMethods
                 StructSize = Marshal.SizeOf(typeof(ImageAttributes))
             };
 
+            Microsoft.VisualStudio.Shell.ThreadHelper.ThrowIfNotOnUIThread();
             IVsUIObject result = visualStudioImageService.GetImage(imageMoniker, imageAttributes);
 
             object data;

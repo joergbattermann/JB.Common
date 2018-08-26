@@ -30,10 +30,10 @@ namespace JB.Tests
 
             // then
             // prior to returning poolsize should be down by one
-            returningToPoolAction.ShouldNotThrow();
+            returningToPoolAction.Should().NotThrow();
 
             // however a second (or more) time(s) should not be allowed
-            returningToPoolAction.ShouldThrow<InvalidOperationException>();
+            returningToPoolAction.Should().Throw<InvalidOperationException>();
         }
 
         [Fact]
@@ -48,8 +48,8 @@ namespace JB.Tests
             Action detachingFromPoolAction = () => acquiredPooledItem.DetachFromPool();
 
             // then
-            returningToPoolAction.ShouldNotThrow();
-            detachingFromPoolAction.ShouldThrow<InvalidOperationException>();
+            returningToPoolAction.Should().NotThrow();
+            detachingFromPoolAction.Should().Throw<InvalidOperationException>();
         }
 
         [Fact]
@@ -64,8 +64,8 @@ namespace JB.Tests
             Action returningToPoolAction = () => acquiredPooledItem.ReleaseBackToPool();
 
             // then
-            detachingFromPoolAction.ShouldNotThrow();
-            returningToPoolAction.ShouldThrow<InvalidOperationException>();
+            detachingFromPoolAction.Should().NotThrow();
+            returningToPoolAction.Should().Throw<InvalidOperationException>();
         }
 
         [Fact]
@@ -83,7 +83,7 @@ namespace JB.Tests
 
             Action valueDispose = () => acquiredPooledItem.Dispose();
 
-            valueDispose.ShouldNotThrow<ObjectDisposedException>();
+            valueDispose.Should().NotThrow<ObjectDisposedException>();
         }
 
         [Fact]
@@ -120,9 +120,9 @@ namespace JB.Tests
             acquiredPooledItem.Dispose();
 
             // then
-            accessingValueAction.ShouldThrow<ObjectDisposedException>().And.ObjectName.Should().Be(acquiredPooledItem.GetType().Name);
-            accessingHasBeenDetachedFromPoolAction.ShouldThrow<ObjectDisposedException>().And.ObjectName.Should().Be(acquiredPooledItem.GetType().Name);
-            accessingHasBeenReleasedBackToPoolAction.ShouldThrow<ObjectDisposedException>().And.ObjectName.Should().Be(acquiredPooledItem.GetType().Name);
+            accessingValueAction.Should().Throw<ObjectDisposedException>().And.ObjectName.Should().Be(acquiredPooledItem.GetType().Name);
+            accessingHasBeenDetachedFromPoolAction.Should().Throw<ObjectDisposedException>().And.ObjectName.Should().Be(acquiredPooledItem.GetType().Name);
+            accessingHasBeenReleasedBackToPoolAction.Should().Throw<ObjectDisposedException>().And.ObjectName.Should().Be(acquiredPooledItem.GetType().Name);
         }
     }
 }

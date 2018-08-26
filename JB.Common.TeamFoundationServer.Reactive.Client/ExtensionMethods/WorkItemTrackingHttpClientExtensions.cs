@@ -47,7 +47,7 @@ namespace JB.TeamFoundationServer.Reactive.Client.ExtensionMethods
         /// <exception cref="ArgumentNullException">client</exception>
         public static IObservable<WorkItem> GetWorkItems(this WorkItemTrackingHttpClient client, IEnumerable<int> ids, IEnumerable<string> fields = null,
             DateTime? asOf = null, WorkItemExpand? expand = null,
-            /* WorkItemErrorPolicy? errorPolicy = null, */ // temporarily disabled - will be coming in VS 2017 / the 15.* version(s) of the client
+            WorkItemErrorPolicy? errorPolicy = null,
             object userState = null)
         {
             if (client == null) throw new ArgumentNullException(nameof(client));
@@ -59,9 +59,14 @@ namespace JB.TeamFoundationServer.Reactive.Client.ExtensionMethods
 
             // else
             return Observable.FromAsync(
-                    token => client.GetWorkItemsAsync(ids, fields, asOf, expand,
-                    /* errorPolicy, */ // temporarily disabled - will be coming in VS 2017 / the 15.* version(s) of the client - see method parameter, too
-                    userState, token))
+                    token => client.GetWorkItemsAsync(
+                        ids,
+                        fields,
+                        asOf,
+                        expand,
+                        errorPolicy,
+                        userState,
+                        token))
                 .SelectMany(workItems => workItems);
         }
     }

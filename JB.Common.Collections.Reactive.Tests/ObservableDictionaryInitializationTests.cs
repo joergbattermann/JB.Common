@@ -10,6 +10,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using FluentAssertions;
+using FluentAssertions.Collections;
 using Xunit;
 
 namespace JB.Collections.Reactive.Tests
@@ -51,7 +52,7 @@ namespace JB.Collections.Reactive.Tests
             Action constructionFunc = () => createdDictionary = new ObservableDictionary<string, string>(initialList, StringComparer.InvariantCulture);
 
             // then
-            constructionFunc.ShouldNotThrow<ArgumentException>();
+            constructionFunc.Should().NotThrow<ArgumentException>();
             createdDictionary.Should().NotBeNull();
 
             createdDictionary.Count.Should().Be(initialList.Count);
@@ -111,7 +112,7 @@ namespace JB.Collections.Reactive.Tests
 
                 // then
                 action
-                    .ShouldThrow<ArgumentOutOfRangeException>()
+                    .Should().Throw<ArgumentOutOfRangeException>()
                     .WithMessage("Must be 0 or higher.\r\nParameter name: value");
             }
         }
@@ -128,7 +129,7 @@ namespace JB.Collections.Reactive.Tests
                 // then
                 observableDictionary.IsEmpty.Should().Be(false);
                 observableDictionary.Count.Should().Be(initialList.Count);
-                observableDictionary.ShouldAllBeEquivalentTo(initialList);
+                observableDictionary.Should().BeEquivalentTo(initialList);
             }
         }
 
@@ -147,7 +148,7 @@ namespace JB.Collections.Reactive.Tests
             Action constructionFunc = () => new ObservableDictionary<string, string>(initialList, StringComparer.InvariantCultureIgnoreCase);
 
             // then
-            constructionFunc.ShouldThrow<ArgumentException>();
+            constructionFunc.Should().Throw<ArgumentException>();
         }
 
         [Fact]
@@ -165,7 +166,7 @@ namespace JB.Collections.Reactive.Tests
             Action constructionFunc = () => new ObservableDictionary<int, string>(initialList);
 
             // then
-            constructionFunc.ShouldThrow<ArgumentException>();
+            constructionFunc.Should().Throw<ArgumentException>();
         }
 
         [Theory]

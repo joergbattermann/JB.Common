@@ -15,7 +15,7 @@
     <dependencies>
       <dependency id="JB.Common" version="[$version$,]" />
       <dependency id="JB.Common.Reactive" version="[$version$,]" />
-      <dependency id="System.Reactive" version="[3.1.1,]" />
+      <dependency id="System.Reactive" version="[4.1.0,]" />
     </dependencies>
     <tags>Reactive Extensions RX rxnet Streaming Analytics Analysis Insight</tags>
   </metadata>

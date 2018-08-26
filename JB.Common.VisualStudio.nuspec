@@ -14,9 +14,9 @@
     <projectUrl>https://github.com/jbattermann/JB.Common/blob/master/README.md</projectUrl>
     <dependencies>
       <dependency id="JB.Common" version="[$version$,]" />
-      <dependency id="Microsoft.VisualStudio.Shell.14.0" version="[14.3.25407,]" />
-      <dependency id="Microsoft.VisualStudio.Shell.Interop.14.0.DesignTime" version="[14.3.25407,]" />
-      <dependency id="Microsoft.VisualStudio.ImageCatalog" version="[14.3.25407,]" />
+      <dependency id="Microsoft.VisualStudio.Shell.15.0" version="[15.7.27703,]" />
+      <dependency id="Microsoft.VisualStudio.Shell.Interop.15.7.DesignTime" version="[15.7.1,]" />
+      <dependency id="Microsoft.VisualStudio.ImageCatalog" version="[15.7.27703,]" />
     </dependencies>
     <tags>VisualStudio Common Helpers HelperMethods ExtensionMethods Extensibility VSIX</tags>
   </metadata>

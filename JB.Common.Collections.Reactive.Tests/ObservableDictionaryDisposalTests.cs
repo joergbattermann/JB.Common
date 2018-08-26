@@ -24,7 +24,7 @@ namespace JB.Collections.Reactive.Tests
             // when
             Action disposalAction = () => observableDictionary.Dispose();
 
-            disposalAction.ShouldNotThrow<ObjectDisposedException>();
+            disposalAction.Should().NotThrow<ObjectDisposedException>();
         }
 
         [Fact]
@@ -51,8 +51,8 @@ namespace JB.Collections.Reactive.Tests
             Action isDisposedPropertyAccess = () => { var isDisposed = observableDictionary.IsDisposed; };
 
             // then
-            isDisposingPropertyAccess.ShouldNotThrow<ObjectDisposedException>();
-            isDisposedPropertyAccess.ShouldNotThrow<ObjectDisposedException>();
+            isDisposingPropertyAccess.Should().NotThrow<ObjectDisposedException>();
+            isDisposedPropertyAccess.Should().NotThrow<ObjectDisposedException>();
         }
 
         [Fact]
@@ -79,20 +79,20 @@ namespace JB.Collections.Reactive.Tests
             Action thresholdAmountWhenItemChangesAreNotifiedAsResetPropertySetAccess = () => { observableDictionary.ThresholdAmountWhenChangesAreNotifiedAsReset = 1; };
 
             // then
-            countPropertyAccess.ShouldThrow<ObjectDisposedException>();
+            countPropertyAccess.Should().Throw<ObjectDisposedException>();
 
-            isTrackingChangesPropertyAccess.ShouldThrow<ObjectDisposedException>();
-            isTrackingCountChangesPropertyAccess.ShouldThrow<ObjectDisposedException>();
-            isTrackingItemChangesPropertyAccess.ShouldThrow<ObjectDisposedException>();
-            isTrackingResetsPropertyAccess.ShouldThrow<ObjectDisposedException>();
+            isTrackingChangesPropertyAccess.Should().Throw<ObjectDisposedException>();
+            isTrackingCountChangesPropertyAccess.Should().Throw<ObjectDisposedException>();
+            isTrackingItemChangesPropertyAccess.Should().Throw<ObjectDisposedException>();
+            isTrackingResetsPropertyAccess.Should().Throw<ObjectDisposedException>();
 
-            thresholdAmountWhenItemChangesAreNotifiedAsResetPropertyGetAccess.ShouldThrow<ObjectDisposedException>();
-            thresholdAmountWhenItemChangesAreNotifiedAsResetPropertySetAccess.ShouldThrow<ObjectDisposedException>();
+            thresholdAmountWhenItemChangesAreNotifiedAsResetPropertyGetAccess.Should().Throw<ObjectDisposedException>();
+            thresholdAmountWhenItemChangesAreNotifiedAsResetPropertySetAccess.Should().Throw<ObjectDisposedException>();
 
-            isEmptyPropertyAccess.ShouldThrow<ObjectDisposedException>();
+            isEmptyPropertyAccess.Should().Throw<ObjectDisposedException>();
 
-            keysPropertyAccess.ShouldThrow<ObjectDisposedException>();
-            valuesPropertyAccess.ShouldThrow<ObjectDisposedException>();
+            keysPropertyAccess.Should().Throw<ObjectDisposedException>();
+            valuesPropertyAccess.Should().Throw<ObjectDisposedException>();
         }
 
         [Fact]
@@ -106,7 +106,7 @@ namespace JB.Collections.Reactive.Tests
             Action action = () => { var value = observableDictionary[1]; };
 
             // then
-            action.ShouldThrow<ObjectDisposedException>();
+            action.Should().Throw<ObjectDisposedException>();
         }
 
         [Fact]
@@ -120,7 +120,7 @@ namespace JB.Collections.Reactive.Tests
             Action action = () => { observableDictionary[1] = "One"; };
 
             // then
-            action.ShouldThrow<ObjectDisposedException>();
+            action.Should().Throw<ObjectDisposedException>();
         }
 
         [Fact]
@@ -134,7 +134,7 @@ namespace JB.Collections.Reactive.Tests
             Action action = () => observableDictionary.TryGetValue("One", out value);
 
             // then
-            action.ShouldThrow<ObjectDisposedException>();  
+            action.Should().Throw<ObjectDisposedException>();  
         }
 
         [Fact]
@@ -150,7 +150,7 @@ namespace JB.Collections.Reactive.Tests
             };
 
             // then
-            action.ShouldThrow<ObjectDisposedException>();
+            action.Should().Throw<ObjectDisposedException>();
         }
 
         [Fact]
@@ -166,7 +166,7 @@ namespace JB.Collections.Reactive.Tests
             };
 
             // then
-            action.ShouldThrow<ObjectDisposedException>();
+            action.Should().Throw<ObjectDisposedException>();
         }
     }
 }

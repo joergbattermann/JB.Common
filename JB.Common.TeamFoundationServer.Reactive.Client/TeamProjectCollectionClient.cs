@@ -1,6 +1,7 @@
 ﻿using System;
 using Microsoft.VisualStudio.Services.Client;
 using Microsoft.VisualStudio.Services.Common;
+using Microsoft.VisualStudio.Services.WebApi;
 
 namespace JB.TeamFoundationServer.Reactive.Client
 {

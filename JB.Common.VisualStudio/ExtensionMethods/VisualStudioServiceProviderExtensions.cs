@@ -18,7 +18,8 @@ namespace JB.VisualStudio.ExtensionMethods
 		{
 			if (serviceProvider == null) throw new ArgumentNullException(nameof(serviceProvider));
 
-			return (Microsoft.VisualStudio.Shell.Interop.IVsImageService2)serviceProvider.GetService(typeof(SVsImageService));
+		    Microsoft.VisualStudio.Shell.ThreadHelper.ThrowIfNotOnUIThread();
+			return (IVsImageService2)serviceProvider.GetService(typeof(SVsImageService));
         }
 
         /// <summary>
@@ -31,6 +32,7 @@ namespace JB.VisualStudio.ExtensionMethods
         {
             if (serviceProvider == null) throw new ArgumentNullException(nameof(serviceProvider));
 
+            Microsoft.VisualStudio.Shell.ThreadHelper.ThrowIfNotOnUIThread();
             return (IVsShell)serviceProvider.GetService(typeof(SVsShell));
         }
 
@@ -48,6 +50,8 @@ namespace JB.VisualStudio.ExtensionMethods
             IVsShell vsShell = serviceProvider.GetVsShell();
             if (vsShell == null)
                 return false;
+
+            Microsoft.VisualStudio.Shell.ThreadHelper.ThrowIfNotOnUIThread();
 
             IVsPackage loadedPackage = null;
             return vsShell.LoadPackage(ref packageGuid, out loadedPackage) == Microsoft.VisualStudio.VSConstants.S_OK;

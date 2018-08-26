@@ -40,7 +40,7 @@ namespace JB.Collections.Reactive.Tests
                 Action action = () => observableDictionary.Add(1, "One");
 
                 // then
-                action.ShouldNotThrow<InvalidOperationException>();
+                action.Should().NotThrow<InvalidOperationException>();
             }
         }
 
@@ -60,7 +60,7 @@ namespace JB.Collections.Reactive.Tests
 
                 // then
                 action
-                    .ShouldThrow<InvalidOperationException>()
+                    .Should().Throw<InvalidOperationException>()
                     .WithMessage("My Marker Message");
             }
         }
@@ -85,7 +85,7 @@ namespace JB.Collections.Reactive.Tests
                 Action action = () => observableDictionary.Add(1, "One");
 
                 // then
-                action.ShouldNotThrow<InvalidOperationException>();
+                action.Should().NotThrow<InvalidOperationException>();
             }
         }
 
@@ -105,7 +105,7 @@ namespace JB.Collections.Reactive.Tests
 
                 // then
                 action
-                    .ShouldThrow<InvalidOperationException>()
+                    .Should().Throw<InvalidOperationException>()
                     .WithMessage("My Marker Message");
             }
         }
@@ -128,7 +128,7 @@ namespace JB.Collections.Reactive.Tests
                 Action action = () => observableDictionary.Add(1, "One");
 
                 // then
-                action.ShouldNotThrow<InvalidOperationException>();
+                action.Should().NotThrow<InvalidOperationException>();
             }
         }
 
@@ -146,7 +146,7 @@ namespace JB.Collections.Reactive.Tests
 
                 // then
                 action
-                    .ShouldThrow<InvalidOperationException>()
+                    .Should().Throw<InvalidOperationException>()
                     .WithMessage("My Marker Message");
             }
         }
@@ -294,21 +294,22 @@ namespace JB.Collections.Reactive.Tests
             // given
             using (var observableDictionary = new ObservableDictionary<int, string>())
             {
-                observableDictionary.MonitorEvents();
+                using (var monitoredObservableDictionary = observableDictionary.Monitor())
+                {
+                    // when
+                    observableDictionary.Add(1, "One");
 
-                // when
-                observableDictionary.Add(1, "One");
+                    // then
+                    monitoredObservableDictionary
+                        .Should().Raise(nameof(observableDictionary.PropertyChanged))
+                        .WithSender(observableDictionary)
+                        .WithArgs<PropertyChangedEventArgs>(args => args.PropertyName == "Item[]");
 
-                // then
-                observableDictionary
-                    .ShouldRaise(nameof(observableDictionary.PropertyChanged))
-                    .WithSender(observableDictionary)
-                    .WithArgs<PropertyChangedEventArgs>(args => args.PropertyName == "Item[]");
-
-                observableDictionary
-                    .ShouldRaise(nameof(observableDictionary.PropertyChanged))
-                    .WithSender(observableDictionary)
-                    .WithArgs<PropertyChangedEventArgs>(args => args.PropertyName == nameof(observableDictionary.Count));
+                    monitoredObservableDictionary
+                        .Should().Raise(nameof(observableDictionary.PropertyChanged))
+                        .WithSender(observableDictionary)
+                        .WithArgs<PropertyChangedEventArgs>(args => args.PropertyName == nameof(observableDictionary.Count));
+                }
             }
         }
 
@@ -319,7 +320,6 @@ namespace JB.Collections.Reactive.Tests
             using (var observableDictionary = new ObservableDictionary<int, string>())
             {
                 observableDictionary.ThresholdAmountWhenChangesAreNotifiedAsReset = 0;
-                observableDictionary.MonitorEvents();
 
                 var items = new List<KeyValuePair<int, string>>()
                 {
@@ -328,21 +328,24 @@ namespace JB.Collections.Reactive.Tests
                     new KeyValuePair<int, string>(3, "Three"),
                 };
 
-                // when
-                observableDictionary.AddRange(items);
+                using (var monitoredObservableDictionary = observableDictionary.Monitor())
+                {
+                    // when
+                    observableDictionary.AddRange(items);
 
-                // then
-                observableDictionary
-                    .ShouldRaise(nameof(observableDictionary.PropertyChanged))
-                    .WithSender(observableDictionary)
-                    .WithArgs<PropertyChangedEventArgs>(args => args.PropertyName == "Item[]")
-                    .Should().HaveCount(1); // ToDo: re-enable test if/when https://github.com/dennisdoomen/fluentassertions/issues/337 has been fixed
+                    // then
+                    monitoredObservableDictionary
+                        .Should().Raise(nameof(observableDictionary.PropertyChanged))
+                        .WithSender(observableDictionary)
+                        .WithArgs<PropertyChangedEventArgs>(args => args.PropertyName == "Item[]")
+                        .Should().HaveCount(1); // ToDo: re-enable test if/when https://github.com/dennisdoomen/fluentassertions/issues/337 has been fixed
 
-                observableDictionary
-                    .ShouldRaise(nameof(observableDictionary.PropertyChanged))
-                    .WithSender(observableDictionary)
-                    .WithArgs<PropertyChangedEventArgs>(args => args.PropertyName == nameof(observableDictionary.Count))
-                    .Should().HaveCount(1); // ToDo: re-enable test if/when https://github.com/dennisdoomen/fluentassertions/issues/337 has been fixed
+                    monitoredObservableDictionary
+                        .Should().Raise(nameof(observableDictionary.PropertyChanged))
+                        .WithSender(observableDictionary)
+                        .WithArgs<PropertyChangedEventArgs>(args => args.PropertyName == nameof(observableDictionary.Count))
+                        .Should().HaveCount(1); // ToDo: re-enable test if/when https://github.com/dennisdoomen/fluentassertions/issues/337 has been fixed
+                }
             }
         }
 
@@ -359,21 +362,22 @@ namespace JB.Collections.Reactive.Tests
 
             using (var observableDictionary = new ObservableDictionary<int, string>(items))
             {
-                observableDictionary.MonitorEvents();
+                using(var monitoredObservableDictionary = observableDictionary.Monitor())
+                {
+                    // when
+                    observableDictionary.Clear();
 
-                // when
-                observableDictionary.Clear();
+                    // then
+                    monitoredObservableDictionary
+                        .Should().Raise(nameof(observableDictionary.PropertyChanged))
+                        .WithSender(observableDictionary)
+                        .WithArgs<PropertyChangedEventArgs>(args => args.PropertyName == "Item[]");
 
-                // then
-                observableDictionary
-                    .ShouldRaise(nameof(observableDictionary.PropertyChanged))
-                    .WithSender(observableDictionary)
-                    .WithArgs<PropertyChangedEventArgs>(args => args.PropertyName == "Item[]");
-
-                observableDictionary
-                    .ShouldRaise(nameof(observableDictionary.PropertyChanged))
-                    .WithSender(observableDictionary)
-                    .WithArgs<PropertyChangedEventArgs>(args => args.PropertyName == nameof(observableDictionary.Count));
+                    monitoredObservableDictionary
+                        .Should().Raise(nameof(observableDictionary.PropertyChanged))
+                        .WithSender(observableDictionary)
+                        .WithArgs<PropertyChangedEventArgs>(args => args.PropertyName == nameof(observableDictionary.Count));
+                }
             }
         }
 
@@ -383,14 +387,15 @@ namespace JB.Collections.Reactive.Tests
             // given
             using (var observableDictionary = new ObservableDictionary<int, string>())
             {
-                observableDictionary.MonitorEvents();
+                using(var monitoredObservableDictionary = observableDictionary.Monitor())
+                {
+                    // when
+                    observableDictionary.Clear();
 
-                // when
-                observableDictionary.Clear();
-
-                // then
-                observableDictionary
-                    .ShouldNotRaise(nameof(observableDictionary.PropertyChanged));
+                    // then
+                    monitoredObservableDictionary
+                        .Should().NotRaise(nameof(observableDictionary.PropertyChanged));
+                }
             }
         }
 
@@ -400,21 +405,22 @@ namespace JB.Collections.Reactive.Tests
             // given
             using (var observableDictionary = new ObservableDictionary<int, string>())
             {
-                observableDictionary.MonitorEvents();
+                using (var monitoredObservableDictionary = observableDictionary.Monitor())
+                {
+                    // when
+                    observableDictionary.Reset();
 
-                // when
-                observableDictionary.Reset();
+                    // then
+                    monitoredObservableDictionary
+                        .Should().Raise(nameof(observableDictionary.PropertyChanged))
+                        .WithSender(observableDictionary)
+                        .WithArgs<PropertyChangedEventArgs>(args => args.PropertyName == "Item[]");
 
-                // then
-                observableDictionary
-                    .ShouldRaise(nameof(observableDictionary.PropertyChanged))
-                    .WithSender(observableDictionary)
-                    .WithArgs<PropertyChangedEventArgs>(args => args.PropertyName == "Item[]");
-
-                observableDictionary
-                    .ShouldRaise(nameof(observableDictionary.PropertyChanged))
-                    .WithSender(observableDictionary)
-                    .WithArgs<PropertyChangedEventArgs>(args => args.PropertyName == nameof(observableDictionary.Count));
+                    monitoredObservableDictionary
+                        .Should().Raise(nameof(observableDictionary.PropertyChanged))
+                        .WithSender(observableDictionary)
+                        .WithArgs<PropertyChangedEventArgs>(args => args.PropertyName == nameof(observableDictionary.Count));
+                }
             }
         }
 
@@ -469,8 +475,6 @@ namespace JB.Collections.Reactive.Tests
             // given
             using (var observableDictionary = new ObservableDictionary<int, string>())
             {
-                observableDictionary.MonitorEvents();
-
                 var items = new List<KeyValuePair<int, string>>()
                 {
                     new KeyValuePair<int, string>(1, "One"),
@@ -478,19 +482,22 @@ namespace JB.Collections.Reactive.Tests
                     new KeyValuePair<int, string>(3, "Three"),
                 };
 
-                // when
-                observableDictionary.AddRange(items);
+                using (var monitoredObservableDictionary = observableDictionary.Monitor())
+                {
+                    // when
+                    observableDictionary.AddRange(items);
 
-                // then
-                observableDictionary
-                    .ShouldRaise(nameof(observableDictionary.PropertyChanged))
-                    .WithSender(observableDictionary)
-                    .WithArgs<PropertyChangedEventArgs>(args => args.PropertyName == "Item[]");
+                    // then
+                    monitoredObservableDictionary
+                        .Should().Raise(nameof(observableDictionary.PropertyChanged))
+                        .WithSender(observableDictionary)
+                        .WithArgs<PropertyChangedEventArgs>(args => args.PropertyName == "Item[]");
 
-                observableDictionary
-                    .ShouldRaise(nameof(observableDictionary.PropertyChanged))
-                    .WithSender(observableDictionary)
-                    .WithArgs<PropertyChangedEventArgs>(args => args.PropertyName == nameof(observableDictionary.Count));
+                    monitoredObservableDictionary
+                        .Should().Raise(nameof(observableDictionary.PropertyChanged))
+                        .WithSender(observableDictionary)
+                        .WithArgs<PropertyChangedEventArgs>(args => args.PropertyName == nameof(observableDictionary.Count));
+                }
             }
         }
 
@@ -508,23 +515,24 @@ namespace JB.Collections.Reactive.Tests
             using (var observableDictionary = new ObservableDictionary<int, string>(items))
             {
                 observableDictionary.ThresholdAmountWhenChangesAreNotifiedAsReset = 0;
-                observableDictionary.MonitorEvents();
+                using (var monitoredObservableDictionary = observableDictionary.Monitor())
+                {
+                    // when
+                    observableDictionary.RemoveRange(items);
 
-                // when
-                observableDictionary.RemoveRange(items);
+                    // then
+                    monitoredObservableDictionary
+                        .Should().Raise(nameof(observableDictionary.PropertyChanged))
+                        .WithSender(observableDictionary)
+                        .WithArgs<PropertyChangedEventArgs>(args => args.PropertyName == "Item[]")
+                        .Should().HaveCount(1); // ToDo: re-enable test if/when https://github.com/fluentassertions/fluentassertions/issues/337 has been fixed
 
-                // then
-                observableDictionary
-                    .ShouldRaise(nameof(observableDictionary.PropertyChanged))
-                    .WithSender(observableDictionary)
-                    .WithArgs<PropertyChangedEventArgs>(args => args.PropertyName == "Item[]")
-                    .Should().HaveCount(1); // ToDo: re-enable test if/when https://github.com/dennisdoomen/fluentassertions/issues/337 has been fixed
-
-                observableDictionary
-                    .ShouldRaise(nameof(observableDictionary.PropertyChanged))
-                    .WithSender(observableDictionary)
-                    .WithArgs<PropertyChangedEventArgs>(args => args.PropertyName == nameof(observableDictionary.Count))
-                    .Should().HaveCount(1); // ToDo: re-enable test if/when https://github.com/dennisdoomen/fluentassertions/issues/337 has been fixed
+                    monitoredObservableDictionary
+                        .Should().Raise(nameof(observableDictionary.PropertyChanged))
+                        .WithSender(observableDictionary)
+                        .WithArgs<PropertyChangedEventArgs>(args => args.PropertyName == nameof(observableDictionary.Count))
+                        .Should().HaveCount(1); // ToDo: re-enable test if/when https://github.com/fluentassertions/fluentassertions/issues/337 has been fixed
+                }
             }
         }
 
@@ -542,21 +550,22 @@ namespace JB.Collections.Reactive.Tests
             using (var observableDictionary = new ObservableDictionary<int, string>(items))
             {
                 observableDictionary.ThresholdAmountWhenChangesAreNotifiedAsReset = 0;
-                observableDictionary.MonitorEvents();
+                using (var monitoredObservableDictionary = observableDictionary.Monitor())
+                {
+                    // when
+                    observableDictionary.RemoveRange(items);
 
-                // when
-                observableDictionary.RemoveRange(items);
+                    // then
+                    monitoredObservableDictionary
+                        .Should().Raise(nameof(observableDictionary.PropertyChanged))
+                        .WithSender(observableDictionary)
+                        .WithArgs<PropertyChangedEventArgs>(args => args.PropertyName == "Item[]");
 
-                // then
-                observableDictionary
-                    .ShouldRaise(nameof(observableDictionary.PropertyChanged))
-                    .WithSender(observableDictionary)
-                    .WithArgs<PropertyChangedEventArgs>(args => args.PropertyName == "Item[]");
-
-                observableDictionary
-                    .ShouldRaise(nameof(observableDictionary.PropertyChanged))
-                    .WithSender(observableDictionary)
-                    .WithArgs<PropertyChangedEventArgs>(args => args.PropertyName == nameof(observableDictionary.Count));
+                    monitoredObservableDictionary
+                        .Should().Raise(nameof(observableDictionary.PropertyChanged))
+                        .WithSender(observableDictionary)
+                        .WithArgs<PropertyChangedEventArgs>(args => args.PropertyName == nameof(observableDictionary.Count));
+                }
             }
         }
 
@@ -568,21 +577,22 @@ namespace JB.Collections.Reactive.Tests
             {
                 observableDictionary.Add(1, "One");
 
-                observableDictionary.MonitorEvents();
+                using (var monitoredObservableDictionary = observableDictionary.Monitor())
+                {
+                    // when
+                    observableDictionary.Remove(1);
 
-                // when
-                observableDictionary.Remove(1);
+                    // then
+                    monitoredObservableDictionary
+                        .Should().Raise(nameof(observableDictionary.PropertyChanged))
+                        .WithSender(observableDictionary)
+                        .WithArgs<PropertyChangedEventArgs>(args => args.PropertyName == "Item[]");
 
-                // then
-                observableDictionary
-                    .ShouldRaise(nameof(observableDictionary.PropertyChanged))
-                    .WithSender(observableDictionary)
-                    .WithArgs<PropertyChangedEventArgs>(args => args.PropertyName == "Item[]");
-
-                observableDictionary
-                    .ShouldRaise(nameof(observableDictionary.PropertyChanged))
-                    .WithSender(observableDictionary)
-                    .WithArgs<PropertyChangedEventArgs>(args => args.PropertyName == nameof(observableDictionary.Count));
+                    monitoredObservableDictionary
+                        .Should().Raise(nameof(observableDictionary.PropertyChanged))
+                        .WithSender(observableDictionary)
+                        .WithArgs<PropertyChangedEventArgs>(args => args.PropertyName == nameof(observableDictionary.Count));
+                }
             }
         }
 
@@ -1313,7 +1323,7 @@ namespace JB.Collections.Reactive.Tests
             Action action = () => { suppression.Dispose(); };
 
             action
-                .ShouldThrow<ObjectDisposedException>()
+                .Should().Throw<ObjectDisposedException>()
                 .WithMessage($"Cannot access a disposed object.\r\nObject name: '{observableDictionary.GetType().Name}'.");
         }
 
@@ -1329,7 +1339,7 @@ namespace JB.Collections.Reactive.Tests
                     Action action = () => { var secondSuppression = observableDictionary.SuppressChangeNotifications(); };
 
                     action
-                        .ShouldThrow<InvalidOperationException>()
+                        .Should().Throw<InvalidOperationException>()
                         .WithMessage("A Change Notification Suppression is currently already ongoing, multiple concurrent suppressions are not supported.");
                 }
             }
@@ -1346,7 +1356,7 @@ namespace JB.Collections.Reactive.Tests
             Action action = () => { var suppression = observableDictionary.SuppressChangeNotifications(); };
 
             action
-                .ShouldThrow<ObjectDisposedException>()
+                .Should().Throw<ObjectDisposedException>()
                 .WithMessage($"Cannot access a disposed object.\r\nObject name: '{observableDictionary.GetType().Name}'.");
         }
 
@@ -1362,7 +1372,7 @@ namespace JB.Collections.Reactive.Tests
             Action action = () => { suppression.Dispose(); };
 
             action
-                .ShouldThrow<ObjectDisposedException>()
+                .Should().Throw<ObjectDisposedException>()
                 .WithMessage($"Cannot access a disposed object.\r\nObject name: '{observableDictionary.GetType().Name}'.");
         }
 
@@ -1424,7 +1434,7 @@ namespace JB.Collections.Reactive.Tests
                     Action action = () => { var secondSuppression = observableDictionary.SuppressCountChangeNotifications(); };
 
                     action
-                        .ShouldThrow<InvalidOperationException>()
+                        .Should().Throw<InvalidOperationException>()
                         .WithMessage("A Count Change(s) Notification Suppression is currently already ongoing, multiple concurrent suppressions are not supported.");
                 }
             }
@@ -1441,7 +1451,7 @@ namespace JB.Collections.Reactive.Tests
             Action action = () => { var suppression = observableDictionary.SuppressCountChangeNotifications(); };
 
             action
-                .ShouldThrow<ObjectDisposedException>()
+                .Should().Throw<ObjectDisposedException>()
                 .WithMessage($"Cannot access a disposed object.\r\nObject name: '{observableDictionary.GetType().Name}'.");
         }
 
@@ -1498,7 +1508,7 @@ namespace JB.Collections.Reactive.Tests
             Action action = () => { suppression.Dispose(); };
 
             action
-                .ShouldThrow<ObjectDisposedException>()
+                .Should().Throw<ObjectDisposedException>()
                 .WithMessage($"Cannot access a disposed object.\r\nObject name: '{observableDictionary.GetType().Name}'.");
         }
 
@@ -1573,7 +1583,7 @@ namespace JB.Collections.Reactive.Tests
                     Action action = () => { var secondSuppression = observableDictionary.SuppressItemChangeNotifications(); };
 
                     action
-                        .ShouldThrow<InvalidOperationException>()
+                        .Should().Throw<InvalidOperationException>()
                         .WithMessage("An Item Change Notification Suppression is currently already ongoing, multiple concurrent suppressions are not supported.");
                 }
             }
@@ -1590,7 +1600,7 @@ namespace JB.Collections.Reactive.Tests
             Action action = () => { var suppression = observableDictionary.SuppressItemChangeNotifications(); };
 
             action
-                .ShouldThrow<ObjectDisposedException>()
+                .Should().Throw<ObjectDisposedException>()
                 .WithMessage($"Cannot access a disposed object.\r\nObject name: '{observableDictionary.GetType().Name}'.");
         }
 
@@ -1653,7 +1663,7 @@ namespace JB.Collections.Reactive.Tests
             Action action = () => { suppression.Dispose(); };
 
             action
-                .ShouldThrow<ObjectDisposedException>()
+                .Should().Throw<ObjectDisposedException>()
                 .WithMessage($"Cannot access a disposed object.\r\nObject name: '{observableDictionary.GetType().Name}'.");
         }
 
@@ -1719,7 +1729,7 @@ namespace JB.Collections.Reactive.Tests
                     Action action = () => { var secondSuppression = observableDictionary.SuppressResetNotifications(); };
 
                     action
-                        .ShouldThrow<InvalidOperationException>()
+                        .Should().Throw<InvalidOperationException>()
                         .WithMessage("A Reset(s) Notification Suppression is currently already ongoing, multiple concurrent suppressions are not supported.");
                 }
             }
@@ -1736,7 +1746,7 @@ namespace JB.Collections.Reactive.Tests
             Action action = () => { var suppression = observableDictionary.SuppressResetNotifications(); };
 
             action
-                .ShouldThrow<ObjectDisposedException>()
+                .Should().Throw<ObjectDisposedException>()
                 .WithMessage($"Cannot access a disposed object.\r\nObject name: '{observableDictionary.GetType().Name}'.");
         }
 
