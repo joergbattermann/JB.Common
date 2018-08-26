@@ -629,7 +629,7 @@ namespace JB.Reactive.Cache.ExtensionMethods
         /// <param name="keys">The keys to remove.</param>
         /// <param name="scheduler">Scheduler to perform the remove action on.</param>
         /// <returns>
-        /// An observable stream that returns an observable stream of either [true] or [false] for every element provided by the <paramref name="source"/> observable
+        /// An observable stream that returns an observable stream of either [true] or [false] for every key provided by the <paramref name="keys"/> variable
         /// and whether it was successfully found and removed.. or not.
         /// </returns>
         /// <remarks>

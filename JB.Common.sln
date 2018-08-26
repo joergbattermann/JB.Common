@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 14
-VisualStudioVersion = 14.0.25420.1
+# Visual Studio 15
+VisualStudioVersion = 15.0.28010.2003
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JB.Common.Collections", "JB.Common.Collections\JB.Common.Collections.csproj", "{360B8B3F-5EF4-4CD1-96F2-F3CC67A2B2B3}"
 EndProject
@@ -19,8 +19,6 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JB.Common.Reactive", "JB.Common.Reactive\JB.Common.Reactive.csproj", "{45F64424-6A73-45CD-942C-841225CB3AD6}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JB.Common.VisualStudio", "JB.Common.VisualStudio\JB.Common.VisualStudio.csproj", "{E12CC753-0D0E-4933-9F1D-A46722C92B5F}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JB.Common.VisualStudio.TeamFoundation", "JB.Common.VisualStudio.TeamFoundation\JB.Common.VisualStudio.TeamFoundation.csproj", "{6510F736-3FC5-49E1-9169-BB9CAB15D753}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JB.Common.Collections.Reactive.Tests", "JB.Common.Collections.Reactive.Tests\JB.Common.Collections.Reactive.Tests.csproj", "{067E492E-F300-4DC5-89C1-1AEF9C061C01}"
 EndProject
@@ -56,7 +54,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "NuGet", "NuGet", "{927AC848
 		JB.Common.TeamFoundationServer.Reactive.Client.nuspec = JB.Common.TeamFoundationServer.Reactive.Client.nuspec
 		JB.Common.VisualStudio.nuspec = JB.Common.VisualStudio.nuspec
 		JB.Common.VisualStudio.Services.Client.nuspec = JB.Common.VisualStudio.Services.Client.nuspec
-		JB.Common.VisualStudio.TeamFoundation.nuspec = JB.Common.VisualStudio.TeamFoundation.nuspec
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "JB.Common.Reactive.Testing", "JB.Common.Reactive.Testing\JB.Common.Reactive.Testing.csproj", "{5E603FC4-8E2A-45E3-8527-4DCF35049CED}"
@@ -89,10 +86,6 @@ Global
 		{E12CC753-0D0E-4933-9F1D-A46722C92B5F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{E12CC753-0D0E-4933-9F1D-A46722C92B5F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{E12CC753-0D0E-4933-9F1D-A46722C92B5F}.Release|Any CPU.Build.0 = Release|Any CPU
-		{6510F736-3FC5-49E1-9169-BB9CAB15D753}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{6510F736-3FC5-49E1-9169-BB9CAB15D753}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{6510F736-3FC5-49E1-9169-BB9CAB15D753}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{6510F736-3FC5-49E1-9169-BB9CAB15D753}.Release|Any CPU.Build.0 = Release|Any CPU
 		{067E492E-F300-4DC5-89C1-1AEF9C061C01}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{067E492E-F300-4DC5-89C1-1AEF9C061C01}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{067E492E-F300-4DC5-89C1-1AEF9C061C01}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -152,5 +145,8 @@ Global
 		{66781C50-92C1-4832-85DE-5BF3E8EC14C2} = {26BE593D-322B-408F-BFC7-3F2B3273DE21}
 		{21239505-BBAE-4C3A-AAB7-77DB5C513C01} = {26BE593D-322B-408F-BFC7-3F2B3273DE21}
 		{927AC848-51F0-4F70-A5E1-65C84B59ABE7} = {8A122F14-4B60-4FF0-A400-DEED25A9E624}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {30F488F3-84B3-48BE-995C-0D5DA432B00F}
 	EndGlobalSection
 EndGlobal
