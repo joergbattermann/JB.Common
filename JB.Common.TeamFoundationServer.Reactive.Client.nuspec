@@ -16,8 +16,8 @@
       <dependency id="JB.Common" version="[$version$,]" />
       <dependency id="JB.Common.VisualStudio.Services.Client" version="[$version$,]" />
       <dependency id="JB.Common.TeamFoundationServer.Client" version="[$version$,]" />
-      <dependency id="Microsoft.TeamFoundationServer.Client" version="[15.112.1,]" />
-      <dependency id="Microsoft.VisualStudio.Services.Client" version="[15.112.1,]" />
+      <dependency id="Microsoft.TeamFoundationServer.Client" version="[16.143.2,]" />
+      <dependency id="Microsoft.VisualStudio.Services.Client" version="[16.143.2,]" />
       <dependency id="System.Reactive" version="[4.1.0,]" />
     </dependencies>
     <tags>Reactive Extensions RX rxnet TFS TeamFoundationServer VisualStudio VisualStudioOnline VSO VisualStudioTeamServices VSTS TeamServices Common Helpers HelperMethods ExtensionMethods</tags>
